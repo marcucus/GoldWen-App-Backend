@@ -11,7 +11,7 @@ import { Profile } from '../../database/entities/profile.entity';
 
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
-import { AppleStrategy } from './strategies/apple.strategy';
+// import { AppleStrategy } from './strategies/apple.strategy';
 
 @Module({
   imports: [
@@ -28,7 +28,7 @@ import { AppleStrategy } from './strategies/apple.strategy';
       inject: [ConfigService],
     }),
   ],
-  providers: [AuthService, JwtStrategy, GoogleStrategy, AppleStrategy],
+  providers: [AuthService, JwtStrategy, GoogleStrategy], // AppleStrategy
   controllers: [AuthController],
   exports: [AuthService, JwtStrategy, PassportModule],
 })

@@ -16,7 +16,7 @@ export const databaseConfig = registerAs(
   'database',
   (): DatabaseConfig => ({
     host: process.env.DATABASE_HOST || 'localhost',
-    port: parseInt(process.env.DATABASE_PORT, 10) || 5432,
+    port: parseInt(process.env.DATABASE_PORT || '5432', 10),
     username: process.env.DATABASE_USERNAME || 'goldwen',
     password: process.env.DATABASE_PASSWORD || 'goldwen_password',
     database: process.env.DATABASE_NAME || 'goldwen_db',
@@ -27,7 +27,7 @@ export const redisConfig = registerAs(
   'redis',
   (): RedisConfig => ({
     host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT, 10) || 6379,
+    port: parseInt(process.env.REDIS_PORT || '6379', 10),
     password: process.env.REDIS_PASSWORD || undefined,
   }),
 );
@@ -43,7 +43,7 @@ export const jwtConfig = registerAs(
 export const appConfig = registerAs(
   'app',
   (): AppConfig => ({
-    port: parseInt(process.env.PORT, 10) || 3000,
+    port: parseInt(process.env.PORT || '3000', 10),
     environment: process.env.NODE_ENV || 'development',
     apiPrefix: process.env.API_PREFIX || 'api/v1',
   }),
@@ -69,7 +69,7 @@ export const fileUploadConfig = registerAs(
   'fileUpload',
   (): FileUploadConfig => ({
     uploadDir: process.env.UPLOAD_DIR || 'uploads',
-    maxFileSize: parseInt(process.env.MAX_FILE_SIZE, 10) || 5242880, // 5MB
+    maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '5242880', 10), // 5MB
   }),
 );
 
@@ -85,7 +85,7 @@ export const emailConfig = registerAs(
   (): EmailConfig => ({
     smtp: {
       host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT, 10) || 587,
+      port: parseInt(process.env.SMTP_PORT || '587', 10),
       secure: process.env.SMTP_SECURE === 'true',
       user: process.env.SMTP_USER || '',
       pass: process.env.SMTP_PASS || '',
