@@ -467,7 +467,10 @@ Cette documentation liste toutes les routes API disponibles pour le frontend et 
 
 ---
 
-## 🤖 Matching Service Routes (Python Service)
+## 🤖 Matching Service Routes (Service Externe - Python)
+
+**Note:** Ces routes sont servies par un service de matching externe qui doit être démarré sur http://localhost:8000.
+Le service de matching n'est plus inclus dans ce repository.
 
 ### POST /matching-service/calculate-compatibility
 **Description**: Calcul de compatibilité entre deux profils  
@@ -654,8 +657,9 @@ MATCHING_SERVICE_URL=http://localhost:8000
 REVENUECAT_API_KEY=your-revenuecat-api-key
 ```
 
-### Service Matching
+### Service Matching (Externe)
 ```bash
+# Variables d'environnement pour le service de matching externe
 API_HOST=0.0.0.0
 API_PORT=8000
 API_PREFIX=/api/v1
@@ -668,6 +672,8 @@ API_KEY=matching-service-secret-key
 
 LOG_LEVEL=INFO
 ```
+
+**Note:** Ces variables doivent être configurées dans le repository du service de matching externe.
 
 ---
 
