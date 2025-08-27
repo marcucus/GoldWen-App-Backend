@@ -6,7 +6,7 @@ Backend complet pour l'application de rencontre GoldWen, développé selon les s
 
 ### Services
 - **API Principale** : NestJS (TypeScript) - Port 3000
-- **Service de Matching** : FastAPI (Python) - Port 8000
+- **Service de Matching** : FastAPI (Python) - Port 8000 (Service externe)
 - **Base de données** : PostgreSQL
 - **Cache** : Redis
 - **Documentation** : Swagger/OpenAPI
@@ -81,7 +81,7 @@ docker-compose ps
 
 Services disponibles :
 - **API Principale** : http://localhost:3000/api/v1
-- **Service Matching** : http://localhost:8000/api/v1
+- **Service Matching** : http://localhost:8000/api/v1 (Service externe)
 - **Documentation API** : http://localhost:3000/api/v1/docs
 - **PostgreSQL** : localhost:5432
 - **Redis** : localhost:6379
@@ -104,29 +104,7 @@ cp .env.example .env
 npm run start:dev
 ```
 
-#### 2. Service de Matching (Python)
-
-```bash
-cd matching-service
-
-# Créer un environnement virtuel
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# ou
-venv\Scripts\activate  # Windows
-
-# Installer les dépendances
-pip install -r requirements.txt
-
-# Configurer l'environnement
-cp .env.example .env
-# Éditer .env avec vos paramètres
-
-# Démarrer le service
-python main.py
-```
-
-#### 3. Base de Données
+#### 2. Base de Données
 
 ```bash
 # Créer la base de données PostgreSQL
@@ -135,6 +113,9 @@ createdb goldwen_db
 # Les migrations se font automatiquement au démarrage en mode développement
 ```
 
+**Note:** Le service de matching est maintenant externe à ce repository. 
+Assurez-vous qu'il est démarré sur http://localhost:8000 pour que l'API principale puisse communiquer avec lui.
+
 ## 📚 Documentation API
 
 ### Documentation Complète
@@ -142,7 +123,7 @@ Consultez le fichier [API_ROUTES.md](./API_ROUTES.md) pour la documentation comp
 
 ### Swagger Documentation
 - **API Principale** : http://localhost:3000/api/v1/docs
-- **Service Matching** : http://localhost:8000/api/v1/docs
+- **Service Matching** : http://localhost:8000/api/v1/docs (Service externe)
 
 ### Exemples d'Utilisation
 
@@ -184,7 +165,7 @@ GoldWen-App-Backend/
 │   │   │   ├── auth/            # Authentification
 │   │   │   ├── users/           # Gestion utilisateurs
 │   │   │   ├── profiles/        # Profils et photos
-│   │   │   ├── matching/        # Système de matching
+│   │   │   ├── matching/        # Interface avec service de matching externe
 │   │   │   ├── chat/            # Chat temps réel
 │   │   │   ├── subscriptions/   # Abonnements
 │   │   │   ├── notifications/   # Notifications
@@ -196,17 +177,9 @@ GoldWen-App-Backend/
 │   │   ├── common/              # Utilitaires partagés
 │   │   └── config/              # Configuration
 │   └── test/                    # Tests
-├── matching-service/             # Service de Matching Python
-│   ├── app/
-│   │   ├── api/                 # Routes FastAPI
-│   │   ├── services/            # Logique métier
-│   │   ├── models/              # Modèles Pydantic
-│   │   └── core/                # Configuration
-│   └── tests/                   # Tests Python
 ├── .github/workflows/           # CI/CD GitHub Actions
 ├── docker-compose.yml           # Configuration Docker
 ├── Dockerfile.api              # Docker API
-├── Dockerfile.matching         # Docker Matching Service
 └── API_ROUTES.md               # Documentation routes
 ```
 
@@ -226,16 +199,7 @@ npm run test:e2e
 npm run test:cov
 ```
 
-### Service de Matching
-```bash
-cd matching-service
-
-# Tests Python
-pytest tests/
-
-# Avec coverage
-pytest --cov=app tests/
-```
+**Note:** Les tests du service de matching sont maintenant dans un repository séparé.
 
 ## 🚀 Déploiement
 
@@ -264,24 +228,21 @@ GOOGLE_CLIENT_ID=<google-oauth>
 APPLE_CLIENT_ID=<apple-oauth>
 FCM_SERVER_KEY=<firebase-key>
 REVENUECAT_API_KEY=<revenuecat-key>
+MATCHING_SERVICE_URL=http://localhost:8000
 ```
 
-#### Service Matching
-```bash
-DATABASE_URL=postgresql://...
-REDIS_URL=redis://...
-API_KEY=<service-secret>
-MAIN_API_URL=https://api.goldwen.com
-```
+**Note:** Le service de matching doit être configuré et démarré séparément sur le port 8000.
 
 ## 🔧 Configuration
 
 ### Personnalisation de l'Algorithme de Matching
-Le service de matching permet de configurer :
+Le service de matching externe permet de configurer :
 - Poids de compatibilité personnalité vs préférences
 - Score minimum de compatibilité
 - Taille des sélections quotidiennes
 - Paramètres de distance géographique
+
+**Note:** Cette configuration se fait maintenant dans le repository du service de matching externe.
 
 ### Notifications Push
 Configuration FCM requise pour :

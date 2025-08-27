@@ -50,7 +50,7 @@ services:
       - DATABASE_NAME=goldwen_db
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - MATCHING_SERVICE_URL=http://matching-service:8000
+      - MATCHING_SERVICE_URL=http://host.docker.internal:8000
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,29 +63,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
-  # Matching Service
-  matching-service:
-    build:
-      context: .
-      dockerfile: Dockerfile.matching
-    container_name: goldwen_matching
-    ports:
-      - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql://goldwen:goldwen_password@postgres:5432/goldwen_db
-      - REDIS_URL=redis://redis:6379
-      - MAIN_API_URL=http://api:3000
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 volumes:
   postgres_data:
