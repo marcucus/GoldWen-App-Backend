@@ -60,6 +60,7 @@ import { AdminModule } from './modules/admin/admin.module';
         username: 'postgres',
         password: 'admin',
         database: 'postgres',
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: configService.get('app.environment') === 'development',
         logging: configService.get('app.environment') === 'development',
       }),
@@ -69,7 +70,7 @@ import { AdminModule } from './modules/admin/admin.module';
     // Redis for queues
     BullModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
+      useFactory: (configService: ConfigService) => ({
         redis: {
           host: configService.get('redis.host'),
           port: configService.get('redis.port'),

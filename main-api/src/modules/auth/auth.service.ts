@@ -8,7 +8,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { v4 as uuidv4 } from 'uuid';
 
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
@@ -117,8 +116,7 @@ export class AuthService {
   }
 
   async socialLogin(socialLoginDto: SocialLoginDto): Promise<AuthResponse> {
-    const { socialId, provider, email, firstName, lastName, profilePicture } =
-      socialLoginDto;
+    const { socialId, provider, email, firstName, lastName } = socialLoginDto;
 
     // Check if user exists with social ID
     let user = await this.userRepository.findOne({
