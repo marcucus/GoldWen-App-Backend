@@ -1,4 +1,10 @@
-import { IsEnum, IsOptional, IsBoolean, IsString, IsObject } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsBoolean,
+  IsString,
+  IsObject,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { NotificationType } from '../../../common/enums';
@@ -14,9 +20,9 @@ export class GetNotificationsDto {
   @Transform(({ value }) => parseInt(value))
   limit?: number = 20;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: 'Filter by notification type',
-    enum: NotificationType 
+    enum: NotificationType,
   })
   @IsOptional()
   @IsEnum(NotificationType)
@@ -84,17 +90,27 @@ export class CreateNotificationDto {
 }
 
 export class TestNotificationDto {
-  @ApiPropertyOptional({ description: 'Notification title', default: 'Test Notification' })
+  @ApiPropertyOptional({
+    description: 'Notification title',
+    default: 'Test Notification',
+  })
   @IsOptional()
   @IsString()
   title?: string = 'Test Notification';
 
-  @ApiPropertyOptional({ description: 'Notification body', default: 'This is a test notification' })
+  @ApiPropertyOptional({
+    description: 'Notification body',
+    default: 'This is a test notification',
+  })
   @IsOptional()
   @IsString()
   body?: string = 'This is a test notification';
 
-  @ApiPropertyOptional({ description: 'Notification type', enum: NotificationType, default: NotificationType.DAILY_SELECTION })
+  @ApiPropertyOptional({
+    description: 'Notification type',
+    enum: NotificationType,
+    default: NotificationType.DAILY_SELECTION,
+  })
   @IsOptional()
   @IsEnum(NotificationType)
   type?: NotificationType = NotificationType.DAILY_SELECTION;

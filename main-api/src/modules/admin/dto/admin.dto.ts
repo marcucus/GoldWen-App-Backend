@@ -8,11 +8,11 @@ import {
   IsEmail,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { 
-  UserStatus, 
-  ReportStatus, 
+import {
+  UserStatus,
+  ReportStatus,
   ReportType,
-  NotificationType 
+  NotificationType,
 } from '../../../common/enums';
 
 export class AdminLoginDto {

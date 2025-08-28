@@ -16,6 +16,7 @@ import { Match } from './match.entity';
 import { Message } from './message.entity';
 import { Subscription } from './subscription.entity';
 import { Notification } from './notification.entity';
+import { NotificationPreferences } from './notification-preferences.entity';
 import { Report } from './report.entity';
 
 @Entity('users')
@@ -66,6 +67,9 @@ export class User {
   lastLoginAt: Date;
 
   @Column({ nullable: true })
+  lastActiveAt: Date;
+
+  @Column({ nullable: true })
   fcmToken: string;
 
   @Column({ default: true })
@@ -103,6 +107,9 @@ export class User {
 
   @OneToMany(() => Notification, (notification) => notification.user)
   notifications: Notification[];
+
+  @OneToOne(() => NotificationPreferences, (preferences) => preferences.user)
+  notificationPreferences: NotificationPreferences;
 
   @OneToMany(() => Report, (report) => report.reporter)
   reportsSubmitted: Report[];

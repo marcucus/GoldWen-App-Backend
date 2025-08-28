@@ -8,10 +8,10 @@ export class LoggingMiddleware implements NestMiddleware {
 
   use(req: Request, res: Response, next: NextFunction) {
     const start = Date.now();
-    
+
     // Generate trace ID for this request
     const traceId = this.logger.generateTraceId();
-    
+
     // Set request context
     this.logger.setContext({
       traceId,
@@ -37,7 +37,7 @@ export class LoggingMiddleware implements NestMiddleware {
     res.on('finish', () => {
       const responseTime = Date.now() - start;
       this.logger.logRequest(req, res, responseTime);
-      
+
       // Clear context after request
       this.logger.clearContext();
     });

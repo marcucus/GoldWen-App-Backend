@@ -58,9 +58,13 @@ export class CustomLoggerService implements LoggerService {
       format.colorize(),
       format.printf(({ timestamp, level, message, ...meta }) => {
         const traceId = this.context.traceId ? `[${this.context.traceId}]` : '';
-        const contextStr = this.context.userId ? `[User: ${this.context.userId}]` : '';
-        const metaStr = Object.keys(meta).length ? JSON.stringify(meta, null, 2) : '';
-        
+        const contextStr = this.context.userId
+          ? `[User: ${this.context.userId}]`
+          : '';
+        const metaStr = Object.keys(meta).length
+          ? JSON.stringify(meta, null, 2)
+          : '';
+
         return `${timestamp} ${level} ${traceId}${contextStr}: ${message} ${metaStr}`;
       }),
     );
@@ -71,19 +75,21 @@ export class CustomLoggerService implements LoggerService {
       transports: [
         new transports.Console(),
         // In production, you might want to add file transports or external services
-        ...(isProduction ? [
-          new transports.File({
-            filename: 'logs/error.log',
-            level: 'error',
-            maxsize: 5242880, // 5MB
-            maxFiles: 5,
-          }),
-          new transports.File({
-            filename: 'logs/combined.log',
-            maxsize: 5242880, // 5MB
-            maxFiles: 5,
-          }),
-        ] : []),
+        ...(isProduction
+          ? [
+              new transports.File({
+                filename: 'logs/error.log',
+                level: 'error',
+                maxsize: 5242880, // 5MB
+                maxFiles: 5,
+              }),
+              new transports.File({
+                filename: 'logs/combined.log',
+                maxsize: 5242880, // 5MB
+                maxFiles: 5,
+              }),
+            ]
+          : []),
       ],
     });
   }
@@ -201,7 +207,13 @@ export class CustomLoggerService implements LoggerService {
   }
 
   // External API call logging
-  logExternalApiCall(service: string, endpoint: string, method: string, responseTime?: number, statusCode?: number) {
+  logExternalApiCall(
+    service: string,
+    endpoint: string,
+    method: string,
+    responseTime?: number,
+    statusCode?: number,
+  ) {
     this.info(`External API call to ${service}`, {
       action: 'external_api_call',
       service,

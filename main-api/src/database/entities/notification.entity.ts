@@ -50,6 +50,9 @@ export class Notification {
   @Column({ nullable: true })
   scheduledFor: Date;
 
+  @Column({ default: 0 })
+  retryCount: number;
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -16,7 +16,7 @@ export class AppService {
       services: {
         api: 'healthy',
         database: 'healthy', // In real app, would check actual DB connection
-        cache: 'healthy',    // In real app, would check Redis connection
+        cache: 'healthy', // In real app, would check Redis connection
       },
     };
   }

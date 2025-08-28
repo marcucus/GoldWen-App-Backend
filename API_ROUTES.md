@@ -2,21 +2,26 @@
 
 Cette documentation liste toutes les routes API disponibles pour le frontend et le service de matching de l'application GoldWen.
 
+# GoldWen API Routes Documentation
+
+Cette documentation liste toutes les routes API disponibles pour le frontend et le service de matching de l'application GoldWen.
+
 ## 📊 Implementation Status
 
 **✅ Fully Implemented**
 - Structured logging with JSON format and trace IDs
-- Request/response logging middleware
-- Health check endpoint
-- Complete notifications module
-- Admin panel with comprehensive logging
-- All authentication routes
-- User management routes
-- Profile management routes
-- Matching system integration
-- Chat functionality
-- Subscription management
-- Notifications system
+- Request/response logging middleware with global interceptors
+- Global exception filters with proper error handling
+- Health check endpoint with service status monitoring
+- Complete notifications module with FCM integration
+- Admin panel with comprehensive logging and role-based access
+- All authentication routes with OAuth support
+- User management routes with statistics and preferences
+- Profile management routes with photo uploads
+- Matching system integration with daily selections
+- Chat functionality with real-time WebSocket support
+- Subscription management with RevenueCat integration
+- Notifications system with user preferences
 
 **🔄 Enhanced Features**
 - Environment-based log levels (LOG_LEVEL=debug|info|warn|error)
@@ -24,6 +29,9 @@ Cette documentation liste toutes les routes API disponibles pour le frontend et 
 - Security event logging for admin actions
 - Business event tracking for all major operations
 - Error tracking with full stack traces
+- Global validation pipes with whitelist and transform
+- Response interceptors for performance monitoring
+- Development environment setup scripts
 
 ## Base URL
 - **API Principal**: `http://localhost:3000/api/v1`

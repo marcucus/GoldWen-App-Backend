@@ -1,8 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 import { Admin } from '../../database/entities/admin.entity';
 import { User } from '../../database/entities/user.entity';
@@ -13,14 +14,8 @@ import { Subscription } from '../../database/entities/subscription.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      Admin,
-      User,
-      Report,
-      Match,
-      Chat,
-      Subscription,
-    ]),
+    TypeOrmModule.forFeature([Admin, User, Report, Match, Chat, Subscription]),
+    forwardRef(() => NotificationsModule),
   ],
   providers: [AdminService],
   controllers: [AdminController],

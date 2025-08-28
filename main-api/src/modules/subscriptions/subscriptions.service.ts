@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, Not } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -30,7 +34,7 @@ export class SubscriptionsService {
   @Cron(CronExpression.EVERY_DAY_AT_1AM)
   async handleExpiredSubscriptions() {
     const now = new Date();
-    
+
     const expiredSubscriptions = await this.subscriptionRepository.find({
       where: {
         status: SubscriptionStatus.ACTIVE,
@@ -44,7 +48,10 @@ export class SubscriptionsService {
     }
   }
 
-  async createSubscription(userId: string, createSubscriptionDto: CreateSubscriptionDto): Promise<Subscription> {
+  async createSubscription(
+    userId: string,
+    createSubscriptionDto: CreateSubscriptionDto,
+  ): Promise<Subscription> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('User not found');
@@ -52,8 +59,13 @@ export class SubscriptionsService {
 
     // Check if user already has an active subscription
     const existingSubscription = await this.getActiveSubscription(userId);
-    if (existingSubscription && createSubscriptionDto.plan === existingSubscription.plan) {
-      throw new BadRequestException('User already has an active subscription of this type');
+    if (
+      existingSubscription &&
+      createSubscriptionDto.plan === existingSubscription.plan
+    ) {
+      throw new BadRequestException(
+        'User already has an active subscription of this type',
+      );
     }
 
     const subscription = this.subscriptionRepository.create({
@@ -103,7 +115,7 @@ export class SubscriptionsService {
 
     subscription.status = SubscriptionStatus.ACTIVE;
     subscription.startDate = new Date();
-    
+
     // Cancel any other active subscriptions for this user
     await this.subscriptionRepository.update(
       {
@@ -114,13 +126,16 @@ export class SubscriptionsService {
       {
         status: SubscriptionStatus.CANCELLED,
         cancelledAt: new Date(),
-      }
+      },
     );
 
     return this.subscriptionRepository.save(subscription);
   }
 
-  async cancelSubscription(subscriptionId: string, userId?: string): Promise<Subscription> {
+  async cancelSubscription(
+    subscriptionId: string,
+    userId?: string,
+  ): Promise<Subscription> {
     const where: any = { id: subscriptionId };
     if (userId) {
       where.userId = userId;
@@ -159,12 +174,18 @@ export class SubscriptionsService {
   }
 
   // RevenueCat webhook handler
-  async handleRevenueCatWebhook(webhookData: RevenueCatWebhookDto): Promise<void> {
+  async handleRevenueCatWebhook(
+    webhookData: RevenueCatWebhookDto,
+  ): Promise<void> {
     const { event, app_user_id: userId } = webhookData;
 
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
-      this.logger.error(`User not found for RevenueCat webhook: ${userId}`, '', 'SubscriptionsService');
+      this.logger.error(
+        `User not found for RevenueCat webhook: ${userId}`,
+        '',
+        'SubscriptionsService',
+      );
       return;
     }
 
@@ -190,12 +211,23 @@ export class SubscriptionsService {
     }
   }
 
-  private async handlePurchaseOrRenewal(webhookData: RevenueCatWebhookDto): Promise<void> {
+  private async handlePurchaseOrRenewal(
+    webhookData: RevenueCatWebhookDto,
+  ): Promise<void> {
     const { app_user_id: userId, event } = webhookData;
-    const { product_id, price_in_purchased_currency, purchased_at, expiration_at } = event;
+    const {
+      product_id,
+      price_in_purchased_currency,
+      purchased_at,
+      expiration_at,
+    } = event;
 
     if (!product_id || !purchased_at || !expiration_at) {
-      this.logger.error('Missing required fields in webhook data', '', 'SubscriptionsService');
+      this.logger.error(
+        'Missing required fields in webhook data',
+        '',
+        'SubscriptionsService',
+      );
       return;
     }
 
@@ -229,7 +261,9 @@ export class SubscriptionsService {
     await this.subscriptionRepository.save(subscription);
   }
 
-  private async handleCancellation(webhookData: RevenueCatWebhookDto): Promise<void> {
+  private async handleCancellation(
+    webhookData: RevenueCatWebhookDto,
+  ): Promise<void> {
     const { app_user_id: userId, event } = webhookData;
 
     const subscription = await this.subscriptionRepository.findOne({
@@ -246,7 +280,9 @@ export class SubscriptionsService {
     }
   }
 
-  private async handleExpiration(webhookData: RevenueCatWebhookDto): Promise<void> {
+  private async handleExpiration(
+    webhookData: RevenueCatWebhookDto,
+  ): Promise<void> {
     const { app_user_id: userId, event } = webhookData;
 
     const subscription = await this.subscriptionRepository.findOne({
@@ -262,7 +298,9 @@ export class SubscriptionsService {
     }
   }
 
-  private async handleBillingIssue(webhookData: RevenueCatWebhookDto): Promise<void> {
+  private async handleBillingIssue(
+    webhookData: RevenueCatWebhookDto,
+  ): Promise<void> {
     // Handle billing issues - could notify user, pause features, etc.
     this.logger.logBusinessEvent('billing_issue_detected', {
       userId: webhookData.app_user_id,
@@ -270,12 +308,14 @@ export class SubscriptionsService {
     });
   }
 
-  private getSubscriptionPlanFromProductId(productId: string): SubscriptionPlan {
+  private getSubscriptionPlanFromProductId(
+    productId: string,
+  ): SubscriptionPlan {
     // Map RevenueCat product IDs to our subscription plans
     const productMap: Record<string, SubscriptionPlan> = {
-      'goldwen_plus_monthly': SubscriptionPlan.GOLDWEN_PLUS,
-      'goldwen_plus_yearly': SubscriptionPlan.GOLDWEN_PLUS,
-      'goldwen_plus_quarterly': SubscriptionPlan.GOLDWEN_PLUS,
+      goldwen_plus_monthly: SubscriptionPlan.GOLDWEN_PLUS,
+      goldwen_plus_yearly: SubscriptionPlan.GOLDWEN_PLUS,
+      goldwen_plus_quarterly: SubscriptionPlan.GOLDWEN_PLUS,
     };
 
     return productMap[productId] || SubscriptionPlan.FREE;
@@ -283,7 +323,7 @@ export class SubscriptionsService {
 
   private calculateExpirationDate(plan: SubscriptionPlan): Date {
     const now = new Date();
-    
+
     switch (plan) {
       case SubscriptionPlan.GOLDWEN_PLUS:
         // Default to monthly, this would be refined based on actual product ID
@@ -317,7 +357,8 @@ export class SubscriptionsService {
     return {
       isActive: true,
       plan: subscription.plan,
-      maxDailyChoices: subscription.plan === SubscriptionPlan.GOLDWEN_PLUS ? 3 : 1,
+      maxDailyChoices:
+        subscription.plan === SubscriptionPlan.GOLDWEN_PLUS ? 3 : 1,
       hasExtendChatFeature: subscription.plan === SubscriptionPlan.GOLDWEN_PLUS,
       hasPrioritySupport: subscription.plan === SubscriptionPlan.GOLDWEN_PLUS,
       expiresAt: subscription.expiresAt,
@@ -331,11 +372,22 @@ export class SubscriptionsService {
     expiredSubscriptions: number;
     revenue: number;
   }> {
-    const [totalSubscriptions, activeSubscriptions, cancelledSubscriptions, expiredSubscriptions] = await Promise.all([
+    const [
+      totalSubscriptions,
+      activeSubscriptions,
+      cancelledSubscriptions,
+      expiredSubscriptions,
+    ] = await Promise.all([
       this.subscriptionRepository.count(),
-      this.subscriptionRepository.count({ where: { status: SubscriptionStatus.ACTIVE } }),
-      this.subscriptionRepository.count({ where: { status: SubscriptionStatus.CANCELLED } }),
-      this.subscriptionRepository.count({ where: { status: SubscriptionStatus.EXPIRED } }),
+      this.subscriptionRepository.count({
+        where: { status: SubscriptionStatus.ACTIVE },
+      }),
+      this.subscriptionRepository.count({
+        where: { status: SubscriptionStatus.CANCELLED },
+      }),
+      this.subscriptionRepository.count({
+        where: { status: SubscriptionStatus.EXPIRED },
+      }),
     ]);
 
     // Calculate total revenue (this would be more complex in production)

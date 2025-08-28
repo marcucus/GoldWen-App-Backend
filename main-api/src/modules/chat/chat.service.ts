@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Or, In, Not, LessThan } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -28,7 +33,7 @@ export class ChatService {
   @Cron(CronExpression.EVERY_HOUR)
   async expireChats() {
     const now = new Date();
-    
+
     const expiredChats = await this.chatRepository.find({
       where: {
         status: ChatStatus.ACTIVE,
@@ -89,7 +94,13 @@ export class ChatService {
 
     const chat = await this.chatRepository.findOne({
       where: { matchId },
-      relations: ['match', 'match.user1', 'match.user1.profile', 'match.user2', 'match.user2.profile'],
+      relations: [
+        'match',
+        'match.user1',
+        'match.user1.profile',
+        'match.user2',
+        'match.user2.profile',
+      ],
     });
 
     if (!chat) {
@@ -103,7 +114,12 @@ export class ChatService {
     return chat;
   }
 
-  async getChatMessages(chatId: string, userId: string, page: number = 1, limit: number = 50): Promise<{
+  async getChatMessages(
+    chatId: string,
+    userId: string,
+    page: number = 1,
+    limit: number = 50,
+  ): Promise<{
     messages: Message[];
     total: number;
     hasMore: boolean;
@@ -149,7 +165,11 @@ export class ChatService {
     };
   }
 
-  async sendMessage(chatId: string, userId: string, sendMessageDto: SendMessageDto): Promise<Message> {
+  async sendMessage(
+    chatId: string,
+    userId: string,
+    sendMessageDto: SendMessageDto,
+  ): Promise<Message> {
     const chat = await this.chatRepository.findOne({
       where: { id: chatId },
       relations: ['match'],
@@ -210,7 +230,7 @@ export class ChatService {
       {
         isRead: true,
         readAt: new Date(),
-      }
+      },
     );
 
     // This is a simplified version - in production you'd want to exclude messages from the current user
@@ -227,7 +247,7 @@ export class ChatService {
       relations: ['user1', 'user1.profile', 'user2', 'user2.profile'],
     });
 
-    const matchIds = matches.map(match => match.id);
+    const matchIds = matches.map((match) => match.id);
 
     if (matchIds.length === 0) {
       return [];
@@ -236,7 +256,13 @@ export class ChatService {
     // Get chats for these matches
     const chats = await this.chatRepository.find({
       where: { matchId: In(matchIds) },
-      relations: ['match', 'match.user1', 'match.user1.profile', 'match.user2', 'match.user2.profile'],
+      relations: [
+        'match',
+        'match.user1',
+        'match.user1.profile',
+        'match.user2',
+        'match.user2.profile',
+      ],
       order: { lastMessageAt: 'DESC' },
     });
 
@@ -248,7 +274,7 @@ export class ChatService {
           isRead: false,
         },
       });
-      
+
       (chat as any).unreadCount = unreadCount;
     }
 
@@ -280,7 +306,11 @@ export class ChatService {
     await this.messageRepository.save(message);
   }
 
-  async extendChatTime(chatId: string, userId: string, hours: number = 24): Promise<Chat> {
+  async extendChatTime(
+    chatId: string,
+    userId: string,
+    hours: number = 24,
+  ): Promise<Chat> {
     const chat = await this.chatRepository.findOne({
       where: { id: chatId },
       relations: ['match'],
@@ -303,10 +333,10 @@ export class ChatService {
     // Extend expiry time
     const newExpiryTime = new Date();
     newExpiryTime.setHours(newExpiryTime.getHours() + hours);
-    
+
     chat.expiresAt = newExpiryTime;
     chat.status = ChatStatus.ACTIVE;
-    
+
     return this.chatRepository.save(chat);
   }
 
@@ -324,7 +354,7 @@ export class ChatService {
       ],
     });
 
-    const matchIds = matches.map(match => match.id);
+    const matchIds = matches.map((match) => match.id);
 
     if (matchIds.length === 0) {
       return {
@@ -340,21 +370,21 @@ export class ChatService {
     });
 
     const activeChats = await this.chatRepository.count({
-      where: { 
+      where: {
         matchId: In(matchIds),
         status: ChatStatus.ACTIVE,
       },
     });
 
     const expiredChats = await this.chatRepository.count({
-      where: { 
+      where: {
         matchId: In(matchIds),
         status: ChatStatus.EXPIRED,
       },
     });
 
     const totalMessages = await this.messageRepository.count({
-      where: { 
+      where: {
         senderId: userId,
         isDeleted: false,
       },

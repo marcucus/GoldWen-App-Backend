@@ -13,6 +13,7 @@ import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
 import { UserStatus } from '../../common/enums';
 import { PasswordUtil, StringUtil } from '../../common/utils';
+import { EmailService } from '../../common/email.service';
 
 import {
   LoginDto,
@@ -38,6 +39,7 @@ export class AuthService {
     private profileRepository: Repository<Profile>,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private emailService: EmailService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<AuthResponse> {
@@ -72,6 +74,11 @@ export class AuthService {
     });
 
     await this.profileRepository.save(profile);
+
+    // Send welcome email (async, don't wait)
+    this.emailService.sendWelcomeEmail(savedUser.email, firstName).catch(() => {
+      // Email sending is not critical, so we don't throw errors
+    });
 
     // Generate JWT token
     const accessToken = this.generateAccessToken(savedUser);
@@ -189,8 +196,8 @@ export class AuthService {
 
     await this.userRepository.save(user);
 
-    // TODO: Send email with reset link
-    // await this.emailService.sendPasswordResetEmail(user.email, resetToken);
+    // Send email with reset link
+    await this.emailService.sendPasswordResetEmail(user.email, resetToken);
   }
 
   async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<void> {

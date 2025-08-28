@@ -9,7 +9,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminService } from './admin.service';
 import {
@@ -31,19 +36,19 @@ export class AdminController {
   @ApiResponse({ status: 200, description: 'Admin authenticated successfully' })
   async login(@Body() adminLoginDto: AdminLoginDto) {
     const admin = await this.adminService.authenticateAdmin(adminLoginDto);
-    
+
     if (!admin) {
       throw new Error('Invalid credentials');
     }
 
     // In a real implementation, you'd generate a JWT token here
-    return { 
+    return {
       admin: {
         id: admin.id,
         email: admin.email,
         role: admin.role,
       },
-      message: 'Login successful' 
+      message: 'Login successful',
     };
   }
 
@@ -55,7 +60,7 @@ export class AdminController {
   async getDashboard() {
     const stats = await this.adminService.getDashboardStats();
     const recentActivity = await this.adminService.getRecentActivity();
-    
+
     return {
       stats,
       recentActivity,
@@ -136,7 +141,10 @@ export class AdminController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Broadcast notification to all users' })
-  @ApiResponse({ status: 200, description: 'Notification broadcasted successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Notification broadcasted successfully',
+  })
   async broadcastNotification(@Body() broadcastDto: BroadcastNotificationDto) {
     await this.adminService.broadcastNotification(broadcastDto);
     return { message: 'Notification broadcasted successfully' };

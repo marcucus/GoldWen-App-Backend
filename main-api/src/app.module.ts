@@ -38,7 +38,7 @@ import { AdminModule } from './modules/admin/admin.module';
   imports: [
     // Logger - Global module
     LoggerModule,
-    
+
     // Configuration
     ConfigModule.forRoot({
       isGlobal: true,
@@ -60,16 +60,16 @@ import { AdminModule } from './modules/admin/admin.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'goldwen',
-      password: 'goldwen_password',
-      database: 'goldwen_db',
-      autoLoadEntities: false,
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true,
-      logging: configService.get('app.environment') === 'development',
+        type: 'postgres',
+        host: 'localhost',
+        port: 5432,
+        username: 'goldwen',
+        password: 'goldwen_password',
+        database: 'goldwen_db',
+        autoLoadEntities: false,
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize: true,
+        logging: configService.get('app.environment') === 'development',
       }),
       inject: [ConfigService],
     }),
@@ -105,8 +105,6 @@ import { AdminModule } from './modules/admin/admin.module';
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(LoggingMiddleware)
-      .forRoutes('*'); // Apply to all routes
+    consumer.apply(LoggingMiddleware).forRoutes('*'); // Apply to all routes
   }
 }

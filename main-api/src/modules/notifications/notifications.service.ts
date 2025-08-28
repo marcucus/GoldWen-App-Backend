@@ -1,10 +1,15 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 
 import { Notification } from '../../database/entities/notification.entity';
 import { User } from '../../database/entities/user.entity';
+import { NotificationPreferences } from '../../database/entities/notification-preferences.entity';
 import { NotificationType } from '../../common/enums';
 import { CustomLoggerService } from '../../common/logger';
 
@@ -22,13 +27,15 @@ export class NotificationsService {
     private notificationRepository: Repository<Notification>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(NotificationPreferences)
+    private notificationPreferencesRepository: Repository<NotificationPreferences>,
     private configService: ConfigService,
     private logger: CustomLoggerService,
   ) {}
 
   async getNotifications(
-    userId: string, 
-    getNotificationsDto: GetNotificationsDto
+    userId: string,
+    getNotificationsDto: GetNotificationsDto,
   ): Promise<{
     notifications: Notification[];
     total: number;
@@ -40,7 +47,7 @@ export class NotificationsService {
     const skip = (page - 1) * limit;
 
     const whereCondition: any = { userId };
-    
+
     if (type) {
       whereCondition.type = type;
     }
@@ -49,12 +56,13 @@ export class NotificationsService {
       whereCondition.isRead = read;
     }
 
-    const [notifications, total] = await this.notificationRepository.findAndCount({
-      where: whereCondition,
-      order: { createdAt: 'DESC' },
-      skip,
-      take: limit,
-    });
+    const [notifications, total] =
+      await this.notificationRepository.findAndCount({
+        where: whereCondition,
+        order: { createdAt: 'DESC' },
+        skip,
+        take: limit,
+      });
 
     // Get unread count
     const unreadCount = await this.notificationRepository.count({
@@ -72,7 +80,10 @@ export class NotificationsService {
     return { notifications, total, page, limit, unreadCount };
   }
 
-  async markAsRead(notificationId: string, userId: string): Promise<Notification> {
+  async markAsRead(
+    notificationId: string,
+    userId: string,
+  ): Promise<Notification> {
     const notification = await this.notificationRepository.findOne({
       where: { id: notificationId, userId },
     });
@@ -88,7 +99,8 @@ export class NotificationsService {
     notification.isRead = true;
     notification.readAt = new Date();
 
-    const updatedNotification = await this.notificationRepository.save(notification);
+    const updatedNotification =
+      await this.notificationRepository.save(notification);
 
     this.logger.logUserAction('mark_notification_read', userId, {
       notificationId,
@@ -101,7 +113,7 @@ export class NotificationsService {
   async markAllAsRead(userId: string): Promise<{ affected: number }> {
     const result = await this.notificationRepository.update(
       { userId, isRead: false },
-      { isRead: true, readAt: new Date() }
+      { isRead: true, readAt: new Date() },
     );
 
     this.logger.logUserAction('mark_all_notifications_read', userId, {
@@ -111,7 +123,10 @@ export class NotificationsService {
     return { affected: result.affected || 0 };
   }
 
-  async deleteNotification(notificationId: string, userId: string): Promise<void> {
+  async deleteNotification(
+    notificationId: string,
+    userId: string,
+  ): Promise<void> {
     const notification = await this.notificationRepository.findOne({
       where: { id: notificationId, userId },
     });
@@ -128,8 +143,11 @@ export class NotificationsService {
     });
   }
 
-  async createNotification(createNotificationDto: CreateNotificationDto): Promise<Notification> {
-    const { userId, type, title, body, data, scheduledFor } = createNotificationDto;
+  async createNotification(
+    createNotificationDto: CreateNotificationDto,
+  ): Promise<Notification> {
+    const { userId, type, title, body, data, scheduledFor } =
+      createNotificationDto;
 
     // Verify user exists
     const user = await this.userRepository.findOne({ where: { id: userId } });
@@ -148,7 +166,8 @@ export class NotificationsService {
       sentAt: scheduledFor ? undefined : new Date(),
     });
 
-    const savedNotification = await this.notificationRepository.save(notification);
+    const savedNotification =
+      await this.notificationRepository.save(notification);
 
     this.logger.logBusinessEvent('notification_created', {
       notificationId: savedNotification.id,
@@ -165,10 +184,15 @@ export class NotificationsService {
     return savedNotification;
   }
 
-  async sendTestNotification(userId: string, testNotificationDto: TestNotificationDto): Promise<Notification> {
+  async sendTestNotification(
+    userId: string,
+    testNotificationDto: TestNotificationDto,
+  ): Promise<Notification> {
     // Only allow in development
     if (this.configService.get('app.environment') === 'production') {
-      throw new ForbiddenException('Test notifications are only available in development');
+      throw new ForbiddenException(
+        'Test notifications are only available in development',
+      );
     }
 
     const { title, body, type } = testNotificationDto;
@@ -191,15 +215,37 @@ export class NotificationsService {
 
   async updateNotificationSettings(
     userId: string,
-    updateSettingsDto: UpdateNotificationSettingsDto
+    updateSettingsDto: UpdateNotificationSettingsDto,
   ): Promise<{ message: string; settings: UpdateNotificationSettingsDto }> {
-    // In a real implementation, this would update user preferences in the database
-    // For now, we'll just log it and return the settings
-    
-    this.logger.logUserAction('update_notification_settings', userId, updateSettingsDto);
+    // Verify user exists
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
 
-    // TODO: Implement user notification preferences table and save settings
-    
+    // Find or create notification preferences
+    let preferences = await this.notificationPreferencesRepository.findOne({
+      where: { userId },
+    });
+
+    if (!preferences) {
+      preferences = this.notificationPreferencesRepository.create({
+        userId,
+        ...updateSettingsDto,
+      });
+    } else {
+      // Update existing preferences
+      Object.assign(preferences, updateSettingsDto);
+    }
+
+    await this.notificationPreferencesRepository.save(preferences);
+
+    this.logger.logUserAction(
+      'update_notification_settings',
+      userId,
+      updateSettingsDto,
+    );
+
     return {
       message: 'Notification settings updated successfully',
       settings: updateSettingsDto,
@@ -207,28 +253,188 @@ export class NotificationsService {
   }
 
   // Helper method to send actual push notifications
-  private async sendPushNotification(notification: Notification): Promise<void> {
+  private async sendPushNotification(
+    notification: Notification,
+  ): Promise<void> {
     try {
-      // TODO: Implement actual push notification logic
-      // This would integrate with Firebase Cloud Messaging (FCM) or similar service
-      
-      this.logger.info('Push notification sent', {
-        notificationId: notification.id,
-        userId: notification.userId,
-        type: notification.type,
-        title: notification.title,
+      // Get user's FCM token and notification preferences
+      const user = await this.userRepository.findOne({
+        where: { id: notification.userId },
+        select: ['id', 'fcmToken', 'notificationsEnabled'],
+        relations: ['notificationPreferences'],
       });
+
+      if (!user || !user.notificationsEnabled || !user.fcmToken) {
+        this.logger.info(
+          'Push notification skipped - user preferences or token unavailable',
+          {
+            notificationId: notification.id,
+            userId: notification.userId,
+            hasToken: !!user?.fcmToken,
+            notificationsEnabled: user?.notificationsEnabled,
+          },
+        );
+        return;
+      }
+
+      // Check specific notification type preferences
+      const preferences = user.notificationPreferences;
+      if (preferences && !preferences.pushNotifications) {
+        this.logger.info(
+          'Push notification skipped - user disabled push notifications',
+          {
+            notificationId: notification.id,
+            userId: notification.userId,
+            type: notification.type,
+          },
+        );
+        return;
+      }
+
+      // Check type-specific preferences
+      const typeAllowed = this.checkNotificationTypeAllowed(
+        notification.type,
+        preferences,
+      );
+      if (!typeAllowed) {
+        this.logger.info(
+          'Push notification skipped - notification type disabled',
+          {
+            notificationId: notification.id,
+            userId: notification.userId,
+            type: notification.type,
+          },
+        );
+        return;
+      }
+
+      const fcmServerKey = this.configService.get('notification.fcmServerKey');
+
+      if (!fcmServerKey) {
+        this.logger.warn(
+          'FCM server key not configured, skipping push notification',
+        );
+        return;
+      }
+
+      // Prepare FCM payload
+      const fcmPayload = {
+        to: user.fcmToken,
+        notification: {
+          title: notification.title,
+          body: notification.body,
+          icon: 'ic_notification',
+          sound: 'default',
+          click_action: 'FLUTTER_NOTIFICATION_CLICK',
+        },
+        data: {
+          notificationId: notification.id,
+          type: notification.type,
+          ...notification.data,
+        },
+      };
+
+      // Send FCM request
+      const response = await fetch('https://fcm.googleapis.com/fcm/send', {
+        method: 'POST',
+        headers: {
+          Authorization: `key=${fcmServerKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(fcmPayload),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `FCM request failed: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const result = await response.json();
+
+      if (result.failure > 0) {
+        this.logger.warn(
+          'FCM notification partially failed',
+          JSON.stringify({
+            notificationId: notification.id,
+            userId: notification.userId,
+            success: result.success,
+            failure: result.failure,
+            results: result.results,
+          }),
+        );
+      } else {
+        this.logger.info('Push notification sent successfully', {
+          notificationId: notification.id,
+          userId: notification.userId,
+          type: notification.type,
+          title: notification.title,
+        });
+      }
 
       // Update notification as sent
       await this.notificationRepository.update(notification.id, {
         isSent: true,
         sentAt: new Date(),
       });
-
     } catch (error) {
-      this.logger.error('Failed to send push notification', error.stack, 'NotificationsService');
-      
-      // TODO: Implement retry logic or move to queue
+      this.logger.error(
+        'Failed to send push notification',
+        error.stack,
+        'NotificationsService',
+      );
+
+      // Implement simple retry logic
+      if (notification.retryCount < 3) {
+        setTimeout(
+          async () => {
+            try {
+              await this.notificationRepository.update(notification.id, {
+                retryCount: (notification.retryCount || 0) + 1,
+              });
+
+              const retryNotification =
+                await this.notificationRepository.findOne({
+                  where: { id: notification.id },
+                });
+
+              if (retryNotification) {
+                await this.sendPushNotification(retryNotification);
+              }
+            } catch (retryError) {
+              this.logger.error(
+                'Retry push notification failed',
+                retryError.stack,
+                'NotificationsService',
+              );
+            }
+          },
+          Math.pow(2, notification.retryCount || 0) * 1000,
+        ); // Exponential backoff
+      }
+    }
+  }
+
+  private checkNotificationTypeAllowed(
+    type: NotificationType,
+    preferences?: NotificationPreferences,
+  ): boolean {
+    if (!preferences) return true; // Default to allow if no preferences set
+
+    switch (type) {
+      case NotificationType.DAILY_SELECTION:
+        return preferences.dailySelection;
+      case NotificationType.NEW_MATCH:
+        return preferences.newMatches;
+      case NotificationType.NEW_MESSAGE:
+        return preferences.newMessages;
+      case NotificationType.CHAT_EXPIRING:
+        return preferences.chatExpiring;
+      case NotificationType.SUBSCRIPTION_EXPIRED:
+      case NotificationType.SUBSCRIPTION_RENEWED:
+        return preferences.subscriptionUpdates;
+      default:
+        return true; // Allow unknown types by default
     }
   }
 
@@ -244,7 +450,10 @@ export class NotificationsService {
     });
   }
 
-  async sendNewMatchNotification(userId: string, matchedUserName: string): Promise<Notification> {
+  async sendNewMatchNotification(
+    userId: string,
+    matchedUserName: string,
+  ): Promise<Notification> {
     return this.createNotification({
       userId,
       type: NotificationType.NEW_MATCH,
@@ -254,7 +463,10 @@ export class NotificationsService {
     });
   }
 
-  async sendNewMessageNotification(userId: string, senderName: string): Promise<Notification> {
+  async sendNewMessageNotification(
+    userId: string,
+    senderName: string,
+  ): Promise<Notification> {
     return this.createNotification({
       userId,
       type: NotificationType.NEW_MESSAGE,
@@ -264,7 +476,11 @@ export class NotificationsService {
     });
   }
 
-  async sendChatExpiringNotification(userId: string, partnerName: string, hoursLeft: number): Promise<Notification> {
+  async sendChatExpiringNotification(
+    userId: string,
+    partnerName: string,
+    hoursLeft: number,
+  ): Promise<Notification> {
     return this.createNotification({
       userId,
       type: NotificationType.CHAT_EXPIRING,
@@ -274,7 +490,9 @@ export class NotificationsService {
     });
   }
 
-  async sendSubscriptionExpiredNotification(userId: string): Promise<Notification> {
+  async sendSubscriptionExpiredNotification(
+    userId: string,
+  ): Promise<Notification> {
     return this.createNotification({
       userId,
       type: NotificationType.SUBSCRIPTION_EXPIRED,

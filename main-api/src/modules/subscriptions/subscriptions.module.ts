@@ -8,12 +8,7 @@ import { Subscription } from '../../database/entities/subscription.entity';
 import { User } from '../../database/entities/user.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([
-      Subscription,
-      User,
-    ]),
-  ],
+  imports: [TypeOrmModule.forFeature([Subscription, User])],
   providers: [SubscriptionsService],
   controllers: [SubscriptionsController],
   exports: [SubscriptionsService],

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -56,7 +60,10 @@ export class ProfilesService {
     return profile;
   }
 
-  async updateProfile(userId: string, updateProfileDto: UpdateProfileDto): Promise<Profile> {
+  async updateProfile(
+    userId: string,
+    updateProfileDto: UpdateProfileDto,
+  ): Promise<Profile> {
     const profile = await this.profileRepository.findOne({
       where: { userId },
     });
@@ -89,12 +96,14 @@ export class ProfilesService {
       where: { isActive: true, isRequired: true },
     });
 
-    const answeredQuestionIds = new Set(answers.map(a => a.questionId));
-    const missingRequired = requiredQuestions.filter(q => !answeredQuestionIds.has(q.id));
+    const answeredQuestionIds = new Set(answers.map((a) => a.questionId));
+    const missingRequired = requiredQuestions.filter(
+      (q) => !answeredQuestionIds.has(q.id),
+    );
 
     if (missingRequired.length > 0) {
       throw new BadRequestException(
-        `Missing answers for required questions: ${missingRequired.map(q => q.question).join(', ')}`
+        `Missing answers for required questions: ${missingRequired.map((q) => q.question).join(', ')}`,
       );
     }
 
@@ -102,7 +111,7 @@ export class ProfilesService {
     await this.personalityAnswerRepository.delete({ userId });
 
     // Create new answers
-    const answerEntities = answers.map(answer => {
+    const answerEntities = answers.map((answer) => {
       return this.personalityAnswerRepository.create({
         userId,
         questionId: answer.questionId,
@@ -119,7 +128,10 @@ export class ProfilesService {
     await this.updateProfileCompletionStatus(userId);
   }
 
-  async uploadPhotos(userId: string, photosDto: UploadPhotosDto): Promise<Photo[]> {
+  async uploadPhotos(
+    userId: string,
+    photosDto: UploadPhotosDto,
+  ): Promise<Photo[]> {
     const { photos } = photosDto;
 
     const profile = await this.profileRepository.findOne({
@@ -144,7 +156,8 @@ export class ProfilesService {
         url: photo.url,
         filename: photo.url.split('/').pop() || `photo_${Date.now()}_${index}`,
         order: (profile.photos?.length || 0) + index + 1,
-        isPrimary: photo.isMain || ((profile.photos?.length || 0) === 0 && index === 0),
+        isPrimary:
+          photo.isMain || ((profile.photos?.length || 0) === 0 && index === 0),
         isApproved: true, // Auto-approve for MVP, can be changed later
       });
     });
@@ -187,7 +200,7 @@ export class ProfilesService {
     await this.promptAnswerRepository.delete({ profileId: profile.id });
 
     // Create new prompt answers
-    const answerEntities = answers.map(answer => {
+    const answerEntities = answers.map((answer) => {
       return this.promptAnswerRepository.create({
         profileId: profile.id,
         promptId: answer.promptId,
@@ -238,19 +251,25 @@ export class ProfilesService {
     // 3. All required personality questions answered
     const hasMinPhotos = (user.profile.photos?.length || 0) >= 3;
     const hasPromptAnswers = (user.profile.promptAnswers?.length || 0) >= 3;
-    
-    // Get required personality questions count
-    const requiredQuestionsCount = await this.personalityQuestionRepository.count({
-      where: { isActive: true, isRequired: true },
-    });
-    
-    const hasPersonalityAnswers = (user.personalityAnswers?.length || 0) >= requiredQuestionsCount;
 
-    const isProfileCompleted = hasMinPhotos && hasPromptAnswers && hasPersonalityAnswers;
+    // Get required personality questions count
+    const requiredQuestionsCount =
+      await this.personalityQuestionRepository.count({
+        where: { isActive: true, isRequired: true },
+      });
+
+    const hasPersonalityAnswers =
+      (user.personalityAnswers?.length || 0) >= requiredQuestionsCount;
+
+    const isProfileCompleted =
+      hasMinPhotos && hasPromptAnswers && hasPersonalityAnswers;
     const isOnboardingCompleted = isProfileCompleted;
 
     // Update user status
-    if (user.isProfileCompleted !== isProfileCompleted || user.isOnboardingCompleted !== isOnboardingCompleted) {
+    if (
+      user.isProfileCompleted !== isProfileCompleted ||
+      user.isOnboardingCompleted !== isOnboardingCompleted
+    ) {
       user.isProfileCompleted = isProfileCompleted;
       user.isOnboardingCompleted = isOnboardingCompleted;
       await this.userRepository.save(user);
@@ -280,17 +299,20 @@ export class ProfilesService {
 
     const hasPhotos = (user.profile.photos?.length || 0) >= 3;
     const hasPrompts = (user.profile.promptAnswers?.length || 0) >= 3;
-    
-    const requiredQuestionsCount = await this.personalityQuestionRepository.count({
-      where: { isActive: true, isRequired: true },
-    });
-    
-    const hasPersonalityAnswers = (user.personalityAnswers?.length || 0) >= requiredQuestionsCount;
+
+    const requiredQuestionsCount =
+      await this.personalityQuestionRepository.count({
+        where: { isActive: true, isRequired: true },
+      });
+
+    const hasPersonalityAnswers =
+      (user.personalityAnswers?.length || 0) >= requiredQuestionsCount;
 
     const missingSteps: string[] = [];
     if (!hasPhotos) missingSteps.push('Upload at least 3 photos');
     if (!hasPrompts) missingSteps.push('Answer 3 prompts');
-    if (!hasPersonalityAnswers) missingSteps.push('Complete personality questionnaire');
+    if (!hasPersonalityAnswers)
+      missingSteps.push('Complete personality questionnaire');
 
     return {
       isCompleted: hasPhotos && hasPrompts && hasPersonalityAnswers,
