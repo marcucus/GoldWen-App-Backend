@@ -9,6 +9,7 @@ import { DailySelection } from '../../database/entities/daily-selection.entity';
 import { Match } from '../../database/entities/match.entity';
 import { PersonalityAnswer } from '../../database/entities/personality-answer.entity';
 import { Subscription } from '../../database/entities/subscription.entity';
+import { CustomLoggerService } from '../../common/logger';
 
 import { MatchStatus, SubscriptionTier, SubscriptionStatus } from '../../common/enums';
 import { ChatService } from '../chat/chat.service';
@@ -30,6 +31,7 @@ export class MatchingService {
     private subscriptionRepository: Repository<Subscription>,
     @Inject(forwardRef(() => ChatService))
     private chatService: ChatService,
+    private logger: CustomLoggerService,
   ) {}
 
   // Daily selection generation - runs every day at 12:00 PM
@@ -229,8 +231,13 @@ export class MatchingService {
       // Create chat for the match
       try {
         await this.chatService.createChatForMatch(match.id);
+        this.logger.logBusinessEvent('chat_created_for_match', {
+          matchId: match.id,
+          user1Id: match.user1Id,
+          user2Id: match.user2Id,
+        });
       } catch (error) {
-        console.error('Failed to create chat for match:', error);
+        this.logger.error('Failed to create chat for match', error.stack, 'MatchingService');
       }
 
       // TODO: Send notifications

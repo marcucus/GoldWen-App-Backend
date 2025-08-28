@@ -3,13 +3,26 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
+import { CustomLoggerService } from './common/logger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
+  const logger = app.get(CustomLoggerService);
+  
+  // Use custom logger
+  app.useLogger(logger);
+  
   const port = configService.get('app.port') || 3000;
   const apiPrefix = configService.get('app.apiPrefix') || 'api/v1';
+
+  logger.info('🚀 Starting GoldWen API...', {
+    port,
+    apiPrefix,
+    environment: configService.get('app.environment'),
+    logLevel: configService.get('app.logLevel'),
+  });
 
   // Global prefix
   app.setGlobalPrefix(apiPrefix);
@@ -53,12 +66,11 @@ async function bootstrap() {
   }
 
   await app.listen(port);
-  console.log(
-    `🚀 GoldWen API is running on: http://localhost:${port}/${apiPrefix}`,
-  );
-  console.log(
-    `📚 API Documentation: http://localhost:${port}/${apiPrefix}/docs`,
-  );
+  logger.info('🚀 GoldWen API is running successfully', {
+    url: `http://localhost:${port}/${apiPrefix}`,
+    docs: `http://localhost:${port}/${apiPrefix}/docs`,
+    environment: configService.get('app.environment'),
+  });
 }
 
 bootstrap();

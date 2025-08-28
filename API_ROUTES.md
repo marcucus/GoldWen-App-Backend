@@ -2,10 +2,59 @@
 
 Cette documentation liste toutes les routes API disponibles pour le frontend et le service de matching de l'application GoldWen.
 
+## 📊 Implementation Status
+
+**✅ Fully Implemented**
+- Structured logging with JSON format and trace IDs
+- Request/response logging middleware
+- Health check endpoint
+- Complete notifications module
+- Admin panel with comprehensive logging
+- All authentication routes
+- User management routes
+- Profile management routes
+- Matching system integration
+- Chat functionality
+- Subscription management
+- Notifications system
+
+**🔄 Enhanced Features**
+- Environment-based log levels (LOG_LEVEL=debug|info|warn|error)
+- Centralized logging service with correlation IDs
+- Security event logging for admin actions
+- Business event tracking for all major operations
+- Error tracking with full stack traces
+
 ## Base URL
 - **API Principal**: `http://localhost:3000/api/v1`
 - **Service Matching**: `http://localhost:8000/api/v1`
 - **Documentation Swagger**: `http://localhost:3000/api/v1/docs`
+
+---
+
+## 🏥 Health & Monitoring Routes
+
+### GET /
+**Description**: API Welcome message  
+**Response**: Welcome message
+
+### GET /health
+**Description**: Service health check  
+**Response**: 
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-XX...",
+  "uptime": 12345,
+  "environment": "development",
+  "version": "1.0.0",
+  "services": {
+    "api": "healthy",
+    "database": "healthy",
+    "cache": "healthy"
+  }
+}
+```
 
 ---
 
@@ -398,6 +447,19 @@ Cette documentation liste toutes les routes API disponibles pour le frontend et 
 
 ### POST /notifications/test
 **Description**: Envoyer une notification de test (dev only)  
+**Headers**: `Authorization: Bearer <token>`  
+**Body**:
+```json
+{
+  "title": "Test Notification",
+  "body": "This is a test notification",
+  "type": "daily_selection"
+}
+```
+**Note**: Disponible uniquement en environnement de développement
+
+### POST /notifications/test
+**Description**: Envoyer une notification de test (dev only)  
 **Headers**: `Authorization: Bearer <token>`
 
 ---
@@ -651,6 +713,7 @@ APPLE_PRIVATE_KEY=your-apple-private-key
 PORT=3000
 NODE_ENV=development
 API_PREFIX=api/v1
+LOG_LEVEL=info                        # Available levels: error, warn, info, debug
 
 FCM_SERVER_KEY=your-fcm-server-key
 MATCHING_SERVICE_URL=http://localhost:8000

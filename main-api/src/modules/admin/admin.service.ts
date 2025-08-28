@@ -8,6 +8,7 @@ import { Report } from '../../database/entities/report.entity';
 import { Match } from '../../database/entities/match.entity';
 import { Chat } from '../../database/entities/chat.entity';
 import { Subscription } from '../../database/entities/subscription.entity';
+import { CustomLoggerService } from '../../common/logger';
 
 import { 
   UserStatus, 
@@ -42,25 +43,40 @@ export class AdminService {
     private chatRepository: Repository<Chat>,
     @InjectRepository(Subscription)
     private subscriptionRepository: Repository<Subscription>,
+    private logger: CustomLoggerService,
   ) {}
 
   async authenticateAdmin(adminLoginDto: AdminLoginDto): Promise<Admin | null> {
     const { email, password } = adminLoginDto;
+    
+    this.logger.info('Admin login attempt', { email });
     
     const admin = await this.adminRepository.findOne({
       where: { email, isActive: true },
     });
 
     if (!admin) {
+      this.logger.logSecurityEvent('admin_login_failed', { 
+        email, 
+        reason: 'admin_not_found' 
+      });
       return null;
     }
 
     // In production, you'd hash and compare passwords properly
     // For MVP, this is simplified
     if (password === 'admin_password_123') {
+      this.logger.logSecurityEvent('admin_login_success', { 
+        email, 
+        adminId: admin.id 
+      });
       return admin;
     }
 
+    this.logger.logSecurityEvent('admin_login_failed', { 
+      email, 
+      reason: 'invalid_password' 
+    });
     return null;
   }
 
@@ -124,7 +140,16 @@ export class AdminService {
       throw new NotFoundException('User not found');
     }
 
+    const previousStatus = user.status;
     user.status = updateStatusDto.status;
+    
+    this.logger.logBusinessEvent('admin_user_status_change', {
+      userId,
+      previousStatus,
+      newStatus: updateStatusDto.status,
+      action: 'admin_user_status_update',
+    });
+    
     return this.userRepository.save(user);
   }
 
@@ -234,12 +259,20 @@ export class AdminService {
   }
 
   async broadcastNotification(broadcastDto: BroadcastNotificationDto): Promise<void> {
-    // In a real implementation, this would integrate with your notification service
-    // For now, we'll just log it
-    console.log('Broadcasting notification:', broadcastDto);
+    this.logger.logBusinessEvent('admin_broadcast_notification', {
+      title: broadcastDto.title,
+      type: broadcastDto.type,
+      action: 'admin_broadcast',
+    });
     
     // TODO: Implement actual notification broadcasting
-    // This could integrate with Firebase, push notification services, etc.
+    // This would integrate with the NotificationsService to send to all users
+    // For now, we'll log the operation
+    this.logger.info('Broadcasting notification to all users', {
+      title: broadcastDto.title,
+      body: broadcastDto.body,
+      type: broadcastDto.type,
+    });
   }
 
   async deleteUser(userId: string): Promise<void> {
@@ -249,9 +282,18 @@ export class AdminService {
       throw new NotFoundException('User not found');
     }
 
+    const previousStatus = user.status;
+    
     // Soft delete by setting status to DELETED
     user.status = UserStatus.DELETED;
     await this.userRepository.save(user);
+    
+    this.logger.logBusinessEvent('admin_user_deleted', {
+      userId,
+      previousStatus,
+      userEmail: user.email,
+      action: 'admin_user_delete',
+    });
   }
 
   async getUserAnalytics(): Promise<{

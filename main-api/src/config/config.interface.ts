@@ -21,6 +21,7 @@ export interface AppConfig {
   port: number;
   environment: string;
   apiPrefix: string;
+  logLevel: string;
 }
 
 export interface OAuthConfig {
