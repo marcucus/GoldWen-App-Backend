@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 
 import { Notification } from '../../database/entities/notification.entity';
 import { User } from '../../database/entities/user.entity';
+import { NotificationPreferences } from '../../database/entities/notification-preferences.entity';
 import { NotificationType } from '../../common/enums';
 import { CustomLoggerService } from '../../common/logger';
 
@@ -22,6 +23,8 @@ export class NotificationsService {
     private notificationRepository: Repository<Notification>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(NotificationPreferences)
+    private notificationPreferencesRepository: Repository<NotificationPreferences>,
     private configService: ConfigService,
     private logger: CustomLoggerService,
   ) {}
@@ -193,12 +196,30 @@ export class NotificationsService {
     userId: string,
     updateSettingsDto: UpdateNotificationSettingsDto
   ): Promise<{ message: string; settings: UpdateNotificationSettingsDto }> {
-    // In a real implementation, this would update user preferences in the database
-    // For now, we'll just log it and return the settings
+    // Verify user exists
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Find or create notification preferences
+    let preferences = await this.notificationPreferencesRepository.findOne({
+      where: { userId }
+    });
+
+    if (!preferences) {
+      preferences = this.notificationPreferencesRepository.create({
+        userId,
+        ...updateSettingsDto
+      });
+    } else {
+      // Update existing preferences
+      Object.assign(preferences, updateSettingsDto);
+    }
+
+    await this.notificationPreferencesRepository.save(preferences);
     
     this.logger.logUserAction('update_notification_settings', userId, updateSettingsDto);
-
-    // TODO: Implement user notification preferences table and save settings
     
     return {
       message: 'Notification settings updated successfully',
@@ -209,15 +230,101 @@ export class NotificationsService {
   // Helper method to send actual push notifications
   private async sendPushNotification(notification: Notification): Promise<void> {
     try {
-      // TODO: Implement actual push notification logic
-      // This would integrate with Firebase Cloud Messaging (FCM) or similar service
-      
-      this.logger.info('Push notification sent', {
-        notificationId: notification.id,
-        userId: notification.userId,
-        type: notification.type,
-        title: notification.title,
+      // Get user's FCM token and notification preferences
+      const user = await this.userRepository.findOne({ 
+        where: { id: notification.userId },
+        select: ['id', 'fcmToken', 'notificationsEnabled'],
+        relations: ['notificationPreferences']
       });
+
+      if (!user || !user.notificationsEnabled || !user.fcmToken) {
+        this.logger.info('Push notification skipped - user preferences or token unavailable', {
+          notificationId: notification.id,
+          userId: notification.userId,
+          hasToken: !!user?.fcmToken,
+          notificationsEnabled: user?.notificationsEnabled
+        });
+        return;
+      }
+
+      // Check specific notification type preferences
+      const preferences = user.notificationPreferences;
+      if (preferences && !preferences.pushNotifications) {
+        this.logger.info('Push notification skipped - user disabled push notifications', {
+          notificationId: notification.id,
+          userId: notification.userId,
+          type: notification.type
+        });
+        return;
+      }
+
+      // Check type-specific preferences
+      const typeAllowed = this.checkNotificationTypeAllowed(notification.type, preferences);
+      if (!typeAllowed) {
+        this.logger.info('Push notification skipped - notification type disabled', {
+          notificationId: notification.id,
+          userId: notification.userId,
+          type: notification.type
+        });
+        return;
+      }
+
+      const fcmServerKey = this.configService.get('notification.fcmServerKey');
+      
+      if (!fcmServerKey) {
+        this.logger.warn('FCM server key not configured, skipping push notification');
+        return;
+      }
+
+      // Prepare FCM payload
+      const fcmPayload = {
+        to: user.fcmToken,
+        notification: {
+          title: notification.title,
+          body: notification.body,
+          icon: 'ic_notification',
+          sound: 'default',
+          click_action: 'FLUTTER_NOTIFICATION_CLICK'
+        },
+        data: {
+          notificationId: notification.id,
+          type: notification.type,
+          ...notification.data
+        }
+      };
+
+      // Send FCM request
+      const response = await fetch('https://fcm.googleapis.com/fcm/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `key=${fcmServerKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(fcmPayload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`FCM request failed: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.failure > 0) {
+        this.logger.warn('FCM notification partially failed', JSON.stringify({
+          notificationId: notification.id,
+          userId: notification.userId,
+          success: result.success,
+          failure: result.failure,
+          results: result.results
+        }));
+      } else {
+        this.logger.info('Push notification sent successfully', {
+          notificationId: notification.id,
+          userId: notification.userId,
+          type: notification.type,
+          title: notification.title,
+        });
+      }
 
       // Update notification as sent
       await this.notificationRepository.update(notification.id, {
@@ -228,7 +335,46 @@ export class NotificationsService {
     } catch (error) {
       this.logger.error('Failed to send push notification', error.stack, 'NotificationsService');
       
-      // TODO: Implement retry logic or move to queue
+      // Implement simple retry logic
+      if (notification.retryCount < 3) {
+        setTimeout(async () => {
+          try {
+            await this.notificationRepository.update(notification.id, {
+              retryCount: (notification.retryCount || 0) + 1
+            });
+            
+            const retryNotification = await this.notificationRepository.findOne({
+              where: { id: notification.id }
+            });
+            
+            if (retryNotification) {
+              await this.sendPushNotification(retryNotification);
+            }
+          } catch (retryError) {
+            this.logger.error('Retry push notification failed', retryError.stack, 'NotificationsService');
+          }
+        }, Math.pow(2, notification.retryCount || 0) * 1000); // Exponential backoff
+      }
+    }
+  }
+
+  private checkNotificationTypeAllowed(type: NotificationType, preferences?: NotificationPreferences): boolean {
+    if (!preferences) return true; // Default to allow if no preferences set
+
+    switch (type) {
+      case NotificationType.DAILY_SELECTION:
+        return preferences.dailySelection;
+      case NotificationType.NEW_MATCH:
+        return preferences.newMatches;
+      case NotificationType.NEW_MESSAGE:
+        return preferences.newMessages;
+      case NotificationType.CHAT_EXPIRING:
+        return preferences.chatExpiring;
+      case NotificationType.SUBSCRIPTION_EXPIRED:
+      case NotificationType.SUBSCRIPTION_RENEWED:
+        return preferences.subscriptionUpdates;
+      default:
+        return true; // Allow unknown types by default
     }
   }
 

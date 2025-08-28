@@ -13,6 +13,7 @@ import { CustomLoggerService } from '../../common/logger';
 
 import { MatchStatus, SubscriptionTier, SubscriptionStatus } from '../../common/enums';
 import { ChatService } from '../chat/chat.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class MatchingService {
@@ -31,6 +32,8 @@ export class MatchingService {
     private subscriptionRepository: Repository<Subscription>,
     @Inject(forwardRef(() => ChatService))
     private chatService: ChatService,
+    @Inject(forwardRef(() => NotificationsService))
+    private notificationsService: NotificationsService,
     private logger: CustomLoggerService,
   ) {}
 
@@ -41,9 +44,32 @@ export class MatchingService {
       where: { isProfileCompleted: true },
     });
 
+    this.logger.info('Starting daily selection generation for all users', { 
+      totalUsers: users.length 
+    });
+
+    let successCount = 0;
+    let errorCount = 0;
+
     for (const user of users) {
-      await this.generateDailySelection(user.id);
+      try {
+        await this.generateDailySelection(user.id);
+        
+        // Send daily selection notification
+        await this.notificationsService.sendDailySelectionNotification(user.id);
+        
+        successCount++;
+      } catch (error) {
+        this.logger.error('Failed to generate daily selection for user', error.stack, 'MatchingService');
+        errorCount++;
+      }
     }
+
+    this.logger.info('Daily selection generation completed', { 
+      totalUsers: users.length,
+      successCount,
+      errorCount
+    });
   }
 
   async generateDailySelection(userId: string): Promise<DailySelection> {
@@ -240,7 +266,35 @@ export class MatchingService {
         this.logger.error('Failed to create chat for match', error.stack, 'MatchingService');
       }
 
-      // TODO: Send notifications
+      // Send notifications to both users about the mutual match
+      try {
+        const user1 = await this.userRepository.findOne({ 
+          where: { id: match.user1Id },
+          relations: ['profile']
+        });
+        const user2 = await this.userRepository.findOne({ 
+          where: { id: match.user2Id },
+          relations: ['profile']
+        });
+
+        if (user1 && user2) {
+          // Send notification to user1 about matching with user2
+          await this.notificationsService.sendNewMatchNotification(
+            user1.id, 
+            user2.profile?.firstName || 'Someone'
+          );
+
+          // Send notification to user2 about matching with user1
+          await this.notificationsService.sendNewMatchNotification(
+            user2.id, 
+            user1.profile?.firstName || 'Someone'
+          );
+        }
+      } catch (error) {
+        this.logger.error('Failed to send match notifications', error.stack, 'MatchingService');
+        // Don't throw error as match creation succeeded
+      }
+
       return { 
         match, 
         isMutual: true, 

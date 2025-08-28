@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
 
@@ -9,6 +9,7 @@ import { Match } from '../../database/entities/match.entity';
 import { Chat } from '../../database/entities/chat.entity';
 import { Subscription } from '../../database/entities/subscription.entity';
 import { CustomLoggerService } from '../../common/logger';
+import { NotificationsService } from '../notifications/notifications.service';
 
 import { 
   UserStatus, 
@@ -43,6 +44,8 @@ export class AdminService {
     private chatRepository: Repository<Chat>,
     @InjectRepository(Subscription)
     private subscriptionRepository: Repository<Subscription>,
+    @Inject(forwardRef(() => NotificationsService))
+    private notificationsService: NotificationsService,
     private logger: CustomLoggerService,
   ) {}
 
@@ -265,14 +268,46 @@ export class AdminService {
       action: 'admin_broadcast',
     });
     
-    // TODO: Implement actual notification broadcasting
-    // This would integrate with the NotificationsService to send to all users
-    // For now, we'll log the operation
+    // Get all active users
+    const users = await this.userRepository.find({
+      where: { status: UserStatus.ACTIVE },
+      select: ['id', 'email'],
+      relations: ['profile']
+    });
+
     this.logger.info('Broadcasting notification to all users', {
       title: broadcastDto.title,
       body: broadcastDto.body,
       type: broadcastDto.type,
+      totalUsers: users.length
     });
+
+    // Create notifications for all users
+    const notificationPromises = users.map(user => 
+      this.notificationsService.createNotification({
+        userId: user.id,
+        type: broadcastDto.type,
+        title: broadcastDto.title,
+        body: broadcastDto.body,
+        data: {
+          action: 'admin_broadcast',
+          broadcast: true
+        }
+      })
+    );
+
+    try {
+      await Promise.all(notificationPromises);
+      
+      this.logger.logBusinessEvent('admin_broadcast_completed', {
+        title: broadcastDto.title,
+        totalUsers: users.length,
+        status: 'success'
+      });
+    } catch (error) {
+      this.logger.error('Failed to broadcast notifications to all users', error.stack, 'AdminService');
+      throw error;
+    }
   }
 
   async deleteUser(userId: string): Promise<void> {

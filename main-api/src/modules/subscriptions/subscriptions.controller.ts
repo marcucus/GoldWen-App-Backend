@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../auth/guards/admin.guard';
 import { SubscriptionsService } from './subscriptions.service';
 import {
   CreateSubscriptionDto,
@@ -106,12 +107,11 @@ export class SubscriptionsController {
 
   // Admin endpoints
   @Get('admin/stats')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get subscription statistics (Admin only)' })
   @ApiResponse({ status: 200, description: 'Subscription statistics retrieved' })
   async getSubscriptionStats() {
-    // TODO: Add admin role guard
     return this.subscriptionsService.getSubscriptionStats();
   }
 }
