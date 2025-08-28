@@ -1,8 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { MatchingController } from './matching.controller';
 import { MatchingService } from './matching.service';
+import { ChatModule } from '../chat/chat.module';
 
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
@@ -21,6 +22,7 @@ import { Subscription } from '../../database/entities/subscription.entity';
       PersonalityAnswer,
       Subscription,
     ]),
+    forwardRef(() => ChatModule),
   ],
   providers: [MatchingService],
   controllers: [MatchingController],

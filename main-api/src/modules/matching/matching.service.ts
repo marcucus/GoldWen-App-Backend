@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not, In } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -10,7 +10,8 @@ import { Match } from '../../database/entities/match.entity';
 import { PersonalityAnswer } from '../../database/entities/personality-answer.entity';
 import { Subscription } from '../../database/entities/subscription.entity';
 
-import { MatchStatus, SubscriptionTier } from '../../common/enums';
+import { MatchStatus, SubscriptionTier, SubscriptionStatus } from '../../common/enums';
+import { ChatService } from '../chat/chat.service';
 
 @Injectable()
 export class MatchingService {
@@ -27,6 +28,8 @@ export class MatchingService {
     private personalityAnswerRepository: Repository<PersonalityAnswer>,
     @InjectRepository(Subscription)
     private subscriptionRepository: Repository<Subscription>,
+    @Inject(forwardRef(() => ChatService))
+    private chatService: ChatService,
   ) {}
 
   // Daily selection generation - runs every day at 12:00 PM
@@ -41,7 +44,7 @@ export class MatchingService {
     }
   }
 
-  async generateDailySelection(userId: string): Promise<DailySelection[]> {
+  async generateDailySelection(userId: string): Promise<DailySelection> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
       relations: ['personalityAnswers', 'subscriptions'],
@@ -58,21 +61,16 @@ export class MatchingService {
     // Check if user already has a selection for today
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
 
     const existingSelection = await this.dailySelectionRepository.findOne({
       where: {
         userId,
-        createdAt: {
-          $gte: today,
-          $lt: tomorrow,
-        } as any,
+        selectionDate: today,
       },
     });
 
     if (existingSelection) {
-      return this.getDailySelection(userId);
+      return existingSelection;
     }
 
     // Get users that this user hasn't matched with yet
@@ -91,7 +89,7 @@ export class MatchingService {
     // Get potential matches (users with completed profiles)
     const potentialMatches = await this.userRepository.find({
       where: {
-        id: Not(In(excludedUserIds)),
+        id: Not(In(excludedUserIds.length > 0 ? excludedUserIds : [''])),
         isProfileCompleted: true,
       },
       relations: ['profile', 'personalityAnswers'],
@@ -99,7 +97,15 @@ export class MatchingService {
     });
 
     if (potentialMatches.length === 0) {
-      return []; // No potential matches available
+      // Create empty selection
+      return this.dailySelectionRepository.save(
+        this.dailySelectionRepository.create({
+          userId,
+          selectionDate: today,
+          selectedProfileIds: [],
+          maxChoicesAllowed: await this.getMaxChoicesPerDay(userId),
+        })
+      );
     }
 
     // Calculate compatibility scores and select best matches
@@ -113,75 +119,82 @@ export class MatchingService {
     // Sort by compatibility score (highest first)
     compatibilityScores.sort((a, b) => b.score - a.score);
 
-    // Determine selection size based on subscription
-    const selectionSize = await this.getSelectionSize(userId);
+    // Determine selection size (always 5 for now)
+    const selectionSize = 5;
 
     // Take top matches
     const selectedMatches = compatibilityScores.slice(0, selectionSize);
+    const selectedProfileIds = selectedMatches.map(match => match.user.id);
 
-    // Create daily selection entries
-    const dailySelections = selectedMatches.map((match, index) => {
-      return this.dailySelectionRepository.create({
-        userId,
-        targetUserId: match.user.id,
-        compatibilityScore: match.score,
-        order: index + 1,
-      });
+    // Create daily selection entry
+    const dailySelection = this.dailySelectionRepository.create({
+      userId,
+      selectionDate: today,
+      selectedProfileIds,
+      maxChoicesAllowed: await this.getMaxChoicesPerDay(userId),
     });
 
-    return this.dailySelectionRepository.save(dailySelections);
+    return this.dailySelectionRepository.save(dailySelection);
   }
 
-  async getDailySelection(userId: string): Promise<DailySelection[]> {
+  async getDailySelection(userId: string): Promise<{
+    selection: DailySelection;
+    profiles: User[];
+  }> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
 
-    return this.dailySelectionRepository.find({
+    const selection = await this.dailySelectionRepository.findOne({
       where: {
         userId,
-        createdAt: {
-          $gte: today,
-          $lt: tomorrow,
-        } as any,
+        selectionDate: today,
       },
-      relations: ['targetUser', 'targetUser.profile', 'targetUser.profile.photos'],
-      order: { order: 'ASC' },
     });
+
+    if (!selection) {
+      const newSelection = await this.generateDailySelection(userId);
+      const profiles = await this.userRepository.find({
+        where: { id: In(newSelection.selectedProfileIds) },
+        relations: ['profile', 'profile.photos'],
+      });
+      return { selection: newSelection, profiles };
+    }
+
+    const profiles = await this.userRepository.find({
+      where: { id: In(selection.selectedProfileIds) },
+      relations: ['profile', 'profile.photos'],
+    });
+
+    return { selection, profiles };
   }
 
   async chooseProfile(userId: string, targetUserId: string): Promise<any> {
     // Check if target user is in today's selection
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const dailySelection = await this.dailySelectionRepository.findOne({
-      where: { userId, targetUserId },
+      where: { userId, selectionDate: today },
     });
 
-    if (!dailySelection) {
+    if (!dailySelection || !dailySelection.selectedProfileIds.includes(targetUserId)) {
       throw new BadRequestException('Target user not in your daily selection');
     }
 
     // Check if user has remaining choices today
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const todayChoices = await this.matchRepository.count({
-      where: {
-        user1Id: userId,
-        createdAt: {
-          $gte: today,
-          $lt: tomorrow,
-        } as any,
-      },
-    });
-
-    const maxChoices = await this.getMaxChoicesPerDay(userId);
-    
-    if (todayChoices >= maxChoices) {
-      throw new BadRequestException(`You have reached your daily limit of ${maxChoices} choices`);
+    if (dailySelection.choicesUsed >= dailySelection.maxChoicesAllowed) {
+      throw new BadRequestException(`You have reached your daily limit of ${dailySelection.maxChoicesAllowed} choices`);
     }
+
+    // Check if already chosen
+    if (dailySelection.chosenProfileIds.includes(targetUserId)) {
+      throw new BadRequestException('You have already chosen this profile');
+    }
+
+    // Update daily selection
+    dailySelection.chosenProfileIds.push(targetUserId);
+    dailySelection.choicesUsed += 1;
+    await this.dailySelectionRepository.save(dailySelection);
 
     // Create or update match
     let match = await this.matchRepository.findOne({
@@ -197,7 +210,6 @@ export class MatchingService {
         user1Id: userId,
         user2Id: targetUserId,
         status: MatchStatus.PENDING,
-        compatibilityScore: dailySelection.compatibilityScore,
       });
     }
 
@@ -214,7 +226,14 @@ export class MatchingService {
       match.matchedAt = new Date();
       await this.matchRepository.save(match);
 
-      // TODO: Create chat and send notifications
+      // Create chat for the match
+      try {
+        await this.chatService.createChatForMatch(match.id);
+      } catch (error) {
+        console.error('Failed to create chat for match:', error);
+      }
+
+      // TODO: Send notifications
       return { 
         match, 
         isMutual: true, 
@@ -323,25 +342,20 @@ export class MatchingService {
       where: { 
         userId, 
         isActive: true,
-        expiresAt: { $gt: new Date() } as any,
       },
     });
 
     // Free users: 1 choice per day
     // Premium users: 3 choices per day (as per specifications)
-    return activeSubscription?.tier === SubscriptionTier.PREMIUM ? 3 : 1;
+    return activeSubscription?.status === SubscriptionStatus.ACTIVE ? 3 : 1;
   }
 
   async deleteMatch(userId: string, matchId: string): Promise<void> {
     const match = await this.matchRepository.findOne({
-      where: { 
-        id: matchId,
-        // Only allow deleting if user is part of the match
-        $or: [
-          { user1Id: userId },
-          { user2Id: userId },
-        ] as any,
-      },
+      where: [
+        { id: matchId, user1Id: userId },
+        { id: matchId, user2Id: userId },
+      ],
     });
 
     if (!match) {
