@@ -11,8 +11,6 @@ import {
 import { User } from './user.entity';
 
 @Entity('daily_selections')
-@Index(['userId', 'selectionDate'], { unique: true })
-@Index(['selectionDate'])
 export class DailySelection {
   @PrimaryGeneratedColumn('uuid')
   id: string;

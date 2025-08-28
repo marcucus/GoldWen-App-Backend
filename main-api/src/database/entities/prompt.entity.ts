@@ -10,7 +10,6 @@ import {
 import { PromptAnswer } from './prompt-answer.entity';
 
 @Entity('prompts')
-@Index(['order'])
 export class Prompt {
   @PrimaryGeneratedColumn('uuid')
   id: string;

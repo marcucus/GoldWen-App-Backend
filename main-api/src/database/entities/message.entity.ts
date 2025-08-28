@@ -13,9 +13,6 @@ import { User } from './user.entity';
 import { Chat } from './chat.entity';
 
 @Entity('messages')
-@Index(['chatId'])
-@Index(['senderId'])
-@Index(['createdAt'])
 export class Message {
   @PrimaryGeneratedColumn('uuid')
   id: string;

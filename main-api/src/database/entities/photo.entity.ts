@@ -11,14 +11,12 @@ import {
 import { Profile } from './profile.entity';
 
 @Entity('photos')
-@Index(['profileId'])
 @Index(['order'])
 export class Photo {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()
-  @Index()
   profileId: string;
 
   @Column()

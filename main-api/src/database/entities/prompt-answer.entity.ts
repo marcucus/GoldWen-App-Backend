@@ -12,7 +12,6 @@ import { Profile } from './profile.entity';
 import { Prompt } from './prompt.entity';
 
 @Entity('prompt_answers')
-@Index(['profileId'])
 export class PromptAnswer {
   @PrimaryGeneratedColumn('uuid')
   id: string;

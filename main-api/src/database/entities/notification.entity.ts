@@ -12,10 +12,6 @@ import { NotificationType } from '../../common/enums';
 import { User } from './user.entity';
 
 @Entity('notifications')
-@Index(['userId'])
-@Index(['type'])
-@Index(['isRead'])
-@Index(['createdAt'])
 export class Notification {
   @PrimaryGeneratedColumn('uuid')
   id: string;
