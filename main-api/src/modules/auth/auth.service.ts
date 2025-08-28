@@ -1,9 +1,13 @@
-import { Injectable, UnauthorizedException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { v4 as uuidv4 } from 'uuid';
 
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
@@ -40,7 +44,9 @@ export class AuthService {
     const { email, password, firstName, lastName } = registerDto;
 
     // Check if user already exists
-    const existingUser = await this.userRepository.findOne({ where: { email } });
+    const existingUser = await this.userRepository.findOne({
+      where: { email },
+    });
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
     }
@@ -91,7 +97,10 @@ export class AuthService {
     }
 
     // Check password
-    const isPasswordValid = await PasswordUtil.compare(password, user.passwordHash);
+    const isPasswordValid = await PasswordUtil.compare(
+      password,
+      user.passwordHash,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -107,7 +116,7 @@ export class AuthService {
   }
 
   async socialLogin(socialLoginDto: SocialLoginDto): Promise<AuthResponse> {
-    const { socialId, provider, email, firstName, lastName, profilePicture } = socialLoginDto;
+    const { socialId, provider, email, firstName, lastName } = socialLoginDto;
 
     // Check if user exists with social ID
     let user = await this.userRepository.findOne({
@@ -191,7 +200,11 @@ export class AuthService {
       where: { resetPasswordToken: token },
     });
 
-    if (!user || !user.resetPasswordExpires || user.resetPasswordExpires < new Date()) {
+    if (
+      !user ||
+      !user.resetPasswordExpires ||
+      user.resetPasswordExpires < new Date()
+    ) {
       throw new UnauthorizedException('Invalid or expired reset token');
     }
 
@@ -205,7 +218,10 @@ export class AuthService {
     await this.userRepository.save(user);
   }
 
-  async changePassword(userId: string, changePasswordDto: ChangePasswordDto): Promise<void> {
+  async changePassword(
+    userId: string,
+    changePasswordDto: ChangePasswordDto,
+  ): Promise<void> {
     const { currentPassword, newPassword } = changePasswordDto;
 
     const user = await this.userRepository.findOne({ where: { id: userId } });
@@ -214,7 +230,10 @@ export class AuthService {
     }
 
     // Verify current password
-    const isCurrentPasswordValid = await PasswordUtil.compare(currentPassword, user.passwordHash);
+    const isCurrentPasswordValid = await PasswordUtil.compare(
+      currentPassword,
+      user.passwordHash,
+    );
     if (!isCurrentPasswordValid) {
       throw new UnauthorizedException('Current password is incorrect');
     }

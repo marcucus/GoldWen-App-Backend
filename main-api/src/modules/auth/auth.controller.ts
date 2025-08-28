@@ -1,6 +1,19 @@
-import { Controller, Post, Body, UseGuards, Get, Req, Res } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Get,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import type { Response, Request } from 'express';
 
 import { AuthService } from './auth.service';
@@ -95,7 +108,7 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   async googleAuthCallback(@Req() req: Request, @Res() res: Response) {
     const result = await this.authService.socialLogin(req.user as any);
-    
+
     // Redirect to frontend with token
     const redirectUrl = `${process.env.FRONTEND_URL}/auth/callback?token=${result.accessToken}`;
     res.redirect(redirectUrl);
@@ -113,7 +126,7 @@ export class AuthController {
   @UseGuards(AuthGuard('apple'))
   async appleAuthCallback(@Req() req: Request, @Res() res: Response) {
     const result = await this.authService.socialLogin(req.user as any);
-    
+
     // Redirect to frontend with token
     const redirectUrl = `${process.env.FRONTEND_URL}/auth/callback?token=${result.accessToken}`;
     res.redirect(redirectUrl);
@@ -142,8 +155,14 @@ export class AuthController {
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
   @Post('change-password')
-  async changePassword(@Req() req: Request, @Body() changePasswordDto: ChangePasswordDto) {
-    await this.authService.changePassword((req.user as any).id, changePasswordDto);
+  async changePassword(
+    @Req() req: Request,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    await this.authService.changePassword(
+      (req.user as any).id,
+      changePasswordDto,
+    );
     return new SuccessResponseDto('Password changed successfully');
   }
 

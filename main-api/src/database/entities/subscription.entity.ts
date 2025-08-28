@@ -82,7 +82,9 @@ export class Subscription {
 
   // Helper methods
   get isActive(): boolean {
-    return this.status === SubscriptionStatus.ACTIVE && new Date() < this.expiresAt;
+    return (
+      this.status === SubscriptionStatus.ACTIVE && new Date() < this.expiresAt
+    );
   }
 
   get daysUntilExpiration(): number {

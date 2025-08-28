@@ -24,6 +24,11 @@ export enum SubscriptionPlan {
   GOLDWEN_PLUS = 'goldwen_plus',
 }
 
+export enum SubscriptionTier {
+  FREE = 'free',
+  PREMIUM = 'premium',
+}
+
 export enum MatchStatus {
   PENDING = 'pending',
   MATCHED = 'matched',

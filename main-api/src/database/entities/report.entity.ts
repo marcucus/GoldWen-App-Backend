@@ -71,11 +71,15 @@ export class Report {
   updatedAt: Date;
 
   // Relations
-  @ManyToOne(() => User, (user) => user.reportsSubmitted, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.reportsSubmitted, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'reporterId' })
   reporter: User;
 
-  @ManyToOne(() => User, (user) => user.reportsReceived, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.reportsReceived, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'reportedUserId' })
   reportedUser: User;
 

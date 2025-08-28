@@ -4,15 +4,22 @@ import { ConfigService } from '@nestjs/config';
 
 // Placeholder Apple strategy - implement when passport-apple is properly configured
 @Injectable()
-export class AppleStrategy extends PassportStrategy(class Strategy {}, 'apple') {
+export class AppleStrategy extends PassportStrategy(
+  class Strategy {},
+  'apple',
+) {
   constructor(private configService: ConfigService) {
     super();
     // Apple OAuth implementation placeholder
   }
 
-  async validate(accessToken: string, refreshToken: string, profile: any): Promise<any> {
+  async validate(
+    accessToken: string,
+    refreshToken: string,
+    profile: any,
+  ): Promise<any> {
     const { id, email, name } = profile;
-    
+
     const user = {
       socialId: id,
       provider: 'apple',
@@ -20,7 +27,7 @@ export class AppleStrategy extends PassportStrategy(class Strategy {}, 'apple') 
       firstName: name?.firstName || '',
       lastName: name?.lastName || '',
     };
-    
+
     return user;
   }
 }

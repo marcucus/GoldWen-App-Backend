@@ -38,7 +38,9 @@ export class PromptAnswer {
   updatedAt: Date;
 
   // Relations
-  @ManyToOne(() => Profile, (profile) => profile.promptAnswers, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Profile, (profile) => profile.promptAnswers, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn()
   profile: Profile;
 

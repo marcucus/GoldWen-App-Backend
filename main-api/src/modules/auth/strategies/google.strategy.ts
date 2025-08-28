@@ -8,11 +8,11 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(private configService: ConfigService) {
     const clientId = configService.get('oauth.google.clientId');
     const clientSecret = configService.get('oauth.google.clientSecret');
-    
+
     if (!clientId || !clientSecret) {
       throw new Error('Google OAuth credentials not configured');
     }
-    
+
     super({
       clientID: clientId,
       clientSecret: clientSecret,
@@ -28,7 +28,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     done: VerifyCallback,
   ): Promise<any> {
     const { id, name, emails, photos } = profile;
-    
+
     const user = {
       socialId: id,
       provider: 'google',
@@ -37,7 +37,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       lastName: name.familyName,
       profilePicture: photos[0].value,
     };
-    
+
     done(null, user);
   }
 }

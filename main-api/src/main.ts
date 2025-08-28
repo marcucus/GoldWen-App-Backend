@@ -6,7 +6,7 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+
   const configService = app.get(ConfigService);
   const port = configService.get('app.port') || 3000;
   const apiPrefix = configService.get('app.apiPrefix') || 'api/v1';
@@ -20,7 +20,8 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-      disableErrorMessages: configService.get('app.environment') === 'production',
+      disableErrorMessages:
+        configService.get('app.environment') === 'production',
     }),
   );
 
@@ -52,8 +53,12 @@ async function bootstrap() {
   }
 
   await app.listen(port);
-  console.log(`🚀 GoldWen API is running on: http://localhost:${port}/${apiPrefix}`);
-  console.log(`📚 API Documentation: http://localhost:${port}/${apiPrefix}/docs`);
+  console.log(
+    `🚀 GoldWen API is running on: http://localhost:${port}/${apiPrefix}`,
+  );
+  console.log(
+    `📚 API Documentation: http://localhost:${port}/${apiPrefix}/docs`,
+  );
 }
 
 bootstrap();

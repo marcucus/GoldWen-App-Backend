@@ -46,7 +46,9 @@ export class DailySelection {
   updatedAt: Date;
 
   // Relations
-  @ManyToOne(() => User, (user) => user.dailySelections, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.dailySelections, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn()
   user: User;
 }
