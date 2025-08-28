@@ -4,6 +4,8 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { CustomLoggerService } from './common/logger';
+import { HttpExceptionFilter } from './common/filters';
+import { ResponseInterceptor } from './common/interceptors';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -37,6 +39,12 @@ async function bootstrap() {
         configService.get('app.environment') === 'production',
     }),
   );
+
+  // Global exception filter
+  app.useGlobalFilters(new HttpExceptionFilter(logger));
+
+  // Global response interceptor
+  app.useGlobalInterceptors(new ResponseInterceptor(logger));
 
   // CORS
   app.enableCors({
