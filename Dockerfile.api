@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Copy package files
 COPY main-api/package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 
 # Copy source code
 COPY main-api/src ./src
@@ -26,12 +26,12 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
 
 # Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nestjs -u 1001
+# RUN addgroup -g 1001 -S nodejs
+# RUN adduser -S nestjs -u 1001
 
 # Change ownership and switch to non-root user
-RUN chown -R nestjs:nodejs /app
-USER nestjs
+# RUN chown -R nestjs:nodejs /app
+# USER nestjs
 
 EXPOSE 3000
 
