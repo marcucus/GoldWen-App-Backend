@@ -7,6 +7,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { Subscription } from '../../database/entities/subscription.entity';
 import { User } from '../../database/entities/user.entity';
 import { SubscriptionStatus, SubscriptionPlan } from '../../common/enums';
+import { CustomLoggerService } from '../../common/logger';
 
 import {
   CreateSubscriptionDto,
@@ -22,6 +23,7 @@ export class SubscriptionsService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private configService: ConfigService,
+    private logger: CustomLoggerService,
   ) {}
 
   // Check and expire subscriptions daily
@@ -162,7 +164,7 @@ export class SubscriptionsService {
 
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
-      console.error(`User not found for RevenueCat webhook: ${userId}`);
+      this.logger.error(`User not found for RevenueCat webhook: ${userId}`, '', 'SubscriptionsService');
       return;
     }
 
@@ -181,7 +183,10 @@ export class SubscriptionsService {
         await this.handleBillingIssue(webhookData);
         break;
       default:
-        console.log(`Unhandled RevenueCat event type: ${event.type}`);
+        this.logger.info(`Unhandled RevenueCat event type: ${event.type}`, {
+          eventType: event.type,
+          userId,
+        });
     }
   }
 
@@ -190,7 +195,7 @@ export class SubscriptionsService {
     const { product_id, price_in_purchased_currency, purchased_at, expiration_at } = event;
 
     if (!product_id || !purchased_at || !expiration_at) {
-      console.error('Missing required fields in webhook data');
+      this.logger.error('Missing required fields in webhook data', '', 'SubscriptionsService');
       return;
     }
 
@@ -259,7 +264,10 @@ export class SubscriptionsService {
 
   private async handleBillingIssue(webhookData: RevenueCatWebhookDto): Promise<void> {
     // Handle billing issues - could notify user, pause features, etc.
-    console.log('Billing issue detected:', webhookData);
+    this.logger.logBusinessEvent('billing_issue_detected', {
+      userId: webhookData.app_user_id,
+      eventType: webhookData.event.type,
+    });
   }
 
   private getSubscriptionPlanFromProductId(productId: string): SubscriptionPlan {
