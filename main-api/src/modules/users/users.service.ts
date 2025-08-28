@@ -57,7 +57,10 @@ export class UsersService {
     return this.findById(id);
   }
 
-  async updateSettings(id: string, settingsDto: UpdateUserSettingsDto): Promise<User> {
+  async updateSettings(
+    id: string,
+    settingsDto: UpdateUserSettingsDto,
+  ): Promise<User> {
     const user = await this.findById(id);
 
     if (settingsDto.notificationsEnabled !== undefined) {
@@ -82,7 +85,7 @@ export class UsersService {
 
   async getUserStats(id: string): Promise<any> {
     const user = await this.findById(id);
-    
+
     // TODO: Add queries to get user statistics
     return {
       userId: user.id,

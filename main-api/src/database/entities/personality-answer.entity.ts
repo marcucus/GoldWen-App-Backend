@@ -44,11 +44,15 @@ export class PersonalityAnswer {
   updatedAt: Date;
 
   // Relations
-  @ManyToOne(() => User, (user) => user.personalityAnswers, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.personalityAnswers, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn()
   user: User;
 
-  @ManyToOne(() => PersonalityQuestion, (question) => question.answers, { onDelete: 'CASCADE' })
+  @ManyToOne(() => PersonalityQuestion, (question) => question.answers, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn()
   question: PersonalityQuestion;
 }

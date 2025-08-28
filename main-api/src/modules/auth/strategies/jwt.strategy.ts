@@ -25,7 +25,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!secret) {
       throw new Error('JWT secret not configured');
     }
-    
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -35,7 +35,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: JwtPayload): Promise<User> {
     const { sub: userId } = payload;
-    
+
     const user = await this.userRepository.findOne({
       where: { id: userId },
       relations: ['profile'],

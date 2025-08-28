@@ -58,7 +58,9 @@ export class Photo {
   updatedAt: Date;
 
   // Relations
-  @ManyToOne(() => Profile, (profile) => profile.photos, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Profile, (profile) => profile.photos, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn()
   profile: Profile;
 }

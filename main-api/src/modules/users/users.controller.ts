@@ -1,6 +1,19 @@
-import { Controller, Get, Put, Body, UseGuards, Req, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Put,
+  Body,
+  UseGuards,
+  Req,
+  Delete,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import type { Request } from 'express';
 
 import { UsersService } from './users.service';
@@ -21,7 +34,7 @@ export class UsersController {
   async getMyProfile(@Req() req: Request) {
     const user = req.user as User;
     const userProfile = await this.usersService.findById(user.id);
-    
+
     return {
       success: true,
       data: {
@@ -42,10 +55,16 @@ export class UsersController {
   @ApiOperation({ summary: 'Update current user profile' })
   @ApiResponse({ status: 200, description: 'User profile updated' })
   @Put('me')
-  async updateMyProfile(@Req() req: Request, @Body() updateUserDto: UpdateUserDto) {
+  async updateMyProfile(
+    @Req() req: Request,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
     const user = req.user as User;
-    const updatedUser = await this.usersService.updateUser(user.id, updateUserDto);
-    
+    const updatedUser = await this.usersService.updateUser(
+      user.id,
+      updateUserDto,
+    );
+
     return {
       success: true,
       message: 'Profile updated successfully',
@@ -60,10 +79,13 @@ export class UsersController {
   @ApiOperation({ summary: 'Update user settings' })
   @ApiResponse({ status: 200, description: 'Settings updated' })
   @Put('me/settings')
-  async updateSettings(@Req() req: Request, @Body() settingsDto: UpdateUserSettingsDto) {
+  async updateSettings(
+    @Req() req: Request,
+    @Body() settingsDto: UpdateUserSettingsDto,
+  ) {
     const user = req.user as User;
     await this.usersService.updateSettings(user.id, settingsDto);
-    
+
     return new SuccessResponseDto('Settings updated successfully');
   }
 
@@ -73,7 +95,7 @@ export class UsersController {
   async getUserStats(@Req() req: Request) {
     const user = req.user as User;
     const stats = await this.usersService.getUserStats(user.id);
-    
+
     return {
       success: true,
       data: stats,
@@ -86,7 +108,7 @@ export class UsersController {
   async deactivateAccount(@Req() req: Request) {
     const user = req.user as User;
     await this.usersService.deactivateUser(user.id);
-    
+
     return new SuccessResponseDto('Account deactivated successfully');
   }
 
@@ -96,7 +118,7 @@ export class UsersController {
   async deleteAccount(@Req() req: Request) {
     const user = req.user as User;
     await this.usersService.deleteUser(user.id);
-    
+
     return new SuccessResponseDto('Account deleted successfully');
   }
 }

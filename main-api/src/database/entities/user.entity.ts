@@ -81,7 +81,9 @@ export class User {
   @OneToOne(() => Profile, (profile) => profile.user, { cascade: true })
   profile: Profile;
 
-  @OneToMany(() => PersonalityAnswer, (answer) => answer.user, { cascade: true })
+  @OneToMany(() => PersonalityAnswer, (answer) => answer.user, {
+    cascade: true,
+  })
   personalityAnswers: PersonalityAnswer[];
 
   @OneToMany(() => DailySelection, (selection) => selection.user)
