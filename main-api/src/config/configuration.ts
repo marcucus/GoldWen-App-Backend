@@ -46,6 +46,7 @@ export const appConfig = registerAs(
     port: parseInt(process.env.PORT || '3000', 10),
     environment: process.env.NODE_ENV || 'development',
     apiPrefix: process.env.API_PREFIX || 'api/v1',
+    logLevel: process.env.LOG_LEVEL || 'info',
   }),
 );
 

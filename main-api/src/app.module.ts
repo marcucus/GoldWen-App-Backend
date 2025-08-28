@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -6,6 +6,9 @@ import { BullModule } from '@nestjs/bull';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+
+// Logger
+import { LoggerModule, LoggingMiddleware } from './common/logger';
 
 // Configuration
 import {
@@ -33,6 +36,9 @@ import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
+    // Logger - Global module
+    LoggerModule,
+    
     // Configuration
     ConfigModule.forRoot({
       isGlobal: true,
@@ -96,4 +102,10 @@ import { AdminModule } from './modules/admin/admin.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(LoggingMiddleware)
+      .forRoutes('*'); // Apply to all routes
+  }
+}
