@@ -14,9 +14,6 @@ import { Match } from './match.entity';
 import { Message } from './message.entity';
 
 @Entity('chats')
-@Index(['matchId'], { unique: true })
-@Index(['status'])
-@Index(['expiresAt'])
 export class Chat {
   @PrimaryGeneratedColumn('uuid')
   id: string;

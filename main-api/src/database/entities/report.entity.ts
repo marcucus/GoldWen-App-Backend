@@ -13,11 +13,6 @@ import { User } from './user.entity';
 import { Admin } from './admin.entity';
 
 @Entity('reports')
-@Index(['reporterId'])
-@Index(['reportedUserId'])
-@Index(['status'])
-@Index(['type'])
-@Index(['createdAt'])
 export class Report {
   @PrimaryGeneratedColumn('uuid')
   id: string;

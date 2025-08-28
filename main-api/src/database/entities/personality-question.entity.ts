@@ -11,7 +11,6 @@ import { QuestionType } from '../../common/enums';
 import { PersonalityAnswer } from './personality-answer.entity';
 
 @Entity('personality_questions')
-@Index(['order'])
 export class PersonalityQuestion {
   @PrimaryGeneratedColumn('uuid')
   id: string;

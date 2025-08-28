@@ -28,7 +28,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
       inject: [ConfigService],
     }),
   ],
-  providers: [AuthService, JwtStrategy, GoogleStrategy], // AppleStrategy
+  providers: [AuthService, JwtStrategy, GoogleStrategy], // AppleStrategy , GoogleStrategy
   controllers: [AuthController],
   exports: [AuthService, JwtStrategy, PassportModule],
 })

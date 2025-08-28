@@ -14,11 +14,6 @@ import { User } from './user.entity';
 import { Chat } from './chat.entity';
 
 @Entity('matches')
-@Index(['user1Id', 'user2Id'], { unique: true })
-@Index(['user1Id'])
-@Index(['user2Id'])
-@Index(['status'])
-@Index(['createdAt'])
 export class Match {
   @PrimaryGeneratedColumn('uuid')
   id: string;

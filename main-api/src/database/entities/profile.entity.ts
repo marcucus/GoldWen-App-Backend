@@ -15,8 +15,6 @@ import { Photo } from './photo.entity';
 import { PromptAnswer } from './prompt-answer.entity';
 
 @Entity('profiles')
-@Index(['birthDate'])
-@Index(['location'])
 export class Profile {
   @PrimaryGeneratedColumn('uuid')
   id: string;

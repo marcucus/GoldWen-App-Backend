@@ -12,9 +12,6 @@ import { SubscriptionStatus, SubscriptionPlan } from '../../common/enums';
 import { User } from './user.entity';
 
 @Entity('subscriptions')
-@Index(['userId'])
-@Index(['status'])
-@Index(['expiresAt'])
 export class Subscription {
   @PrimaryGeneratedColumn('uuid')
   id: string;

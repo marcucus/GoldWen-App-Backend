@@ -12,7 +12,6 @@ import { User } from './user.entity';
 import { PersonalityQuestion } from './personality-question.entity';
 
 @Entity('personality_answers')
-@Index(['userId', 'questionId'], { unique: true })
 export class PersonalityAnswer {
   @PrimaryGeneratedColumn('uuid')
   id: string;
