@@ -9,7 +9,12 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ProfilesService } from './profiles.service';
 import {
@@ -36,7 +41,10 @@ export class ProfilesController {
   @Put('me')
   @ApiOperation({ summary: 'Update current user profile' })
   @ApiResponse({ status: 200, description: 'Profile updated successfully' })
-  async updateProfile(@Request() req: any, @Body() updateProfileDto: UpdateProfileDto) {
+  async updateProfile(
+    @Request() req: any,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
     return this.profilesService.updateProfile(req.user.id, updateProfileDto);
   }
 
@@ -56,12 +64,18 @@ export class ProfilesController {
 
   @Post('personality-answers')
   @ApiOperation({ summary: 'Submit personality questionnaire answers' })
-  @ApiResponse({ status: 201, description: 'Personality answers submitted successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Personality answers submitted successfully',
+  })
   async submitPersonalityAnswers(
     @Request() req: any,
     @Body() answersDto: SubmitPersonalityAnswersDto,
   ) {
-    await this.profilesService.submitPersonalityAnswers(req.user.id, answersDto);
+    await this.profilesService.submitPersonalityAnswers(
+      req.user.id,
+      answersDto,
+    );
     return { message: 'Personality answers submitted successfully' };
   }
 
@@ -89,12 +103,18 @@ export class ProfilesController {
 
   @Post('prompt-answers')
   @ApiOperation({ summary: 'Submit prompt answers' })
-  @ApiResponse({ status: 201, description: 'Prompt answers submitted successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Prompt answers submitted successfully',
+  })
   async submitPromptAnswers(
     @Request() req: any,
     @Body() promptAnswersDto: SubmitPromptAnswersDto,
   ) {
-    await this.profilesService.submitPromptAnswers(req.user.id, promptAnswersDto);
+    await this.profilesService.submitPromptAnswers(
+      req.user.id,
+      promptAnswersDto,
+    );
     return { message: 'Prompt answers submitted successfully' };
   }
 }

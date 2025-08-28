@@ -10,14 +10,7 @@ import { Match } from '../../database/entities/match.entity';
 import { User } from '../../database/entities/user.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([
-      Chat,
-      Message,
-      Match,
-      User,
-    ]),
-  ],
+  imports: [TypeOrmModule.forFeature([Chat, Message, Match, User])],
   providers: [ChatService],
   controllers: [ChatController],
   exports: [ChatService],

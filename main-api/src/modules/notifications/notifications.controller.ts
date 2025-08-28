@@ -10,7 +10,13 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiResponse,
+  ApiParam,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { NotificationsService } from './notifications.service';
 import { CustomLoggerService } from '../../common/logger';
@@ -33,17 +39,23 @@ export class NotificationsController {
 
   @Get()
   @ApiOperation({ summary: 'Get user notifications' })
-  @ApiResponse({ status: 200, description: 'Notifications retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Notifications retrieved successfully',
+  })
   async getNotifications(
     @Request() req: any,
     @Query() getNotificationsDto: GetNotificationsDto,
   ) {
     const userId = req.user.id;
-    
+
     this.logger.setContext({ userId, userEmail: req.user.email });
-    
-    const result = await this.notificationsService.getNotifications(userId, getNotificationsDto);
-    
+
+    const result = await this.notificationsService.getNotifications(
+      userId,
+      getNotificationsDto,
+    );
+
     return {
       success: true,
       data: result,
@@ -59,11 +71,14 @@ export class NotificationsController {
     @Param('notificationId') notificationId: string,
   ) {
     const userId = req.user.id;
-    
+
     this.logger.setContext({ userId, userEmail: req.user.email });
-    
-    const notification = await this.notificationsService.markAsRead(notificationId, userId);
-    
+
+    const notification = await this.notificationsService.markAsRead(
+      notificationId,
+      userId,
+    );
+
     return {
       success: true,
       data: notification,
@@ -76,11 +91,11 @@ export class NotificationsController {
   @ApiResponse({ status: 200, description: 'All notifications marked as read' })
   async markAllAsRead(@Request() req: any) {
     const userId = req.user.id;
-    
+
     this.logger.setContext({ userId, userEmail: req.user.email });
-    
+
     const result = await this.notificationsService.markAllAsRead(userId);
-    
+
     return {
       success: true,
       data: result,
@@ -91,17 +106,20 @@ export class NotificationsController {
   @Delete(':notificationId')
   @ApiOperation({ summary: 'Delete notification' })
   @ApiParam({ name: 'notificationId', description: 'Notification ID' })
-  @ApiResponse({ status: 200, description: 'Notification deleted successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Notification deleted successfully',
+  })
   async deleteNotification(
     @Request() req: any,
     @Param('notificationId') notificationId: string,
   ) {
     const userId = req.user.id;
-    
+
     this.logger.setContext({ userId, userEmail: req.user.email });
-    
+
     await this.notificationsService.deleteNotification(notificationId, userId);
-    
+
     return {
       success: true,
       message: 'Notification deleted successfully',
@@ -116,11 +134,14 @@ export class NotificationsController {
     @Body() updateSettingsDto: UpdateNotificationSettingsDto,
   ) {
     const userId = req.user.id;
-    
+
     this.logger.setContext({ userId, userEmail: req.user.email });
-    
-    const result = await this.notificationsService.updateNotificationSettings(userId, updateSettingsDto);
-    
+
+    const result = await this.notificationsService.updateNotificationSettings(
+      userId,
+      updateSettingsDto,
+    );
+
     return {
       success: true,
       data: result,
@@ -128,9 +149,9 @@ export class NotificationsController {
   }
 
   @Post('test')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Send test notification (development only)',
-    description: 'This endpoint is only available in development environment'
+    description: 'This endpoint is only available in development environment',
   })
   @ApiResponse({ status: 200, description: 'Test notification sent' })
   @ApiResponse({ status: 403, description: 'Not available in production' })
@@ -139,11 +160,14 @@ export class NotificationsController {
     @Body() testNotificationDto: TestNotificationDto,
   ) {
     const userId = req.user.id;
-    
+
     this.logger.setContext({ userId, userEmail: req.user.email });
-    
-    const notification = await this.notificationsService.sendTestNotification(userId, testNotificationDto);
-    
+
+    const notification = await this.notificationsService.sendTestNotification(
+      userId,
+      testNotificationDto,
+    );
+
     return {
       success: true,
       data: notification,

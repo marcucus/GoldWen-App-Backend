@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not, In } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -11,7 +17,11 @@ import { PersonalityAnswer } from '../../database/entities/personality-answer.en
 import { Subscription } from '../../database/entities/subscription.entity';
 import { CustomLoggerService } from '../../common/logger';
 
-import { MatchStatus, SubscriptionTier, SubscriptionStatus } from '../../common/enums';
+import {
+  MatchStatus,
+  SubscriptionTier,
+  SubscriptionStatus,
+} from '../../common/enums';
 import { ChatService } from '../chat/chat.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -44,8 +54,8 @@ export class MatchingService {
       where: { isProfileCompleted: true },
     });
 
-    this.logger.info('Starting daily selection generation for all users', { 
-      totalUsers: users.length 
+    this.logger.info('Starting daily selection generation for all users', {
+      totalUsers: users.length,
     });
 
     let successCount = 0;
@@ -54,21 +64,25 @@ export class MatchingService {
     for (const user of users) {
       try {
         await this.generateDailySelection(user.id);
-        
+
         // Send daily selection notification
         await this.notificationsService.sendDailySelectionNotification(user.id);
-        
+
         successCount++;
       } catch (error) {
-        this.logger.error('Failed to generate daily selection for user', error.stack, 'MatchingService');
+        this.logger.error(
+          'Failed to generate daily selection for user',
+          error.stack,
+          'MatchingService',
+        );
         errorCount++;
       }
     }
 
-    this.logger.info('Daily selection generation completed', { 
+    this.logger.info('Daily selection generation completed', {
       totalUsers: users.length,
       successCount,
-      errorCount
+      errorCount,
     });
   }
 
@@ -83,7 +97,9 @@ export class MatchingService {
     }
 
     if (!user.isProfileCompleted) {
-      throw new BadRequestException('Profile must be completed to receive daily selections');
+      throw new BadRequestException(
+        'Profile must be completed to receive daily selections',
+      );
     }
 
     // Check if user already has a selection for today
@@ -103,15 +119,14 @@ export class MatchingService {
 
     // Get users that this user hasn't matched with yet
     const existingMatches = await this.matchRepository.find({
-      where: [
-        { user1Id: userId },
-        { user2Id: userId },
-      ],
+      where: [{ user1Id: userId }, { user2Id: userId }],
     });
 
     const excludedUserIds = [
       userId, // Exclude self
-      ...existingMatches.map(match => match.user1Id === userId ? match.user2Id : match.user1Id),
+      ...existingMatches.map((match) =>
+        match.user1Id === userId ? match.user2Id : match.user1Id,
+      ),
     ];
 
     // Get potential matches (users with completed profiles)
@@ -132,16 +147,19 @@ export class MatchingService {
           selectionDate: today,
           selectedProfileIds: [],
           maxChoicesAllowed: await this.getMaxChoicesPerDay(userId),
-        })
+        }),
       );
     }
 
     // Calculate compatibility scores and select best matches
     const compatibilityScores = await Promise.all(
       potentialMatches.map(async (potentialMatch) => {
-        const score = await this.calculateCompatibilityScore(user, potentialMatch);
+        const score = await this.calculateCompatibilityScore(
+          user,
+          potentialMatch,
+        );
         return { user: potentialMatch, score };
-      })
+      }),
     );
 
     // Sort by compatibility score (highest first)
@@ -152,7 +170,7 @@ export class MatchingService {
 
     // Take top matches
     const selectedMatches = compatibilityScores.slice(0, selectionSize);
-    const selectedProfileIds = selectedMatches.map(match => match.user.id);
+    const selectedProfileIds = selectedMatches.map((match) => match.user.id);
 
     // Create daily selection entry
     const dailySelection = this.dailySelectionRepository.create({
@@ -205,13 +223,18 @@ export class MatchingService {
       where: { userId, selectionDate: today },
     });
 
-    if (!dailySelection || !dailySelection.selectedProfileIds.includes(targetUserId)) {
+    if (
+      !dailySelection ||
+      !dailySelection.selectedProfileIds.includes(targetUserId)
+    ) {
       throw new BadRequestException('Target user not in your daily selection');
     }
 
     // Check if user has remaining choices today
     if (dailySelection.choicesUsed >= dailySelection.maxChoicesAllowed) {
-      throw new BadRequestException(`You have reached your daily limit of ${dailySelection.maxChoicesAllowed} choices`);
+      throw new BadRequestException(
+        `You have reached your daily limit of ${dailySelection.maxChoicesAllowed} choices`,
+      );
     }
 
     // Check if already chosen
@@ -263,57 +286,62 @@ export class MatchingService {
           user2Id: match.user2Id,
         });
       } catch (error) {
-        this.logger.error('Failed to create chat for match', error.stack, 'MatchingService');
+        this.logger.error(
+          'Failed to create chat for match',
+          error.stack,
+          'MatchingService',
+        );
       }
 
       // Send notifications to both users about the mutual match
       try {
-        const user1 = await this.userRepository.findOne({ 
+        const user1 = await this.userRepository.findOne({
           where: { id: match.user1Id },
-          relations: ['profile']
+          relations: ['profile'],
         });
-        const user2 = await this.userRepository.findOne({ 
+        const user2 = await this.userRepository.findOne({
           where: { id: match.user2Id },
-          relations: ['profile']
+          relations: ['profile'],
         });
 
         if (user1 && user2) {
           // Send notification to user1 about matching with user2
           await this.notificationsService.sendNewMatchNotification(
-            user1.id, 
-            user2.profile?.firstName || 'Someone'
+            user1.id,
+            user2.profile?.firstName || 'Someone',
           );
 
           // Send notification to user2 about matching with user1
           await this.notificationsService.sendNewMatchNotification(
-            user2.id, 
-            user1.profile?.firstName || 'Someone'
+            user2.id,
+            user1.profile?.firstName || 'Someone',
           );
         }
       } catch (error) {
-        this.logger.error('Failed to send match notifications', error.stack, 'MatchingService');
+        this.logger.error(
+          'Failed to send match notifications',
+          error.stack,
+          'MatchingService',
+        );
         // Don't throw error as match creation succeeded
       }
 
-      return { 
-        match, 
-        isMutual: true, 
-        message: 'Congratulations! You have a mutual match!' 
+      return {
+        match,
+        isMutual: true,
+        message: 'Congratulations! You have a mutual match!',
       };
     }
 
-    return { 
-      match, 
-      isMutual: false, 
-      message: 'Your choice has been registered!' 
+    return {
+      match,
+      isMutual: false,
+      message: 'Your choice has been registered!',
     };
   }
 
   async getUserMatches(userId: string, status?: MatchStatus): Promise<Match[]> {
-    const whereCondition: any = [
-      { user1Id: userId },
-      { user2Id: userId },
-    ];
+    const whereCondition: any = [{ user1Id: userId }, { user2Id: userId }];
 
     if (status) {
       whereCondition[0].status = status;
@@ -327,7 +355,10 @@ export class MatchingService {
     });
   }
 
-  async getCompatibilityScore(userId: string, targetUserId: string): Promise<number> {
+  async getCompatibilityScore(
+    userId: string,
+    targetUserId: string,
+  ): Promise<number> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
       relations: ['personalityAnswers'],
@@ -345,10 +376,13 @@ export class MatchingService {
     return this.calculateCompatibilityScore(user, targetUser);
   }
 
-  private async calculateCompatibilityScore(user1: User, user2: User): Promise<number> {
+  private async calculateCompatibilityScore(
+    user1: User,
+    user2: User,
+  ): Promise<number> {
     // Simple content-based filtering for MVP
     // In V2, this could be enhanced with ML algorithms
-    
+
     const user1Answers = user1.personalityAnswers || [];
     const user2Answers = user2.personalityAnswers || [];
 
@@ -360,30 +394,51 @@ export class MatchingService {
     let commonQuestions = 0;
 
     for (const answer1 of user1Answers) {
-      const answer2 = user2Answers.find(a => a.questionId === answer1.questionId);
-      
+      const answer2 = user2Answers.find(
+        (a) => a.questionId === answer1.questionId,
+      );
+
       if (answer2) {
         commonQuestions++;
-        
+
         // Calculate similarity based on answer type
         if (answer1.numericAnswer !== null && answer2.numericAnswer !== null) {
           // For scale questions, calculate distance
           const maxDistance = 10; // Assuming scale is 1-10
-          const distance = Math.abs(answer1.numericAnswer - answer2.numericAnswer);
+          const distance = Math.abs(
+            answer1.numericAnswer - answer2.numericAnswer,
+          );
           const similarity = (maxDistance - distance) / maxDistance;
           totalScore += similarity * 100;
-        } else if (answer1.booleanAnswer !== null && answer2.booleanAnswer !== null) {
+        } else if (
+          answer1.booleanAnswer !== null &&
+          answer2.booleanAnswer !== null
+        ) {
           // For yes/no questions
-          totalScore += answer1.booleanAnswer === answer2.booleanAnswer ? 100 : 0;
-        } else if (answer1.multipleChoiceAnswer && answer2.multipleChoiceAnswer) {
+          totalScore +=
+            answer1.booleanAnswer === answer2.booleanAnswer ? 100 : 0;
+        } else if (
+          answer1.multipleChoiceAnswer &&
+          answer2.multipleChoiceAnswer
+        ) {
           // For multiple choice, check for any common selections
-          const common = answer1.multipleChoiceAnswer.filter(a => 
-            answer2.multipleChoiceAnswer?.includes(a)
+          const common = answer1.multipleChoiceAnswer.filter((a) =>
+            answer2.multipleChoiceAnswer?.includes(a),
           );
-          totalScore += (common.length / Math.max(answer1.multipleChoiceAnswer.length, answer2.multipleChoiceAnswer.length)) * 100;
+          totalScore +=
+            (common.length /
+              Math.max(
+                answer1.multipleChoiceAnswer.length,
+                answer2.multipleChoiceAnswer.length,
+              )) *
+            100;
         } else if (answer1.textAnswer && answer2.textAnswer) {
           // Basic text similarity (can be enhanced)
-          const similarity = answer1.textAnswer.toLowerCase() === answer2.textAnswer.toLowerCase() ? 100 : 50;
+          const similarity =
+            answer1.textAnswer.toLowerCase() ===
+            answer2.textAnswer.toLowerCase()
+              ? 100
+              : 50;
           totalScore += similarity;
         }
       }
@@ -400,8 +455,8 @@ export class MatchingService {
 
   private async getMaxChoicesPerDay(userId: string): Promise<number> {
     const activeSubscription = await this.subscriptionRepository.findOne({
-      where: { 
-        userId, 
+      where: {
+        userId,
         isActive: true,
       },
     });

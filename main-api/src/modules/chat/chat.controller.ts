@@ -10,7 +10,12 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ChatService } from './chat.service';
 import { SendMessageDto, GetMessagesDto, ExtendChatDto } from './dto/chat.dto';
@@ -31,7 +36,10 @@ export class ChatController {
 
   @Get('stats')
   @ApiOperation({ summary: 'Get chat statistics' })
-  @ApiResponse({ status: 200, description: 'Chat statistics retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Chat statistics retrieved successfully',
+  })
   async getChatStats(@Request() req: any) {
     return this.chatService.getChatStats(req.user.id);
   }
@@ -39,7 +47,10 @@ export class ChatController {
   @Get('match/:matchId')
   @ApiOperation({ summary: 'Get chat by match ID' })
   @ApiResponse({ status: 200, description: 'Chat retrieved successfully' })
-  async getChatByMatchId(@Request() req: any, @Param('matchId') matchId: string) {
+  async getChatByMatchId(
+    @Request() req: any,
+    @Param('matchId') matchId: string,
+  ) {
     return this.chatService.getChatByMatchId(matchId, req.user.id);
   }
 
@@ -51,7 +62,12 @@ export class ChatController {
     @Param('chatId') chatId: string,
     @Query() query: GetMessagesDto,
   ) {
-    return this.chatService.getChatMessages(chatId, req.user.id, query.page, query.limit);
+    return this.chatService.getChatMessages(
+      chatId,
+      req.user.id,
+      query.page,
+      query.limit,
+    );
   }
 
   @Post(':chatId/messages')
@@ -68,7 +84,10 @@ export class ChatController {
   @Put(':chatId/messages/read')
   @ApiOperation({ summary: 'Mark messages as read' })
   @ApiResponse({ status: 200, description: 'Messages marked as read' })
-  async markMessagesAsRead(@Request() req: any, @Param('chatId') chatId: string) {
+  async markMessagesAsRead(
+    @Request() req: any,
+    @Param('chatId') chatId: string,
+  ) {
     await this.chatService.markMessagesAsRead(chatId, req.user.id);
     return { message: 'Messages marked as read' };
   }
@@ -76,7 +95,10 @@ export class ChatController {
   @Delete('messages/:messageId')
   @ApiOperation({ summary: 'Delete a message' })
   @ApiResponse({ status: 200, description: 'Message deleted successfully' })
-  async deleteMessage(@Request() req: any, @Param('messageId') messageId: string) {
+  async deleteMessage(
+    @Request() req: any,
+    @Param('messageId') messageId: string,
+  ) {
     await this.chatService.deleteMessage(messageId, req.user.id);
     return { message: 'Message deleted successfully' };
   }
@@ -89,6 +111,10 @@ export class ChatController {
     @Param('chatId') chatId: string,
     @Body() extendChatDto: ExtendChatDto,
   ) {
-    return this.chatService.extendChatTime(chatId, req.user.id, extendChatDto.hours);
+    return this.chatService.extendChatTime(
+      chatId,
+      req.user.id,
+      extendChatDto.hours,
+    );
   }
 }

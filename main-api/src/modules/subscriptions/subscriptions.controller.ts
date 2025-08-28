@@ -11,7 +11,12 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { SubscriptionsService } from './subscriptions.service';
@@ -30,12 +35,18 @@ export class SubscriptionsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new subscription' })
-  @ApiResponse({ status: 201, description: 'Subscription created successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Subscription created successfully',
+  })
   async createSubscription(
     @Request() req: any,
     @Body() createSubscriptionDto: CreateSubscriptionDto,
   ) {
-    return this.subscriptionsService.createSubscription(req.user.id, createSubscriptionDto);
+    return this.subscriptionsService.createSubscription(
+      req.user.id,
+      createSubscriptionDto,
+    );
   }
 
   @Get('active')
@@ -51,7 +62,10 @@ export class SubscriptionsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all user subscriptions' })
-  @ApiResponse({ status: 200, description: 'Subscriptions retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Subscriptions retrieved successfully',
+  })
   async getUserSubscriptions(@Request() req: any) {
     return this.subscriptionsService.getUserSubscriptions(req.user.id);
   }
@@ -69,7 +83,10 @@ export class SubscriptionsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Activate a subscription' })
-  @ApiResponse({ status: 200, description: 'Subscription activated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Subscription activated successfully',
+  })
   async activateSubscription(@Param('subscriptionId') subscriptionId: string) {
     return this.subscriptionsService.activateSubscription(subscriptionId);
   }
@@ -78,21 +95,36 @@ export class SubscriptionsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Cancel a subscription' })
-  @ApiResponse({ status: 200, description: 'Subscription cancelled successfully' })
-  async cancelSubscription(@Request() req: any, @Param('subscriptionId') subscriptionId: string) {
-    return this.subscriptionsService.cancelSubscription(subscriptionId, req.user.id);
+  @ApiResponse({
+    status: 200,
+    description: 'Subscription cancelled successfully',
+  })
+  async cancelSubscription(
+    @Request() req: any,
+    @Param('subscriptionId') subscriptionId: string,
+  ) {
+    return this.subscriptionsService.cancelSubscription(
+      subscriptionId,
+      req.user.id,
+    );
   }
 
   @Put(':subscriptionId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a subscription' })
-  @ApiResponse({ status: 200, description: 'Subscription updated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Subscription updated successfully',
+  })
   async updateSubscription(
     @Param('subscriptionId') subscriptionId: string,
     @Body() updateSubscriptionDto: UpdateSubscriptionDto,
   ) {
-    return this.subscriptionsService.updateSubscription(subscriptionId, updateSubscriptionDto);
+    return this.subscriptionsService.updateSubscription(
+      subscriptionId,
+      updateSubscriptionDto,
+    );
   }
 
   // RevenueCat webhook endpoint
@@ -110,7 +142,10 @@ export class SubscriptionsController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get subscription statistics (Admin only)' })
-  @ApiResponse({ status: 200, description: 'Subscription statistics retrieved' })
+  @ApiResponse({
+    status: 200,
+    description: 'Subscription statistics retrieved',
+  })
   async getSubscriptionStats() {
     return this.subscriptionsService.getSubscriptionStats();
   }

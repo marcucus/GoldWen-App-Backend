@@ -16,9 +16,11 @@ export class EmailService {
 
   private initializeTransporter(): void {
     const emailConfig = this.configService.get('email');
-    
+
     if (!emailConfig?.smtp?.host || !emailConfig?.smtp?.user) {
-      this.logger.warn('Email configuration incomplete, email service will be disabled');
+      this.logger.warn(
+        'Email configuration incomplete, email service will be disabled',
+      );
       return;
     }
 
@@ -33,15 +35,20 @@ export class EmailService {
     });
   }
 
-  async sendPasswordResetEmail(email: string, resetToken: string): Promise<void> {
+  async sendPasswordResetEmail(
+    email: string,
+    resetToken: string,
+  ): Promise<void> {
     if (!this.transporter) {
-      this.logger.warn('Email service not configured, skipping password reset email');
+      this.logger.warn(
+        'Email service not configured, skipping password reset email',
+      );
       return;
     }
 
     try {
       const resetUrl = `${this.configService.get('app.frontendUrl')}/reset-password?token=${resetToken}`;
-      
+
       const mailOptions = {
         from: this.configService.get('email.from') || 'noreply@goldwen.com',
         to: email,
@@ -50,13 +57,16 @@ export class EmailService {
       };
 
       await this.transporter.sendMail(mailOptions);
-      
+
       this.logger.info('Password reset email sent successfully', {
         email: email.replace(/(.{2}).*(@.*)/, '$1***$2'), // Mask email for privacy
       });
-
     } catch (error) {
-      this.logger.error('Failed to send password reset email', error.stack, 'EmailService');
+      this.logger.error(
+        'Failed to send password reset email',
+        error.stack,
+        'EmailService',
+      );
       throw error;
     }
   }
@@ -76,13 +86,16 @@ export class EmailService {
       };
 
       await this.transporter.sendMail(mailOptions);
-      
+
       this.logger.info('Welcome email sent successfully', {
         email: email.replace(/(.{2}).*(@.*)/, '$1***$2'),
       });
-
     } catch (error) {
-      this.logger.error('Failed to send welcome email', error.stack, 'EmailService');
+      this.logger.error(
+        'Failed to send welcome email',
+        error.stack,
+        'EmailService',
+      );
       // Don't throw error for welcome email, it's not critical
     }
   }

@@ -8,7 +8,11 @@ import { Match } from '../../database/entities/match.entity';
 import { Message } from '../../database/entities/message.entity';
 import { Subscription } from '../../database/entities/subscription.entity';
 import { DailySelection } from '../../database/entities/daily-selection.entity';
-import { UserStatus, MatchStatus, SubscriptionStatus } from '../../common/enums';
+import {
+  UserStatus,
+  MatchStatus,
+  SubscriptionStatus,
+} from '../../common/enums';
 import { UpdateUserDto, UpdateUserSettingsDto } from './dto/update-user.dto';
 
 @Injectable()
@@ -125,11 +129,11 @@ export class UsersService {
 
     // Get current subscription
     const currentSubscription = await this.subscriptionRepository.findOne({
-      where: { 
-        userId: id, 
-        status: SubscriptionStatus.ACTIVE 
+      where: {
+        userId: id,
+        status: SubscriptionStatus.ACTIVE,
       },
-      order: { createdAt: 'DESC' }
+      order: { createdAt: 'DESC' },
     });
 
     // Get profile completion percentage
@@ -146,8 +150,12 @@ export class UsersService {
         profile.interests?.length > 0,
         profile.photos?.length >= 3, // Minimum 3 photos
       ];
-      const completedFields = profileFields.filter(field => Boolean(field)).length;
-      profileCompletionPercent = Math.round((completedFields / profileFields.length) * 100);
+      const completedFields = profileFields.filter((field) =>
+        Boolean(field),
+      ).length;
+      profileCompletionPercent = Math.round(
+        (completedFields / profileFields.length) * 100,
+      );
     }
 
     return {
@@ -156,32 +164,37 @@ export class UsersService {
       lastActiveAt: user.lastActiveAt,
       isProfileCompleted: user.isProfileCompleted,
       isOnboardingCompleted: user.isOnboardingCompleted,
-      emailVerified: user.emailVerified,
-      
+      emailVerified: user.isEmailVerified,
+
       // Profile stats
       profileCompletionPercent,
       totalPhotos: profile?.photos?.length || 0,
-      
+
       // Matching stats
       totalMatches,
       dailySelectionsReceived: dailySelectionsUsed,
       totalChoicesUsed: parseInt(totalChoicesUsed?.total || '0'),
-      
+
       // Communication stats
       messagesSent,
-      
+
       // Subscription stats
       hasActiveSubscription: !!currentSubscription,
       subscriptionPlan: currentSubscription?.plan || null,
       subscriptionExpiresAt: currentSubscription?.expiresAt || null,
-      
+
       // Calculated metrics
-      averageChoicesPerSelection: dailySelectionsUsed > 0 
-        ? Math.round((parseInt(totalChoicesUsed?.total || '0') / dailySelectionsUsed) * 100) / 100 
-        : 0,
-      matchRate: dailySelectionsUsed > 0 
-        ? Math.round((totalMatches / dailySelectionsUsed) * 100) / 100 
-        : 0,
+      averageChoicesPerSelection:
+        dailySelectionsUsed > 0
+          ? Math.round(
+              (parseInt(totalChoicesUsed?.total || '0') / dailySelectionsUsed) *
+                100,
+            ) / 100
+          : 0,
+      matchRate:
+        dailySelectionsUsed > 0
+          ? Math.round((totalMatches / dailySelectionsUsed) * 100) / 100
+          : 0,
     };
   }
 }

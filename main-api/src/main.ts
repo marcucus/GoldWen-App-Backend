@@ -10,10 +10,10 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
   const logger = app.get(CustomLoggerService);
-  
+
   // Use custom logger
   app.useLogger(logger);
-  
+
   const port = configService.get('app.port') || 3000;
   const apiPrefix = configService.get('app.apiPrefix') || 'api/v1';
 

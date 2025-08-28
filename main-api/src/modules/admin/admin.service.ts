@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
 
@@ -11,13 +17,13 @@ import { Subscription } from '../../database/entities/subscription.entity';
 import { CustomLoggerService } from '../../common/logger';
 import { NotificationsService } from '../notifications/notifications.service';
 
-import { 
-  UserStatus, 
-  AdminRole, 
-  ReportStatus, 
-  MatchStatus, 
+import {
+  UserStatus,
+  AdminRole,
+  ReportStatus,
+  MatchStatus,
   ChatStatus,
-  SubscriptionStatus 
+  SubscriptionStatus,
 } from '../../common/enums';
 
 import {
@@ -51,17 +57,17 @@ export class AdminService {
 
   async authenticateAdmin(adminLoginDto: AdminLoginDto): Promise<Admin | null> {
     const { email, password } = adminLoginDto;
-    
+
     this.logger.info('Admin login attempt', { email });
-    
+
     const admin = await this.adminRepository.findOne({
       where: { email, isActive: true },
     });
 
     if (!admin) {
-      this.logger.logSecurityEvent('admin_login_failed', { 
-        email, 
-        reason: 'admin_not_found' 
+      this.logger.logSecurityEvent('admin_login_failed', {
+        email,
+        reason: 'admin_not_found',
       });
       return null;
     }
@@ -69,16 +75,16 @@ export class AdminService {
     // In production, you'd hash and compare passwords properly
     // For MVP, this is simplified
     if (password === 'admin_password_123') {
-      this.logger.logSecurityEvent('admin_login_success', { 
-        email, 
-        adminId: admin.id 
+      this.logger.logSecurityEvent('admin_login_success', {
+        email,
+        adminId: admin.id,
       });
       return admin;
     }
 
-    this.logger.logSecurityEvent('admin_login_failed', { 
-      email, 
-      reason: 'invalid_password' 
+    this.logger.logSecurityEvent('admin_login_failed', {
+      email,
+      reason: 'invalid_password',
     });
     return null;
   }
@@ -93,7 +99,7 @@ export class AdminService {
     const skip = (page - 1) * limit;
 
     const whereCondition: any = {};
-    
+
     if (status) {
       whereCondition.status = status;
     }
@@ -136,23 +142,26 @@ export class AdminService {
     return user;
   }
 
-  async updateUserStatus(userId: string, updateStatusDto: UpdateUserStatusDto): Promise<User> {
+  async updateUserStatus(
+    userId: string,
+    updateStatusDto: UpdateUserStatusDto,
+  ): Promise<User> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
-    
+
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
     const previousStatus = user.status;
     user.status = updateStatusDto.status;
-    
+
     this.logger.logBusinessEvent('admin_user_status_change', {
       userId,
       previousStatus,
       newStatus: updateStatusDto.status,
       action: 'admin_user_status_update',
     });
-    
+
     return this.userRepository.save(user);
   }
 
@@ -166,7 +175,7 @@ export class AdminService {
     const skip = (page - 1) * limit;
 
     const whereCondition: any = {};
-    
+
     if (status) {
       whereCondition.status = status;
     }
@@ -186,7 +195,10 @@ export class AdminService {
     return { reports, total, page, limit };
   }
 
-  async handleReport(reportId: string, handleReportDto: HandleReportDto): Promise<Report> {
+  async handleReport(
+    reportId: string,
+    handleReportDto: HandleReportDto,
+  ): Promise<Report> {
     const report = await this.reportRepository.findOne({
       where: { id: reportId },
       relations: ['reporter', 'reportedUser'],
@@ -237,7 +249,9 @@ export class AdminService {
       this.matchRepository.count({ where: { status: MatchStatus.MATCHED } }),
       this.chatRepository.count({ where: { status: ChatStatus.ACTIVE } }),
       this.reportRepository.count({ where: { status: ReportStatus.PENDING } }),
-      this.subscriptionRepository.count({ where: { status: SubscriptionStatus.ACTIVE } }),
+      this.subscriptionRepository.count({
+        where: { status: SubscriptionStatus.ACTIVE },
+      }),
     ]);
 
     // Calculate revenue
@@ -261,29 +275,31 @@ export class AdminService {
     };
   }
 
-  async broadcastNotification(broadcastDto: BroadcastNotificationDto): Promise<void> {
+  async broadcastNotification(
+    broadcastDto: BroadcastNotificationDto,
+  ): Promise<void> {
     this.logger.logBusinessEvent('admin_broadcast_notification', {
       title: broadcastDto.title,
       type: broadcastDto.type,
       action: 'admin_broadcast',
     });
-    
+
     // Get all active users
     const users = await this.userRepository.find({
       where: { status: UserStatus.ACTIVE },
       select: ['id', 'email'],
-      relations: ['profile']
+      relations: ['profile'],
     });
 
     this.logger.info('Broadcasting notification to all users', {
       title: broadcastDto.title,
       body: broadcastDto.body,
       type: broadcastDto.type,
-      totalUsers: users.length
+      totalUsers: users.length,
     });
 
     // Create notifications for all users
-    const notificationPromises = users.map(user => 
+    const notificationPromises = users.map((user) =>
       this.notificationsService.createNotification({
         userId: user.id,
         type: broadcastDto.type,
@@ -291,38 +307,42 @@ export class AdminService {
         body: broadcastDto.body,
         data: {
           action: 'admin_broadcast',
-          broadcast: true
-        }
-      })
+          broadcast: true,
+        },
+      }),
     );
 
     try {
       await Promise.all(notificationPromises);
-      
+
       this.logger.logBusinessEvent('admin_broadcast_completed', {
         title: broadcastDto.title,
         totalUsers: users.length,
-        status: 'success'
+        status: 'success',
       });
     } catch (error) {
-      this.logger.error('Failed to broadcast notifications to all users', error.stack, 'AdminService');
+      this.logger.error(
+        'Failed to broadcast notifications to all users',
+        error.stack,
+        'AdminService',
+      );
       throw error;
     }
   }
 
   async deleteUser(userId: string): Promise<void> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
-    
+
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
     const previousStatus = user.status;
-    
+
     // Soft delete by setting status to DELETED
     user.status = UserStatus.DELETED;
     await this.userRepository.save(user);
-    
+
     this.logger.logBusinessEvent('admin_user_deleted', {
       userId,
       previousStatus,
@@ -349,7 +369,9 @@ export class AdminService {
     const usersBySubscription = await this.subscriptionRepository
       .createQueryBuilder('subscription')
       .select('subscription.plan, COUNT(*) as count')
-      .where('subscription.status = :status', { status: SubscriptionStatus.ACTIVE })
+      .where('subscription.status = :status', {
+        status: SubscriptionStatus.ACTIVE,
+      })
       .groupBy('subscription.plan')
       .getRawMany();
 

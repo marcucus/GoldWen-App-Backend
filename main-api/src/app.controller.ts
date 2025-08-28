@@ -24,12 +24,12 @@ export class AppController {
   @ApiResponse({ status: 200, description: 'Service health status' })
   getHealth() {
     const healthData = this.appService.getHealth();
-    
+
     this.logger.info('Health check requested', {
       status: healthData.status,
       uptime: healthData.uptime,
     });
-    
+
     return healthData;
   }
 }

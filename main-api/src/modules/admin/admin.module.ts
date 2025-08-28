@@ -14,14 +14,7 @@ import { Subscription } from '../../database/entities/subscription.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      Admin,
-      User,
-      Report,
-      Match,
-      Chat,
-      Subscription,
-    ]),
+    TypeOrmModule.forFeature([Admin, User, Report, Match, Chat, Subscription]),
     forwardRef(() => NotificationsModule),
   ],
   providers: [AdminService],

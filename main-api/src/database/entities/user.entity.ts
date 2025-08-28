@@ -67,6 +67,9 @@ export class User {
   lastLoginAt: Date;
 
   @Column({ nullable: true })
+  lastActiveAt: Date;
+
+  @Column({ nullable: true })
   fcmToken: string;
 
   @Column({ default: true })

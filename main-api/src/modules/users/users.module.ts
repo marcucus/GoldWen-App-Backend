@@ -11,7 +11,16 @@ import { Subscription } from '../../database/entities/subscription.entity';
 import { DailySelection } from '../../database/entities/daily-selection.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Profile, Match, Message, Subscription, DailySelection])],
+  imports: [
+    TypeOrmModule.forFeature([
+      User,
+      Profile,
+      Match,
+      Message,
+      Subscription,
+      DailySelection,
+    ]),
+  ],
   providers: [UsersService],
   controllers: [UsersController],
   exports: [UsersService],

@@ -50,7 +50,9 @@ export class NotificationPreferences {
   updatedAt: Date;
 
   // Relations
-  @OneToOne(() => User, (user) => user.notificationPreferences, { onDelete: 'CASCADE' })
+  @OneToOne(() => User, (user) => user.notificationPreferences, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn()
   user: User;
 }
