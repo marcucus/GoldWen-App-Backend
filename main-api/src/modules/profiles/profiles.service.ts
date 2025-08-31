@@ -17,7 +17,6 @@ import { PromptAnswer } from '../../database/entities/prompt-answer.entity';
 import {
   UpdateProfileDto,
   SubmitPersonalityAnswersDto,
-  UploadPhotosDto,
   SubmitPromptAnswersDto,
 } from './dto/profiles.dto';
 
@@ -72,8 +71,38 @@ export class ProfilesService {
       throw new NotFoundException('Profile not found');
     }
 
+    // Handle legacy age field - convert to birthDate if provided
+    if (updateProfileDto.age && !updateProfileDto.birthDate) {
+      const today = new Date();
+      const birthYear = today.getFullYear() - updateProfileDto.age;
+      updateProfileDto.birthDate = `${birthYear}-01-01`;
+      // Remove age from the DTO since it's not a database field
+      delete updateProfileDto.age;
+    }
+
+    // Handle legacy field mappings
+    if (updateProfileDto.job && !updateProfileDto.jobTitle) {
+      updateProfileDto.jobTitle = updateProfileDto.job;
+      delete updateProfileDto.job;
+    }
+
+    if (updateProfileDto.school && !updateProfileDto.education) {
+      updateProfileDto.education = updateProfileDto.school;
+      delete updateProfileDto.school;
+    }
+
+    // Convert birthDate string to Date object
+    if (updateProfileDto.birthDate) {
+      (updateProfileDto as any).birthDate = new Date(
+        updateProfileDto.birthDate,
+      );
+    }
+
     Object.assign(profile, updateProfileDto);
     await this.profileRepository.save(profile);
+
+    // Check if profile is now complete after the update
+    await this.updateProfileCompletionStatus(userId);
 
     return this.getProfile(userId);
   }
@@ -132,8 +161,6 @@ export class ProfilesService {
     userId: string,
     files: Express.Multer.File[],
   ): Promise<Photo[]> {
-
-
     const profile = await this.profileRepository.findOne({
       where: { userId },
       relations: ['photos'],
@@ -158,7 +185,7 @@ export class ProfilesService {
         mimeType: file.mimetype,
         fileSize: file.size,
         order: (profile.photos?.length || 0) + index + 1,
-        isPrimary: ((profile.photos?.length || 0) === 0 && index === 0),
+        isPrimary: (profile.photos?.length || 0) === 0 && index === 0,
         isApproved: true, // Auto-approve for MVP, can be changed later
       });
     });
@@ -181,7 +208,7 @@ export class ProfilesService {
       throw new NotFoundException('Profile not found');
     }
 
-    const photo = profile.photos?.find(p => p.id === photoId);
+    const photo = profile.photos?.find((p) => p.id === photoId);
     if (!photo) {
       throw new NotFoundException('Photo not found');
     }
@@ -189,7 +216,7 @@ export class ProfilesService {
     // Remove primary status from all other photos
     await this.photoRepository.update(
       { profileId: profile.id },
-      { isPrimary: false }
+      { isPrimary: false },
     );
 
     // Set this photo as primary
@@ -276,8 +303,15 @@ export class ProfilesService {
     // 1. Minimum 3 photos
     // 2. 3 prompt answers
     // 3. All required personality questions answered
+    // 4. Required profile fields: birthDate, gender, interestedInGenders
     const hasMinPhotos = (user.profile.photos?.length || 0) >= 3;
     const hasPromptAnswers = (user.profile.promptAnswers?.length || 0) >= 3;
+    const hasRequiredProfileFields = !!(
+      user.profile.birthDate &&
+      user.profile.gender &&
+      user.profile.interestedInGenders &&
+      user.profile.interestedInGenders.length > 0
+    );
 
     // Get required personality questions count
     const requiredQuestionsCount =
@@ -289,7 +323,10 @@ export class ProfilesService {
       (user.personalityAnswers?.length || 0) >= requiredQuestionsCount;
 
     const isProfileCompleted =
-      hasMinPhotos && hasPromptAnswers && hasPersonalityAnswers;
+      hasMinPhotos &&
+      hasPromptAnswers &&
+      hasPersonalityAnswers &&
+      hasRequiredProfileFields;
     const isOnboardingCompleted = isProfileCompleted;
 
     // Update user status
@@ -308,6 +345,7 @@ export class ProfilesService {
     hasPhotos: boolean;
     hasPrompts: boolean;
     hasPersonalityAnswers: boolean;
+    hasRequiredProfileFields: boolean;
     missingSteps: string[];
   }> {
     const user = await this.userRepository.findOne({
@@ -326,6 +364,12 @@ export class ProfilesService {
 
     const hasPhotos = (user.profile.photos?.length || 0) >= 3;
     const hasPrompts = (user.profile.promptAnswers?.length || 0) >= 3;
+    const hasRequiredProfileFields = !!(
+      user.profile.birthDate &&
+      user.profile.gender &&
+      user.profile.interestedInGenders &&
+      user.profile.interestedInGenders.length > 0
+    );
 
     const requiredQuestionsCount =
       await this.personalityQuestionRepository.count({
@@ -340,12 +384,30 @@ export class ProfilesService {
     if (!hasPrompts) missingSteps.push('Answer 3 prompts');
     if (!hasPersonalityAnswers)
       missingSteps.push('Complete personality questionnaire');
+    if (!hasRequiredProfileFields) {
+      const missingFields = [];
+      if (!user.profile.birthDate) missingFields.push('birth date');
+      if (!user.profile.gender) missingFields.push('gender');
+      if (
+        !user.profile.interestedInGenders ||
+        user.profile.interestedInGenders.length === 0
+      )
+        missingFields.push('interested genders');
+      missingSteps.push(
+        `Complete basic profile information: ${missingFields.join(', ')}`,
+      );
+    }
 
     return {
-      isCompleted: hasPhotos && hasPrompts && hasPersonalityAnswers,
+      isCompleted:
+        hasPhotos &&
+        hasPrompts &&
+        hasPersonalityAnswers &&
+        hasRequiredProfileFields,
       hasPhotos,
       hasPrompts,
       hasPersonalityAnswers,
+      hasRequiredProfileFields,
       missingSteps,
     };
   }

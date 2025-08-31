@@ -9,9 +9,14 @@ import {
   IsUrl,
   ArrayMinSize,
   MaxLength,
+  IsEnum,
+  IsDateString,
+  Min,
+  Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Gender } from '../../../common/enums';
 
 export class UpdateProfileDto {
   @ApiPropertyOptional()
@@ -26,10 +31,21 @@ export class UpdateProfileDto {
   @MaxLength(50)
   lastName?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Birth date in YYYY-MM-DD format' })
   @IsOptional()
-  @IsNumber()
-  age?: number;
+  @IsDateString()
+  birthDate?: string;
+
+  @ApiPropertyOptional({ enum: Gender })
+  @IsOptional()
+  @IsEnum(Gender)
+  gender?: Gender;
+
+  @ApiPropertyOptional({ enum: Gender, isArray: true })
+  @IsOptional()
+  @IsArray()
+  @IsEnum(Gender, { each: true })
+  interestedInGenders?: Gender[];
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -40,22 +56,101 @@ export class UpdateProfileDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  job?: string;
+  @MaxLength(100)
+  jobTitle?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   company?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  school?: string;
+  @MaxLength(100)
+  education?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   location?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 8 })
+  latitude?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 8 })
+  longitude?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(500)
+  maxDistance?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(18)
+  @Max(100)
+  minAge?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(18)
+  @Max(100)
+  maxAge?: number;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  interests?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  languages?: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(100)
+  @Max(250)
+  height?: number;
+
+  // Legacy fields for backwards compatibility
+  @ApiPropertyOptional({
+    deprecated: true,
+    description: 'Use birthDate instead - will be calculated from birthDate',
+  })
+  @IsOptional()
+  @IsNumber()
+  age?: number;
+
+  @ApiPropertyOptional({
+    deprecated: true,
+    description: 'Use jobTitle instead',
+  })
+  @IsOptional()
+  @IsString()
+  job?: string;
+
+  @ApiPropertyOptional({
+    deprecated: true,
+    description: 'Use education instead',
+  })
+  @IsOptional()
+  @IsString()
+  school?: string;
 }
 
 export class PersonalityAnswerDto {
