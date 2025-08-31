@@ -137,6 +137,96 @@ export class SubscriptionsController {
     return { status: 'ok' };
   }
 
+  /* TODO: Implement these methods in the service
+  @Post('purchase')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Purchase a subscription' })
+  @ApiResponse({
+    status: 201,
+    description: 'Subscription purchased successfully',
+  })
+  async purchaseSubscription(
+    @Request() req: any,
+    @Body() purchaseDto: any, // Will define proper DTO
+  ) {
+    return this.subscriptionsService.purchaseSubscription(
+      req.user.id,
+      purchaseDto,
+    );
+  }
+
+  @Post('verify-receipt')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Verify a purchase receipt' })
+  @ApiResponse({
+    status: 200,
+    description: 'Receipt verified successfully',
+  })
+  async verifyReceipt(
+    @Request() req: any,
+    @Body() verifyDto: any, // Will define proper DTO
+  ) {
+    return this.subscriptionsService.verifyReceipt(
+      req.user.id,
+      verifyDto,
+    );
+  }
+
+  @Put('cancel')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Cancel user subscription' })
+  @ApiResponse({
+    status: 200,
+    description: 'Subscription cancelled successfully',
+  })
+  async cancelUserSubscription(
+    @Request() req: any,
+    @Body() cancelDto?: any,
+  ) {
+    return this.subscriptionsService.cancelUserSubscription(
+      req.user.id,
+      cancelDto?.reason,
+    );
+  }
+
+  @Post('restore')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Restore subscriptions' })
+  @ApiResponse({
+    status: 200,
+    description: 'Subscriptions restored successfully',
+  })
+  async restoreSubscriptions(@Request() req: any) {
+    return this.subscriptionsService.restoreSubscriptions(req.user.id);
+  }
+
+  @Get('usage')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get subscription usage' })
+  @ApiResponse({
+    status: 200,
+    description: 'Usage statistics retrieved successfully',
+  })
+  async getUsage(@Request() req: any) {
+    return this.subscriptionsService.getUsage(req.user.id);
+  }
+
+  @Get('plans')
+  @ApiOperation({ summary: 'Get available subscription plans' })
+  @ApiResponse({
+    status: 200,
+    description: 'Plans retrieved successfully',
+  })
+  async getPlans() {
+    return this.subscriptionsService.getPlans();
+  }
+  */
+
   // Admin endpoints
   @Get('admin/stats')
   @UseGuards(JwtAuthGuard, AdminGuard)
