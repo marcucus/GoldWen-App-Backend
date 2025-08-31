@@ -22,6 +22,7 @@ export interface AppConfig {
   environment: string;
   apiPrefix: string;
   logLevel: string;
+  frontendUrl: string;
 }
 
 export interface OAuthConfig {
@@ -47,6 +48,7 @@ export interface NotificationConfig {
 }
 
 export interface EmailConfig {
+  from: string;
   smtp: {
     host: string;
     port: number;
