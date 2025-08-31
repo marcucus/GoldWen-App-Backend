@@ -397,4 +397,44 @@ export class ChatService {
       totalMessages,
     };
   }
+
+  async verifyUserChatAccess(chatId: string, userId: string): Promise<boolean> {
+    const chat = await this.chatRepository.findOne({
+      where: { id: chatId },
+      relations: ['match', 'match.user1', 'match.user2'],
+    });
+
+    if (!chat) {
+      return false;
+    }
+
+    // Check if user is part of this chat through the match
+    return (
+      chat.match.user1Id === userId || chat.match.user2Id === userId
+    );
+  }
+
+  async markMessageAsRead(messageId: string, userId: string): Promise<void> {
+    const message = await this.messageRepository.findOne({
+      where: { id: messageId },
+      relations: ['chat', 'chat.match'],
+    });
+
+    if (!message) {
+      throw new NotFoundException('Message not found');
+    }
+
+    // Verify user has access to this message
+    const hasAccess = await this.verifyUserChatAccess(message.chat.id, userId);
+    if (!hasAccess) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    // Only mark as read if the user is not the sender
+    if (message.senderId !== userId) {
+      message.isRead = true;
+      message.readAt = new Date();
+      await this.messageRepository.save(message);
+    }
+  }
 }

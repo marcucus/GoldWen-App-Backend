@@ -130,9 +130,9 @@ export class ProfilesService {
 
   async uploadPhotos(
     userId: string,
-    photosDto: UploadPhotosDto,
+    files: Express.Multer.File[],
   ): Promise<Photo[]> {
-    const { photos } = photosDto;
+
 
     const profile = await this.profileRepository.findOne({
       where: { userId },
@@ -144,20 +144,21 @@ export class ProfilesService {
     }
 
     // Validate minimum photos requirement
-    const totalPhotos = (profile.photos?.length || 0) + photos.length;
+    const totalPhotos = (profile.photos?.length || 0) + files.length;
     if (totalPhotos < 3) {
       throw new BadRequestException('Minimum 3 photos required');
     }
 
     // Create photo entities
-    const photoEntities = photos.map((photo, index) => {
+    const photoEntities = files.map((file, index) => {
       return this.photoRepository.create({
         profileId: profile.id,
-        url: photo.url,
-        filename: photo.url.split('/').pop() || `photo_${Date.now()}_${index}`,
+        url: `/uploads/photos/${file.filename}`,
+        filename: file.filename,
+        mimeType: file.mimetype,
+        fileSize: file.size,
         order: (profile.photos?.length || 0) + index + 1,
-        isPrimary:
-          photo.isMain || ((profile.photos?.length || 0) === 0 && index === 0),
+        isPrimary: ((profile.photos?.length || 0) === 0 && index === 0),
         isApproved: true, // Auto-approve for MVP, can be changed later
       });
     });
@@ -168,6 +169,32 @@ export class ProfilesService {
     await this.updateProfileCompletionStatus(userId);
 
     return savedPhotos;
+  }
+
+  async setPrimaryPhoto(userId: string, photoId: string): Promise<Photo> {
+    const profile = await this.profileRepository.findOne({
+      where: { userId },
+      relations: ['photos'],
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    const photo = profile.photos?.find(p => p.id === photoId);
+    if (!photo) {
+      throw new NotFoundException('Photo not found');
+    }
+
+    // Remove primary status from all other photos
+    await this.photoRepository.update(
+      { profileId: profile.id },
+      { isPrimary: false }
+    );
+
+    // Set this photo as primary
+    photo.isPrimary = true;
+    return this.photoRepository.save(photo);
   }
 
   async getPrompts(): Promise<Prompt[]> {
