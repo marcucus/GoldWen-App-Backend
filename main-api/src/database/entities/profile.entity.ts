@@ -29,12 +29,13 @@ export class Profile {
   @Column({ nullable: true })
   lastName: string;
 
-  @Column()
+  @Column({ nullable: true })
   birthDate: Date;
 
   @Column({
     type: 'enum',
     enum: Gender,
+    nullable: true,
   })
   gender: Gender;
 
@@ -42,6 +43,7 @@ export class Profile {
     type: 'enum',
     enum: Gender,
     array: true,
+    nullable: true,
   })
   interestedInGenders: Gender[];
 
@@ -114,7 +116,11 @@ export class Profile {
   promptAnswers: PromptAnswer[];
 
   // Computed properties
-  get age(): number {
+  get age(): number | null {
+    if (!this.birthDate) {
+      return null;
+    }
+    
     const today = new Date();
     const birthDate = new Date(this.birthDate);
     let age = today.getFullYear() - birthDate.getFullYear();
