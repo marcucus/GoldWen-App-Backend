@@ -8,12 +8,16 @@ import {
   Param,
   UseGuards,
   Request,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
   ApiBearerAuth,
   ApiResponse,
+  ApiConsumes,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ProfilesService } from './profiles.service';
@@ -79,19 +83,31 @@ export class ProfilesController {
     return { message: 'Personality answers submitted successfully' };
   }
 
-  @Post('photos')
+  @Post('me/photos')
   @ApiOperation({ summary: 'Upload profile photos' })
   @ApiResponse({ status: 201, description: 'Photos uploaded successfully' })
-  async uploadPhotos(@Request() req: any, @Body() photosDto: UploadPhotosDto) {
-    return this.profilesService.uploadPhotos(req.user.id, photosDto);
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FilesInterceptor('photos', 6)) // Max 6 photos as per requirements
+  async uploadPhotos(
+    @Request() req: any,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    return this.profilesService.uploadPhotos(req.user.id, files);
   }
 
-  @Delete('photos/:photoId')
+  @Delete('me/photos/:photoId')
   @ApiOperation({ summary: 'Delete a profile photo' })
   @ApiResponse({ status: 200, description: 'Photo deleted successfully' })
   async deletePhoto(@Request() req: any, @Param('photoId') photoId: string) {
     await this.profilesService.deletePhoto(req.user.id, photoId);
     return { message: 'Photo deleted successfully' };
+  }
+
+  @Put('me/photos/:photoId/primary')
+  @ApiOperation({ summary: 'Set photo as primary' })
+  @ApiResponse({ status: 200, description: 'Primary photo updated successfully' })
+  async setPrimaryPhoto(@Request() req: any, @Param('photoId') photoId: string) {
+    return this.profilesService.setPrimaryPhoto(req.user.id, photoId);
   }
 
   @Get('prompts')

@@ -24,6 +24,7 @@ import {
 } from '../../common/enums';
 import { ChatService } from '../chat/chat.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { MatchingIntegrationService } from './matching-integration.service';
 
 @Injectable()
 export class MatchingService {
@@ -44,6 +45,7 @@ export class MatchingService {
     private chatService: ChatService,
     @Inject(forwardRef(() => NotificationsService))
     private notificationsService: NotificationsService,
+    private matchingIntegrationService: MatchingIntegrationService,
     private logger: CustomLoggerService,
   ) {}
 
@@ -151,36 +153,88 @@ export class MatchingService {
       );
     }
 
-    // Calculate compatibility scores and select best matches
-    const compatibilityScores = await Promise.all(
-      potentialMatches.map(async (potentialMatch) => {
-        const score = await this.calculateCompatibilityScore(
-          user,
-          potentialMatch,
-        );
-        return { user: potentialMatch, score };
-      }),
-    );
+    // Use external matching service to generate daily selection
+    try {
+      const userProfile = {
+        personalityAnswers: user.personalityAnswers || [],
+        preferences: {
+          ageRange: { 
+            min: user.profile?.minAge || 18, 
+            max: user.profile?.maxAge || 80 
+          },
+          maxDistance: user.profile?.maxDistance || 50,
+          interestedInGenders: user.profile?.interestedInGenders || [],
+        },
+      };
 
-    // Sort by compatibility score (highest first)
-    compatibilityScores.sort((a, b) => b.score - a.score);
+      const availableProfiles = potentialMatches.map(match => ({
+        userId: match.id,
+        personalityAnswers: match.personalityAnswers || [],
+        preferences: {
+          ageRange: { 
+            min: match.profile?.minAge || 18, 
+            max: match.profile?.maxAge || 80 
+          },
+          maxDistance: match.profile?.maxDistance || 50,
+          interestedInGenders: match.profile?.interestedInGenders || [],
+        },
+      }));
 
-    // Determine selection size (always 5 for now)
-    const selectionSize = 5;
+      const maxChoicesAllowed = await this.getMaxChoicesPerDay(userId);
+      const selectionSize = Math.min(5, maxChoicesAllowed); // Max 5 per day
 
-    // Take top matches
-    const selectedMatches = compatibilityScores.slice(0, selectionSize);
-    const selectedProfileIds = selectedMatches.map((match) => match.user.id);
+      const selectionResult = await this.matchingIntegrationService.generateDailySelection({
+        userId,
+        userProfile,
+        availableProfiles,
+        selectionSize,
+      });
 
-    // Create daily selection entry
-    const dailySelection = this.dailySelectionRepository.create({
-      userId,
-      selectionDate: today,
-      selectedProfileIds,
-      maxChoicesAllowed: await this.getMaxChoicesPerDay(userId),
-    });
+      const selectedProfileIds = selectionResult.selectedProfiles.map(p => p.userId);
 
-    return this.dailySelectionRepository.save(dailySelection);
+      // Create daily selection entry
+      const dailySelection = this.dailySelectionRepository.create({
+        userId,
+        selectionDate: today,
+        selectedProfileIds,
+        maxChoicesAllowed,
+      });
+
+      return this.dailySelectionRepository.save(dailySelection);
+    } catch (error) {
+      this.logger.error('Failed to generate daily selection using external service, falling back to local calculation', error.message, 'MatchingService');
+      
+      // Fallback to local calculation
+      const compatibilityScores = await Promise.all(
+        potentialMatches.map(async (potentialMatch) => {
+          const score = await this.calculateCompatibilityScore(
+            user,
+            potentialMatch,
+          );
+          return { user: potentialMatch, score };
+        }),
+      );
+
+      // Sort by compatibility score (highest first)
+      compatibilityScores.sort((a, b) => b.score - a.score);
+
+      // Determine selection size (always 5 for now)
+      const selectionSize = 5;
+
+      // Take top matches
+      const selectedMatches = compatibilityScores.slice(0, selectionSize);
+      const selectedProfileIds = selectedMatches.map((match) => match.user.id);
+
+      // Create daily selection entry
+      const dailySelection = this.dailySelectionRepository.create({
+        userId,
+        selectionDate: today,
+        selectedProfileIds,
+        maxChoicesAllowed: await this.getMaxChoicesPerDay(userId),
+      });
+
+      return this.dailySelectionRepository.save(dailySelection);
+    }
   }
 
   async getDailySelection(userId: string): Promise<{

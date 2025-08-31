@@ -8,9 +8,16 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(private configService: ConfigService) {
     const clientId = configService.get('oauth.google.clientId');
     const clientSecret = configService.get('oauth.google.clientSecret');
+    const environment = configService.get('app.environment');
 
-    if (!clientId || !clientSecret) {
+    // Only require OAuth credentials in production
+    if (environment === 'production' && (!clientId || !clientSecret)) {
       throw new Error('Google OAuth credentials not configured');
+    }
+
+    // Skip OAuth initialization in development if credentials are missing
+    if (!clientId || !clientSecret) {
+      return;
     }
 
     super({

@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { MatchingController } from './matching.controller';
 import { MatchingService } from './matching.service';
+import { MatchingIntegrationService } from './matching-integration.service';
 import { ChatModule } from '../chat/chat.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 
@@ -26,8 +27,8 @@ import { Subscription } from '../../database/entities/subscription.entity';
     forwardRef(() => ChatModule),
     forwardRef(() => NotificationsModule),
   ],
-  providers: [MatchingService],
+  providers: [MatchingService, MatchingIntegrationService],
   controllers: [MatchingController],
-  exports: [MatchingService],
+  exports: [MatchingService, MatchingIntegrationService],
 })
 export class MatchingModule {}
