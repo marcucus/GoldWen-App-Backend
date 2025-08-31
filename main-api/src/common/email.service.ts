@@ -20,19 +20,43 @@ export class EmailService {
     if (!emailConfig?.smtp?.host || !emailConfig?.smtp?.user) {
       this.logger.warn(
         'Email configuration incomplete, email service will be disabled',
+        'EmailService',
       );
+      // Log additional details
+      this.logger.info('Email configuration details', {
+        hasHost: !!emailConfig?.smtp?.host,
+        hasUser: !!emailConfig?.smtp?.user,
+        hasPass: !!emailConfig?.smtp?.pass,
+        context: 'EmailService',
+      });
       return;
     }
 
-    this.transporter = nodemailer.createTransport({
-      host: emailConfig.smtp.host,
-      port: emailConfig.smtp.port,
-      secure: emailConfig.smtp.secure,
-      auth: {
-        user: emailConfig.smtp.user,
-        pass: emailConfig.smtp.pass,
-      },
-    });
+    try {
+      this.transporter = nodemailer.createTransport({
+        host: emailConfig.smtp.host,
+        port: emailConfig.smtp.port,
+        secure: emailConfig.smtp.secure,
+        auth: {
+          user: emailConfig.smtp.user,
+          pass: emailConfig.smtp.pass,
+        },
+      });
+
+      this.logger.info('Email service initialized successfully', {
+        host: emailConfig.smtp.host,
+        port: emailConfig.smtp.port,
+        secure: emailConfig.smtp.secure,
+        user: emailConfig.smtp.user.replace(/(.{2}).*(@.*)/, '$1***$2'),
+        context: 'EmailService',
+      });
+    } catch (error) {
+      this.logger.error(
+        'Failed to initialize email service',
+        error.stack,
+        'EmailService',
+      );
+    }
   }
 
   async sendPasswordResetEmail(
@@ -62,11 +86,18 @@ export class EmailService {
         email: email.replace(/(.{2}).*(@.*)/, '$1***$2'), // Mask email for privacy
       });
     } catch (error) {
+      const errorMessage = this.getEmailErrorMessage(error);
       this.logger.error(
         'Failed to send password reset email',
         error.stack,
         'EmailService',
       );
+      // Also log structured error details
+      this.logger.info('Password reset email error details', {
+        error: errorMessage,
+        email: email.replace(/(.{2}).*(@.*)/, '$1***$2'),
+        context: 'EmailService',
+      });
       throw error;
     }
   }
@@ -91,13 +122,40 @@ export class EmailService {
         email: email.replace(/(.{2}).*(@.*)/, '$1***$2'),
       });
     } catch (error) {
+      const errorMessage = this.getEmailErrorMessage(error);
       this.logger.error(
         'Failed to send welcome email',
         error.stack,
         'EmailService',
       );
+      // Also log structured error details
+      this.logger.info('Welcome email error details', {
+        error: errorMessage,
+        email: email.replace(/(.{2}).*(@.*)/, '$1***$2'),
+        context: 'EmailService',
+      });
       // Don't throw error for welcome email, it's not critical
     }
+  }
+
+  private getEmailErrorMessage(error: any): string {
+    const errorMsg = error?.message || error?.toString() || 'Unknown error';
+    
+    // Check for common Gmail authentication errors
+    if (errorMsg.includes('Username and Password not accepted') || 
+        errorMsg.includes('BadCredentials')) {
+      return `Gmail authentication failed. Please ensure you are using an App Password instead of your regular password. ` +
+             `Visit https://support.google.com/accounts/answer/185833 to create an App Password. ` +
+             `Original error: ${errorMsg}`;
+    }
+    
+    if (errorMsg.includes('Invalid login')) {
+      return `Email login failed. Please check your email credentials and ensure 2FA is properly configured. ` +
+             `For Gmail users, use App Passwords instead of regular passwords. ` +
+             `Original error: ${errorMsg}`;
+    }
+    
+    return errorMsg;
   }
 
   private getPasswordResetEmailTemplate(resetUrl: string): string {
