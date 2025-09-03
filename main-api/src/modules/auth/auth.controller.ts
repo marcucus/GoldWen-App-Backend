@@ -16,6 +16,8 @@ import {
 } from '@nestjs/swagger';
 import type { Response, Request } from 'express';
 
+import { OAuth2Client } from 'google-auth-library';
+
 import { AuthService } from './auth.service';
 import {
   LoginDto,
@@ -101,6 +103,30 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   async googleAuth() {
     // This will redirect to Google
+  }
+
+  private client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+  @Post('googleLogin')
+  async googleLogin(@Body('idToken') idToken: string) {
+    const ticket = await this.client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload) {
+      throw new Error('Invalid Google token');
+    }
+
+    const { sub, email, name, picture } = payload;
+
+    return this.authService.validateGoogleUser({
+      googleId: sub,
+      email,
+      name,
+      picture,
+    });
   }
 
   @ApiOperation({ summary: 'Google OAuth callback' })

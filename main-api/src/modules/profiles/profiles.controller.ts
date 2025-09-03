@@ -66,7 +66,7 @@ export class ProfilesController {
     return this.profilesService.getPersonalityQuestions();
   }
 
-  @Post('personality-answers')
+  @Post('me/personality-answers')
   @ApiOperation({ summary: 'Submit personality questionnaire answers' })
   @ApiResponse({
     status: 201,

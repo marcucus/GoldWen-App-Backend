@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   ConflictException,
   NotFoundException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -44,8 +45,8 @@ export class AuthService {
 
   async register(registerDto: RegisterDto): Promise<AuthResponse> {
     const { email, password, firstName, lastName } = registerDto;
-
-    // Check if user already exists
+    try {
+// Check if user already exists
     const existingUser = await this.userRepository.findOne({
       where: { email },
     });
@@ -84,6 +85,10 @@ export class AuthService {
     const accessToken = this.generateAccessToken(savedUser);
 
     return { user: savedUser, accessToken };
+    } catch (error) {
+      console.log('Error registering user:', error);
+      throw new InternalServerErrorException('Error registering user');
+    }
   }
 
   async login(loginDto: LoginDto): Promise<AuthResponse> {
@@ -120,6 +125,25 @@ export class AuthService {
     const accessToken = this.generateAccessToken(user);
 
     return { user, accessToken };
+  }
+
+  async validateGoogleUser(profile: any) {
+    let user = await this.userRepository.findOne({
+      where: { email: profile.email },
+    });
+
+    if (!user) {
+      user = this.userRepository.create({
+        email: profile.email,
+        // Add these properties only if they exist in your User entity
+        ...(profile.googleId && { googleId: profile.googleId }),
+        ...(profile.name && { name: profile.name }),
+        ...(profile.picture && { picture: profile.picture }),
+      } as Partial<User>);
+    }
+
+    const token = this.jwtService.sign({ sub: user.id, email: user.email });
+    return { token, user };
   }
 
   async socialLogin(socialLoginDto: SocialLoginDto): Promise<AuthResponse> {

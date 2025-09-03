@@ -33,87 +33,90 @@ export class User {
   passwordHash: string;
 
   @Column({ nullable: true })
-  socialId: string;
+  socialId?: string;
 
   @Column({ nullable: true })
-  socialProvider: string; // 'google' | 'apple'
+  socialProvider?: string; // 'google' | 'apple'
 
   @Column({
     type: 'enum',
     enum: UserStatus,
     default: UserStatus.ACTIVE,
   })
-  status: UserStatus;
+  status?: UserStatus;
 
   @Column({ default: false })
-  isEmailVerified: boolean;
+  isEmailVerified?: boolean;
 
   @Column({ nullable: true })
-  emailVerificationToken: string;
+  emailVerificationToken?: string;
 
   @Column({ nullable: true })
-  resetPasswordToken: string;
+  resetPasswordToken?: string;
 
   @Column({ nullable: true })
-  resetPasswordExpires: Date;
+  resetPasswordExpires?: Date;
 
   @Column({ default: false })
-  isOnboardingCompleted: boolean;
+  isOnboardingCompleted?: boolean;
 
   @Column({ default: false })
-  isProfileCompleted: boolean;
+  isProfileCompleted?: boolean;
 
   @Column({ nullable: true })
-  lastLoginAt: Date;
+  lastLoginAt?: Date;
 
   @Column({ nullable: true })
-  lastActiveAt: Date;
+  lastActiveAt?: Date;
 
   @Column({ nullable: true })
-  fcmToken: string;
+  fcmToken?: string;
 
   @Column({ default: true })
-  notificationsEnabled: boolean;
+  notificationsEnabled?: boolean;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt?: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt?: Date;
+
+  @Column({ nullable: true })
+  googleId?: string;
 
   // Relations
   @OneToOne(() => Profile, (profile) => profile.user, { cascade: true })
-  profile: Profile;
+  profile?: Profile;
 
   @OneToMany(() => PersonalityAnswer, (answer) => answer.user, {
     cascade: true,
   })
-  personalityAnswers: PersonalityAnswer[];
+  personalityAnswers?: PersonalityAnswer[];
 
   @OneToMany(() => DailySelection, (selection) => selection.user)
   dailySelections: DailySelection[];
 
   @OneToMany(() => Match, (match) => match.user1)
-  matchesAsUser1: Match[];
+  matchesAsUser1?: Match[];
 
   @OneToMany(() => Match, (match) => match.user2)
-  matchesAsUser2: Match[];
+  matchesAsUser2?: Match[];
 
   @OneToMany(() => Message, (message) => message.sender)
-  sentMessages: Message[];
+  sentMessages?: Message[];
 
   @OneToMany(() => Subscription, (subscription) => subscription.user)
-  subscriptions: Subscription[];
+  subscriptions?: Subscription[];
 
   @OneToMany(() => Notification, (notification) => notification.user)
-  notifications: Notification[];
+  notifications?: Notification[];
 
   @OneToOne(() => NotificationPreferences, (preferences) => preferences.user)
-  notificationPreferences: NotificationPreferences;
+  notificationPreferences?: NotificationPreferences;
 
   @OneToMany(() => Report, (report) => report.reporter)
-  reportsSubmitted: Report[];
+  reportsSubmitted?: Report[];
 
   @OneToMany(() => Report, (report) => report.reportedUser)
-  reportsReceived: Report[];
+  reportsReceived?: Report[];
 }
