@@ -77,7 +77,9 @@ export class ProfilesService {
       const today = new Date();
       const birthYear = today.getFullYear() - updateProfileDto.age;
       updateProfileDto.birthDate = `${birthYear}-01-01`;
-      // Remove age from the DTO since it's not a database field
+    }
+    // Remove age from the DTO since it's not a database field
+    if ('age' in updateProfileDto) {
       delete updateProfileDto.age;
     }
 
