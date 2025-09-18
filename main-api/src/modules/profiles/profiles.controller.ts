@@ -142,6 +142,23 @@ export class ProfilesController {
     return { message: 'Prompt answers submitted successfully' };
   }
 
+  @Post('me/prompts')
+  @ApiOperation({ summary: 'Submit prompts (alias for prompt-answers)' })
+  @ApiResponse({
+    status: 201,
+    description: 'Prompts submitted successfully',
+  })
+  async submitPrompts(
+    @Request() req: any,
+    @Body() promptAnswersDto: SubmitPromptAnswersDto,
+  ) {
+    await this.profilesService.submitPromptAnswers(
+      req.user.id,
+      promptAnswersDto,
+    );
+    return { message: 'Prompts submitted successfully' };
+  }
+
   @Put('me/status')
   @ApiOperation({ summary: 'Update profile status' })
   @ApiResponse({

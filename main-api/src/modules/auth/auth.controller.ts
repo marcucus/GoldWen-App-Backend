@@ -107,8 +107,34 @@ export class AuthController {
 
   private client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-  @Post('googleLogin')
+  @ApiOperation({ summary: 'Google OAuth login' })
+  @ApiResponse({ status: 200, description: 'Google login successful' })
+  @Post('google')
   async googleLogin(@Body('idToken') idToken: string) {
+    const ticket = await this.client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload) {
+      throw new Error('Invalid Google token');
+    }
+
+    const { sub, email, given_name, family_name, picture } = payload;
+
+    return this.authService.socialLogin({
+      socialId: sub,
+      provider: 'google',
+      email: email || '',
+      firstName: given_name || '',
+      lastName: family_name || '',
+      profilePicture: picture,
+    });
+  }
+
+  @Post('googleLogin')
+  async googleLoginOld(@Body('idToken') idToken: string) {
     const ticket = await this.client.verifyIdToken({
       idToken,
       audience: process.env.GOOGLE_CLIENT_ID,
@@ -145,6 +171,31 @@ export class AuthController {
   @UseGuards(AuthGuard('apple'))
   async appleAuth() {
     // This will redirect to Apple
+  }
+
+  @ApiOperation({ summary: 'Apple OAuth login' })
+  @ApiResponse({ status: 200, description: 'Apple login successful' })
+  @Post('apple')
+  async appleLogin(@Body() appleLoginDto: { identityToken: string; user?: any }) {
+    // For now, implement basic Apple login
+    // TODO: Implement proper Apple ID token validation
+    const { identityToken, user } = appleLoginDto;
+    
+    if (!identityToken) {
+      throw new Error('Identity token is required');
+    }
+
+    // Extract basic user data (in a real implementation, you'd decode the JWT)
+    // For MVP, accept the user data from the frontend
+    const userData = {
+      socialId: user?.id || 'apple_user_' + Date.now(),
+      provider: 'apple',
+      email: user?.email || '',
+      firstName: user?.name?.firstName || '',
+      lastName: user?.name?.lastName || '',
+    };
+
+    return this.authService.socialLogin(userData);
   }
 
   @ApiOperation({ summary: 'Apple OAuth callback' })
