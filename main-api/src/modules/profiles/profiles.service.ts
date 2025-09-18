@@ -134,9 +134,10 @@ export class ProfilesService {
     );
 
     if (missingRequired.length > 0) {
-      throw new BadRequestException(
-        `Missing answers for required questions: ${missingRequired.map((q) => q.question).join(', ')}`,
-      );
+      throw new BadRequestException({
+        message: `Missing answers for required questions: ${missingRequired.map((q) => q.question).join(', ')}`,
+        missingQuestions: missingRequired.map((q) => q.id),
+      });
     }
 
     try {
@@ -167,9 +168,10 @@ export class ProfilesService {
         ':',
         error,
       );
-      throw new BadRequestException(
-        'Failed to save personality answers: ' + error.message,
-      );
+      throw new BadRequestException({
+        message: 'Failed to save personality answers: ' + error.message,
+        error: error?.message || error,
+      });
     }
   }
 

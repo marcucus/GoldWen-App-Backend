@@ -77,6 +77,7 @@ export class ProfilesController {
     @Request() req: any,
     @Body() answersDto: SubmitPersonalityAnswersDto,
   ) {
+    console.log('Received personality answers:', answersDto);
     await this.profilesService.submitPersonalityAnswers(
       req.user.id,
       answersDto,
