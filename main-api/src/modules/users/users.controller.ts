@@ -2,11 +2,16 @@ import {
   Controller,
   Get,
   Put,
+  Post,
   Body,
   UseGuards,
   Req,
   Delete,
+  Param,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import {
   ApiTags,
@@ -17,7 +22,9 @@ import {
 import type { Request } from 'express';
 
 import { UsersService } from './users.service';
+import { ProfilesService } from '../profiles/profiles.service';
 import { UpdateUserDto, UpdateUserSettingsDto } from './dto/update-user.dto';
+import { SubmitPromptAnswersDto } from '../profiles/dto/profiles.dto';
 import { SuccessResponseDto } from '../../common/dto/response.dto';
 import { User } from '../../database/entities/user.entity';
 

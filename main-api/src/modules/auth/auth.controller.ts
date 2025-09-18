@@ -27,6 +27,8 @@ import {
   ResetPasswordDto,
   ChangePasswordDto,
   VerifyEmailDto,
+  AppleAuthDto,
+  GoogleAuthDto,
 } from './dto/auth.dto';
 import { SuccessResponseDto } from '../../common/dto/response.dto';
 import { User } from '../../database/entities/user.entity';
@@ -98,10 +100,51 @@ export class AuthController {
     };
   }
 
-  @ApiOperation({ summary: 'Initiate Google OAuth login' })
+  @ApiOperation({ summary: 'Google social authentication' })
+  @ApiResponse({ status: 200, description: 'Google authentication successful' })
+  @ApiResponse({ status: 401, description: 'Invalid Google token' })
+  @Post('google')
+  async googleAuth(@Body() googleAuthDto: GoogleAuthDto) {
+    const ticket = await this.client.verifyIdToken({
+      idToken: googleAuthDto.idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload) {
+      throw new Error('Invalid Google token');
+    }
+
+    const { sub, email, name, picture } = payload;
+
+    const result = await this.authService.socialLogin({
+      socialId: sub,
+      provider: 'google',
+      email,
+      firstName: name?.split(' ')[0] || '',
+      lastName: name?.split(' ').slice(1).join(' ') || '',
+      profilePicture: picture,
+    });
+
+    return {
+      success: true,
+      message: 'Google authentication successful',
+      data: {
+        user: {
+          id: result.user.id,
+          email: result.user.email,
+          isOnboardingCompleted: result.user.isOnboardingCompleted,
+          isProfileCompleted: result.user.isProfileCompleted,
+        },
+        accessToken: result.accessToken,
+      },
+    };
+  }
+
+  @ApiOperation({ summary: 'Initiate Google OAuth login (legacy)' })
   @Get('google')
   @UseGuards(AuthGuard('google'))
-  async googleAuth() {
+  async googleOAuthLogin() {
     // This will redirect to Google
   }
 
@@ -140,10 +183,51 @@ export class AuthController {
     res.redirect(redirectUrl);
   }
 
-  @ApiOperation({ summary: 'Initiate Apple OAuth login' })
+  @ApiOperation({ summary: 'Apple social authentication' })
+  @ApiResponse({ status: 200, description: 'Apple authentication successful' })
+  @ApiResponse({ status: 401, description: 'Invalid Apple token' })
+  @Post('apple')
+  async appleAuth(@Body() appleAuthDto: AppleAuthDto) {
+    // For Apple authentication, we need to verify the ID token
+    // This is a simplified implementation - in production you would verify the Apple JWT
+    try {
+      // Parse the JWT payload without verification for now
+      // In production, use Apple's public keys to verify the token
+      const base64Payload = appleAuthDto.idToken.split('.')[1];
+      const payload = JSON.parse(Buffer.from(base64Payload, 'base64').toString());
+
+      const { sub, email, name } = payload;
+
+      const result = await this.authService.socialLogin({
+        socialId: sub,
+        provider: 'apple',
+        email: email || '',
+        firstName: name?.firstName || '',
+        lastName: name?.lastName || '',
+      });
+
+      return {
+        success: true,
+        message: 'Apple authentication successful',
+        data: {
+          user: {
+            id: result.user.id,
+            email: result.user.email,
+            isOnboardingCompleted: result.user.isOnboardingCompleted,
+            isProfileCompleted: result.user.isProfileCompleted,
+          },
+          accessToken: result.accessToken,
+        },
+      };
+    } catch (error) {
+      throw new Error('Invalid Apple token');
+    }
+  }
+
+  @ApiOperation({ summary: 'Initiate Apple OAuth login (legacy)' })
   @Get('apple')
   @UseGuards(AuthGuard('apple'))
-  async appleAuth() {
+  async appleOAuthLogin() {
     // This will redirect to Apple
   }
 

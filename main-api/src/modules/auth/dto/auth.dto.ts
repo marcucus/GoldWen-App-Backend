@@ -93,3 +93,15 @@ export class VerifyEmailDto {
   @IsString()
   token: string;
 }
+
+export class AppleAuthDto {
+  @ApiProperty({ description: 'Apple ID token' })
+  @IsString()
+  idToken: string;
+}
+
+export class GoogleAuthDto {
+  @ApiProperty({ description: 'Google ID token' })
+  @IsString()
+  idToken: string;
+}
