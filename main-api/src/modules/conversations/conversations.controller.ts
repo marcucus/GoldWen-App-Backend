@@ -35,7 +35,10 @@ export class ConversationsController {
 
   @Post()
   @ApiOperation({ summary: 'Create conversation for mutual match' })
-  @ApiResponse({ status: 201, description: 'Conversation created successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Conversation created successfully',
+  })
   async createConversation(
     @Request() req: any,
     @Body() createConversationDto: CreateConversationDto,
@@ -64,7 +67,10 @@ export class ConversationsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all user conversations' })
-  @ApiResponse({ status: 200, description: 'Conversations retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Conversations retrieved successfully',
+  })
   async getConversations(@Request() req: any) {
     return this.chatService.getUserChats(req.user.id);
   }
@@ -93,7 +99,11 @@ export class ConversationsController {
     @Param('id') conversationId: string,
     @Body() sendMessageDto: SendMessageDto,
   ) {
-    return this.chatService.sendMessage(conversationId, req.user.id, sendMessageDto);
+    return this.chatService.sendMessage(
+      conversationId,
+      req.user.id,
+      sendMessageDto,
+    );
   }
 
   @Put(':id/messages/read')

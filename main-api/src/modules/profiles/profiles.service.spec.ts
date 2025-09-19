@@ -27,11 +27,7 @@ describe('ProfilesService', () => {
       userId: 'user-id',
       birthDate: new Date('1990-01-01'),
       bio: 'Test bio',
-      photos: [
-        { id: 'photo1' },
-        { id: 'photo2' },
-        { id: 'photo3' },
-      ],
+      photos: [{ id: 'photo1' }, { id: 'photo2' }, { id: 'photo3' }],
       promptAnswers: [
         { id: 'answer1', promptId: 'prompt1' },
         { id: 'answer2', promptId: 'prompt2' },
@@ -98,7 +94,9 @@ describe('ProfilesService', () => {
 
     service = module.get<ProfilesService>(ProfilesService);
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
-    profileRepository = module.get<Repository<Profile>>(getRepositoryToken(Profile));
+    profileRepository = module.get<Repository<Profile>>(
+      getRepositoryToken(Profile),
+    );
   });
 
   it('should be defined', () => {
@@ -120,15 +118,17 @@ describe('ProfilesService', () => {
           status: 'active',
           isProfileCompleted: true,
           isOnboardingCompleted: true,
-        })
+        }),
       );
     });
 
     it('should recalculate completion status when completed is false', async () => {
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as any);
-      
+
       // Spy on the private method
-      const updateCompletionSpy = jest.spyOn(service as any, 'updateProfileCompletionStatus').mockResolvedValue(undefined);
+      const updateCompletionSpy = jest
+        .spyOn(service as any, 'updateProfileCompletionStatus')
+        .mockResolvedValue(undefined);
 
       await service.updateProfileStatus('user-id', {
         status: 'active',

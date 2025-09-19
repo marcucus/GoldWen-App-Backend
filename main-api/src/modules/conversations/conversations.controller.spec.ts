@@ -93,7 +93,10 @@ describe('ConversationsController', () => {
       matchingService.getMutualMatch.mockResolvedValue(null);
 
       await expect(
-        controller.createConversation({ user: mockUser }, { matchId: 'match1' }),
+        controller.createConversation(
+          { user: mockUser },
+          { matchId: 'match1' },
+        ),
       ).rejects.toThrow(BadRequestException);
     });
   });

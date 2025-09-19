@@ -426,31 +426,37 @@ Cette documentation liste toutes les routes API disponibles pour le frontend et 
 **Description**: Abonnement actuel de l'utilisateur  
 **Headers**: `Authorization: Bearer <token>`
 
-### POST /subscriptions/purchase
-**Description**: Achat d'un abonnement  
+### GET /subscriptions/tier
+**Description**: Niveau d'abonnement et fonctionnalités de l'utilisateur  
+**Headers**: `Authorization: Bearer <token>`
+
+### POST /subscriptions
+**Description**: Créer un nouvel abonnement  
 **Headers**: `Authorization: Bearer <token>`  
 **Body**:
 ```json
 {
   "plan": "goldwen_plus",
-  "platform": "ios",
-  "receiptData": "receipt_from_app_store"
-}
-```
-
-### POST /subscriptions/verify-receipt
-**Description**: Vérification d'un reçu d'achat  
-**Headers**: `Authorization: Bearer <token>`  
-**Body**:
-```json
-{
-  "receiptData": "receipt_string",
+  "revenueCatCustomerId": "customer_id",
+  "revenueCatSubscriptionId": "subscription_id",
+  "price": 19.99,
+  "currency": "EUR",
   "platform": "ios"
 }
 ```
 
 ### PUT /subscriptions/cancel
-**Description**: Annulation de l'abonnement  
+**Description**: Annulation de l'abonnement utilisateur  
+**Headers**: `Authorization: Bearer <token>`
+**Body**:
+```json
+{
+  "reason": "too_expensive"
+}
+```
+
+### DELETE /subscriptions/:id
+**Description**: Annuler un abonnement par ID  
 **Headers**: `Authorization: Bearer <token>`
 
 ### POST /subscriptions/restore
@@ -460,6 +466,10 @@ Cette documentation liste toutes les routes API disponibles pour le frontend et 
 ### GET /subscriptions/usage
 **Description**: Utilisation actuelle des fonctionnalités premium  
 **Headers**: `Authorization: Bearer <token>`
+
+### POST /subscriptions/webhook/revenuecat
+**Description**: Webhook RevenueCat pour la mise à jour automatique des statuts  
+**Body**: RevenueCat webhook payload
 
 ---
 

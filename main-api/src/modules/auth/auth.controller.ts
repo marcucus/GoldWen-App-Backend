@@ -152,11 +152,13 @@ export class AuthController {
   @ApiOperation({ summary: 'Apple social authentication with identity token' })
   @ApiResponse({ status: 200, description: 'Apple authentication successful' })
   @Post('apple')
-  async appleLogin(@Body() appleTokenDto: { identityToken: string; user?: any }) {
+  async appleLogin(
+    @Body() appleTokenDto: { identityToken: string; user?: any },
+  ) {
     // For now, return placeholder implementation
     // In a real implementation, you would verify the Apple identity token
     const { identityToken, user } = appleTokenDto;
-    
+
     // Apple token verification logic would go here
     // For development, we'll create a mock response based on the token
     if (!identityToken) {
@@ -169,7 +171,7 @@ export class AuthController {
       provider: 'apple',
       email: user?.email || 'apple.user@privaterelay.appleid.com',
       firstName: user?.name?.firstName || 'Apple',
-      lastName: user?.name?.lastName || 'User'
+      lastName: user?.name?.lastName || 'User',
     };
 
     return this.authService.socialLogin(appleUserData);
