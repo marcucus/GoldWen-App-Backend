@@ -11,10 +11,11 @@ import { Report } from '../../database/entities/report.entity';
 import { Match } from '../../database/entities/match.entity';
 import { Chat } from '../../database/entities/chat.entity';
 import { Subscription } from '../../database/entities/subscription.entity';
+import { SupportTicket } from '../../database/entities/support-ticket.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Admin, User, Report, Match, Chat, Subscription]),
+    TypeOrmModule.forFeature([Admin, User, Report, Match, Chat, Subscription, SupportTicket]),
     forwardRef(() => NotificationsModule),
   ],
   providers: [AdminService],

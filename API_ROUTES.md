@@ -555,6 +555,14 @@ Cette documentation liste toutes les routes API disponibles pour le frontend et 
 }
 ```
 
+### PATCH /admin/users/:id/suspend
+**Description**: Suspendre un utilisateur spécifique  
+**Headers**: `Authorization: Bearer <admin_token>`
+
+### DELETE /admin/users/:id
+**Description**: Supprimer un utilisateur  
+**Headers**: `Authorization: Bearer <admin_token>`
+
 ### GET /admin/reports
 **Description**: Liste des signalements  
 **Headers**: `Authorization: Bearer <admin_token>`  
@@ -571,6 +579,10 @@ Cette documentation liste toutes les routes API disponibles pour le frontend et 
 }
 ```
 
+### DELETE /admin/reports/:reportId
+**Description**: Supprimer/rejeter un signalement  
+**Headers**: `Authorization: Bearer <admin_token>`
+
 ### GET /admin/analytics
 **Description**: Statistiques de la plateforme  
 **Headers**: `Authorization: Bearer <admin_token>`
@@ -584,6 +596,19 @@ Cette documentation liste toutes les routes API disponibles pour le frontend et 
   "title": "Titre de la notification",
   "body": "Contenu de la notification",
   "type": "system"
+}
+```
+
+### POST /admin/support/reply
+**Description**: Répondre à un ticket de support utilisateur  
+**Headers**: `Authorization: Bearer <admin_token>`  
+**Body**:
+```json
+{
+  "ticketId": "uuid",
+  "reply": "Réponse de l'administrateur",
+  "status": "resolved",
+  "priority": "medium"
 }
 ```
 

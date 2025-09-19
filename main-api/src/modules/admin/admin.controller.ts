@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -24,6 +25,7 @@ import {
   BroadcastNotificationDto,
   GetUsersDto,
   GetReportsDto,
+  SupportReplyDto,
 } from './dto/admin.dto';
 
 @ApiTags('admin')
@@ -97,6 +99,15 @@ export class AdminController {
     return this.adminService.updateUserStatus(userId, updateStatusDto);
   }
 
+  @Patch('users/:id/suspend')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Suspend user' })
+  @ApiResponse({ status: 200, description: 'User suspended successfully' })
+  async suspendUser(@Param('id') userId: string) {
+    return this.adminService.suspendUser(userId);
+  }
+
   @Delete('users/:userId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -114,6 +125,16 @@ export class AdminController {
   @ApiResponse({ status: 200, description: 'Reports list retrieved' })
   async getReports(@Query() getReportsDto: GetReportsDto) {
     return this.adminService.getReports(getReportsDto);
+  }
+
+  @Delete('reports/:reportId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete report' })
+  @ApiResponse({ status: 200, description: 'Report deleted successfully' })
+  async deleteReport(@Param('reportId') reportId: string) {
+    await this.adminService.deleteReport(reportId);
+    return { message: 'Report deleted successfully' };
   }
 
   @Put('reports/:reportId')
@@ -148,5 +169,23 @@ export class AdminController {
   async broadcastNotification(@Body() broadcastDto: BroadcastNotificationDto) {
     await this.adminService.broadcastNotification(broadcastDto);
     return { message: 'Notification broadcasted successfully' };
+  }
+
+  @Post('support/reply')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Reply to support ticket' })
+  @ApiResponse({
+    status: 200,
+    description: 'Support reply sent successfully',
+  })
+  async replySupportTicket(@Body() supportReplyDto: SupportReplyDto) {
+    // In a real implementation, you'd get the admin email from the JWT token
+    const adminEmail = 'admin@goldwen.com';
+    const ticket = await this.adminService.replySupportTicket(supportReplyDto, adminEmail);
+    return {
+      message: 'Support reply sent successfully',
+      ticket,
+    };
   }
 }
