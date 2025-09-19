@@ -55,6 +55,7 @@ export enum NotificationType {
   CHAT_EXPIRING = 'chat_expiring',
   SUBSCRIPTION_EXPIRED = 'subscription_expired',
   SUBSCRIPTION_RENEWED = 'subscription_renewed',
+  SYSTEM = 'system',
 }
 
 export enum QuestionType {

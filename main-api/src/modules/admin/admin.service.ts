@@ -14,6 +14,7 @@ import { Report } from '../../database/entities/report.entity';
 import { Match } from '../../database/entities/match.entity';
 import { Chat } from '../../database/entities/chat.entity';
 import { Subscription } from '../../database/entities/subscription.entity';
+import { SupportTicket, SupportStatus } from '../../database/entities/support-ticket.entity';
 import { CustomLoggerService } from '../../common/logger';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -33,6 +34,7 @@ import {
   BroadcastNotificationDto,
   GetUsersDto,
   GetReportsDto,
+  SupportReplyDto,
 } from './dto/admin.dto';
 
 @Injectable()
@@ -50,6 +52,8 @@ export class AdminService {
     private chatRepository: Repository<Chat>,
     @InjectRepository(Subscription)
     private subscriptionRepository: Repository<Subscription>,
+    @InjectRepository(SupportTicket)
+    private supportTicketRepository: Repository<SupportTicket>,
     @Inject(forwardRef(() => NotificationsService))
     private notificationsService: NotificationsService,
     private logger: CustomLoggerService,
@@ -330,6 +334,26 @@ export class AdminService {
     }
   }
 
+  async suspendUser(userId: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const previousStatus = user.status;
+    user.status = UserStatus.SUSPENDED;
+
+    this.logger.logBusinessEvent('admin_user_suspended', {
+      userId,
+      previousStatus,
+      newStatus: UserStatus.SUSPENDED,
+      action: 'admin_user_suspend',
+    });
+
+    return this.userRepository.save(user);
+  }
+
   async deleteUser(userId: string): Promise<void> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
 
@@ -349,6 +373,24 @@ export class AdminService {
       userEmail: user.email,
       action: 'admin_user_delete',
     });
+  }
+
+  async deleteReport(reportId: string): Promise<void> {
+    const report = await this.reportRepository.findOne({
+      where: { id: reportId },
+    });
+
+    if (!report) {
+      throw new NotFoundException('Report not found');
+    }
+
+    this.logger.logBusinessEvent('admin_report_deleted', {
+      reportId,
+      reportType: report.type,
+      action: 'admin_report_delete',
+    });
+
+    await this.reportRepository.remove(report);
   }
 
   async getUserAnalytics(): Promise<{
@@ -394,6 +436,58 @@ export class AdminService {
       usersBySubscription,
       topReportedUsers,
     };
+  }
+
+  async replySupportTicket(supportReplyDto: SupportReplyDto, adminEmail: string): Promise<SupportTicket> {
+    const { ticketId, reply, status, priority } = supportReplyDto;
+
+    const ticket = await this.supportTicketRepository.findOne({
+      where: { id: ticketId },
+      relations: ['user'],
+    });
+
+    if (!ticket) {
+      throw new NotFoundException('Support ticket not found');
+    }
+
+    ticket.adminReply = reply;
+    ticket.repliedBy = adminEmail;
+    ticket.repliedAt = new Date();
+
+    if (status) {
+      ticket.status = status;
+    }
+
+    if (priority) {
+      ticket.priority = priority;
+    }
+
+    this.logger.logBusinessEvent('admin_support_reply', {
+      ticketId,
+      adminEmail,
+      status: ticket.status,
+      action: 'admin_support_reply',
+    });
+
+    // Optionally send notification to user
+    if (ticket.user) {
+      try {
+        await this.notificationsService.createNotification({
+          userId: ticket.user.id,
+          type: 'SYSTEM', // Assuming this exists in NotificationType enum
+          title: 'Support Reply',
+          body: `Your support request "${ticket.subject}" has been updated`,
+          data: {
+            ticketId: ticket.id,
+            action: 'support_reply',
+          },
+        });
+      } catch (error) {
+        this.logger.warn('Failed to send support reply notification', error);
+      }
+    }
+
+    return this.supportTicketRepository.save(ticket);
   }
 
   async getRecentActivity(): Promise<{

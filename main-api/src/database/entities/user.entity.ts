@@ -18,6 +18,7 @@ import { Subscription } from './subscription.entity';
 import { Notification } from './notification.entity';
 import { NotificationPreferences } from './notification-preferences.entity';
 import { Report } from './report.entity';
+import { SupportTicket } from './support-ticket.entity';
 
 @Entity('users')
 @Index(['email'], { unique: true })
@@ -119,4 +120,7 @@ export class User {
 
   @OneToMany(() => Report, (report) => report.reportedUser)
   reportsReceived?: Report[];
+
+  @OneToMany(() => SupportTicket, (ticket) => ticket.user)
+  supportTickets?: SupportTicket[];
 }
