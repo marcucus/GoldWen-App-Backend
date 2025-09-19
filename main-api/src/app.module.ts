@@ -30,6 +30,7 @@ import { UsersModule } from './modules/users/users.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
 import { MatchingModule } from './modules/matching/matching.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { ConversationsModule } from './modules/conversations/conversations.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AdminModule } from './modules/admin/admin.module';
@@ -96,6 +97,7 @@ import { AdminModule } from './modules/admin/admin.module';
     ProfilesModule,
     MatchingModule,
     ChatModule,
+    ConversationsModule,
     SubscriptionsModule,
     NotificationsModule,
     AdminModule,

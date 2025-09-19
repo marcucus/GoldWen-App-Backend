@@ -416,6 +416,18 @@ export class MatchingService {
     });
   }
 
+  async getMutualMatch(userId: string, matchId: string): Promise<Match | null> {
+    const match = await this.matchRepository.findOne({
+      where: [
+        { id: matchId, user1Id: userId, status: MatchStatus.MATCHED },
+        { id: matchId, user2Id: userId, status: MatchStatus.MATCHED },
+      ],
+      relations: ['user1', 'user1.profile', 'user2', 'user2.profile'],
+    });
+
+    return match;
+  }
+
   async getCompatibilityScore(
     userId: string,
     targetUserId: string,
