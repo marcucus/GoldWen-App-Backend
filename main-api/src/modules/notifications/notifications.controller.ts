@@ -21,6 +21,7 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { NotificationsService } from './notifications.service';
 import { CustomLoggerService } from '../../common/logger';
+import { ScheduledNotificationsService } from './scheduled-notifications.service';
 
 import {
   GetNotificationsDto,
@@ -37,6 +38,7 @@ export class NotificationsController {
   constructor(
     private readonly notificationsService: NotificationsService,
     private readonly logger: CustomLoggerService,
+    private readonly scheduledNotificationsService: ScheduledNotificationsService,
   ) {}
 
   @Get()
@@ -212,6 +214,28 @@ export class NotificationsController {
         })),
       },
       message: 'Group notification sent successfully',
+    };
+  }
+
+  @Post('trigger-daily-selection')
+  @ApiOperation({
+    summary: 'Manually trigger daily selection notifications (dev only)',
+    description: 'Manually trigger the daily selection notification job for testing',
+  })
+  @ApiResponse({ status: 201, description: 'Daily selection notifications triggered' })
+  async triggerDailySelectionNotifications(@Request() req: any) {
+    const userId = req.user.id;
+
+    this.logger.setContext({ userId, userEmail: req.user.email });
+
+    // Only allow in development
+    if (this.scheduledNotificationsService) {
+      await this.scheduledNotificationsService.triggerDailySelectionNotifications();
+    }
+
+    return {
+      success: true,
+      message: 'Daily selection notifications triggered successfully',
     };
   }
 }

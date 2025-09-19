@@ -553,13 +553,33 @@ GET /subscriptions/usage
 
 ### 1. Configuration des Notifications
 
-**Frontend → Backend :**
+**Enregistrement du Token Push :**
 ```
-POST /notifications/register-device
+POST /users/me/push-tokens
 {
-  "deviceToken": "fcm_token_123",
+  "token": "fcm_or_apns_device_token_123",
   "platform": "ios", // ou "android"
-  "appVersion": "1.0.0"
+  "appVersion": "1.0.0",
+  "deviceId": "unique-device-identifier"
+}
+```
+
+**Suppression du Token Push :**
+```
+DELETE /users/me/push-tokens
+{
+  "token": "fcm_or_apns_device_token_123"
+}
+```
+
+**Paramètres de Notification :**
+```
+PUT /notifications/settings
+{
+  "dailySelection": true,
+  "newMatches": true,
+  "newMessages": true,
+  "chatExpiring": true
 }
 ```
 
