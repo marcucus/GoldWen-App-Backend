@@ -331,7 +331,49 @@ Cette documentation liste toutes les routes API disponibles pour le frontend et 
 
 ---
 
-## 💬 Chat Routes
+## 💬 Conversations Routes
+
+### POST /conversations
+**Description**: Créer une conversation pour un match mutuel  
+**Headers**: `Authorization: Bearer <token>`  
+**Body**:
+```json
+{
+  "matchId": "uuid-du-match"
+}
+```
+
+### GET /conversations
+**Description**: Liste des conversations actives  
+**Headers**: `Authorization: Bearer <token>`
+
+### GET /conversations/:id/messages
+**Description**: Messages d'une conversation  
+**Headers**: `Authorization: Bearer <token>`  
+**Query Parameters**: `page`, `limit`, `before`
+
+### POST /conversations/:id/messages
+**Description**: Envoyer un message  
+**Headers**: `Authorization: Bearer <token>`  
+**Body**:
+```json
+{
+  "type": "text",
+  "content": "Contenu du message"
+}
+```
+
+### PUT /conversations/:id/messages/read
+**Description**: Marquer les messages comme lus  
+**Headers**: `Authorization: Bearer <token>`
+
+### DELETE /conversations/:id/messages/:messageId
+**Description**: Supprimer un message  
+**Headers**: `Authorization: Bearer <token>`
+
+---
+
+## 💬 Chat Routes (Legacy - use /conversations instead)
 
 ### GET /chat/conversations
 **Description**: Liste des conversations actives  
