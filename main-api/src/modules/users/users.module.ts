@@ -11,6 +11,7 @@ import { Subscription } from '../../database/entities/subscription.entity';
 import { DailySelection } from '../../database/entities/daily-selection.entity';
 import { PromptAnswer } from '../../database/entities/prompt-answer.entity';
 import { Prompt } from '../../database/entities/prompt.entity';
+import { PushToken } from '../../database/entities/push-token.entity';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { Prompt } from '../../database/entities/prompt.entity';
       DailySelection,
       PromptAnswer,
       Prompt,
+      PushToken,
     ]),
   ],
   providers: [UsersService],

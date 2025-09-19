@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   Request,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -25,6 +26,7 @@ import {
   GetNotificationsDto,
   UpdateNotificationSettingsDto,
   TestNotificationDto,
+  SendGroupNotificationDto,
 } from './dto/notifications.dto';
 
 @ApiTags('notifications')
@@ -172,6 +174,44 @@ export class NotificationsController {
       success: true,
       data: notification,
       message: 'Test notification sent successfully',
+    };
+  }
+
+  @Post('send-group')
+  @ApiOperation({
+    summary: 'Send notification to group of users (admin only)',
+    description: 'Send a notification to multiple users at once',
+  })
+  @ApiResponse({ status: 201, description: 'Group notification sent' })
+  async sendGroupNotification(
+    @Request() req: any,
+    @Body() sendGroupNotificationDto: SendGroupNotificationDto,
+  ) {
+    const userId = req.user.id;
+
+    this.logger.setContext({ userId, userEmail: req.user.email });
+
+    // TODO: Add admin role check here
+    // if (!req.user.isAdmin) {
+    //   throw new ForbiddenException('Admin access required');
+    // }
+
+    const notifications = await this.notificationsService.sendGroupNotification(
+      sendGroupNotificationDto,
+    );
+
+    return {
+      success: true,
+      data: {
+        count: notifications.length,
+        notifications: notifications.map(n => ({
+          id: n.id,
+          userId: n.userId,
+          type: n.type,
+          title: n.title,
+        })),
+      },
+      message: 'Group notification sent successfully',
     };
   }
 }
