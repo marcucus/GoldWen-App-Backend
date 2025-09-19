@@ -25,6 +25,7 @@ import {
   MatchStatus,
   ChatStatus,
   SubscriptionStatus,
+  NotificationType,
 } from '../../common/enums';
 
 import {
@@ -474,7 +475,7 @@ export class AdminService {
       try {
         await this.notificationsService.createNotification({
           userId: ticket.user.id,
-          type: 'SYSTEM', // Assuming this exists in NotificationType enum
+          type: NotificationType.SYSTEM,
           title: 'Support Reply',
           body: `Your support request "${ticket.subject}" has been updated`,
           data: {
