@@ -468,16 +468,41 @@ GET /subscriptions/plans
 **Frontend → Backend :**
 ```
 1. L'utilisateur choisit un plan
-2. Redirection vers le système de paiement (Stripe/Apple/Google)
-3. Après paiement, callback avec reçu
-4. POST /subscriptions/verify-receipt
+2. Redirection vers le système de paiement (RevenueCat/Apple/Google)
+3. Après paiement, RevenueCat webhook automatique
+4. POST /subscriptions/webhook/revenuecat (automatique)
+5. Ou POST /subscriptions pour création manuelle:
    {
-     "platform": "apple", // ou "google", "stripe"
-     "receiptData": "base64_receipt",
-     "productId": "goldwen_plus_monthly"
+     "plan": "goldwen_plus",
+     "revenueCatCustomerId": "customer_id",
+     "revenueCatSubscriptionId": "subscription_id",
+     "price": 19.99,
+     "currency": "EUR",
+     "platform": "ios"
    }
-5. Backend vérifie auprès du provider
-6. Activation de l'abonnement
+6. Backend active l'abonnement automatiquement
+```
+
+### 2.1. Vérification du Statut Utilisateur
+
+**Frontend → Backend :**
+```
+GET /subscriptions/tier
+→ Retourne le niveau d'abonnement actuel et les fonctionnalités
+```
+
+**Réponse type :**
+```json
+{
+  "tier": "goldwen_plus",
+  "isActive": true,
+  "features": {
+    "maxDailyChoices": 3,
+    "hasExtendChatFeature": true,
+    "hasPrioritySupport": true,
+    "canSeeWhoLiked": true
+  }
+}
 ```
 
 ### 3. Gestion de l'Abonnement
