@@ -7,6 +7,8 @@ import {
   UseGuards,
   Req,
   Delete,
+  BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import {
@@ -15,13 +17,16 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import type { Request } from 'express';
 
 import { UsersService } from './users.service';
 import { UpdateUserDto, UpdateUserSettingsDto } from './dto/update-user.dto';
 import { SuccessResponseDto } from '../../common/dto/response.dto';
 import { User } from '../../database/entities/user.entity';
-import { ProfilesService } from '../profiles/profiles.service';
+import { Profile } from '../../database/entities/profile.entity';
+import { PromptAnswer } from '../../database/entities/prompt-answer.entity';
 import { SubmitPromptAnswersDto } from '../profiles/dto/profiles.dto';
 
 @ApiTags('Users')
@@ -31,7 +36,10 @@ import { SubmitPromptAnswersDto } from '../profiles/dto/profiles.dto';
 export class UsersController {
   constructor(
     private usersService: UsersService,
-    private profilesService: ProfilesService
+    @InjectRepository(Profile)
+    private profileRepository: Repository<Profile>,
+    @InjectRepository(PromptAnswer)
+    private promptAnswerRepository: Repository<PromptAnswer>,
   ) {}
 
   @ApiOperation({ summary: 'Get current user profile' })
@@ -126,23 +134,67 @@ export class UsersController {
     @Body() promptAnswersDto: SubmitPromptAnswersDto,
   ) {
     const user = req.user as User;
-    await this.profilesService.submitPromptAnswers(user.id, promptAnswersDto);
-    
-    return {
-      success: true,
-      message: 'Prompt answers submitted successfully'
-    };
+    const { answers } = promptAnswersDto;
+
+    // Validate that 3 prompts are answered (as required by specifications)
+    if (answers.length !== 3) {
+      throw new BadRequestException('Exactly 3 prompt answers are required');
+    }
+
+    const profile = await this.profileRepository.findOne({
+      where: { userId: user.id },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    try {
+      // Delete existing prompt answers
+      await this.promptAnswerRepository.delete({ profileId: profile.id });
+
+      // Create new prompt answers
+      const answerEntities = answers.map((answer, index) => {
+        return this.promptAnswerRepository.create({
+          profileId: profile.id,
+          promptId: answer.promptId,
+          answer: answer.answer,
+          order: index + 1, // Set order field which is required by the entity
+        });
+      });
+
+      await this.promptAnswerRepository.save(answerEntities);
+      
+      return {
+        success: true,
+        message: 'Prompt answers submitted successfully'
+      };
+    } catch (error) {
+      // Log the error for debugging
+      console.error('Error saving prompt answers for user', user.id, ':', error);
+      throw new BadRequestException(
+        'Failed to save prompt answers: ' + error.message,
+      );
+    }
   }
 
   @ApiOperation({ summary: 'Upload user photos' })
   @ApiResponse({ status: 201, description: 'Photos uploaded successfully' })
   @Post('me/photos')
   async uploadPhotos(@Req() req: Request) {
-    // This endpoint would handle photo uploads
-    // For now, return a placeholder response
+    const user = req.user as User;
+    
+    // For now, return a response indicating the endpoint structure is ready
+    // In a full implementation, this would handle multipart/form-data file uploads
     return {
       success: true,
-      message: 'Photo upload endpoint - implement file handling'
+      message: 'Photo upload endpoint ready - requires multipart/form-data implementation',
+      data: {
+        userId: user.id,
+        maxPhotos: 6,
+        supportedFormats: ['jpg', 'jpeg', 'png'],
+        maxFileSize: '10MB'
+      }
     };
   }
 
@@ -150,11 +202,16 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Photo deleted successfully' })
   @Delete('me/photos/:photoId')
   async deletePhoto(@Req() req: Request) {
-    // This endpoint would handle photo deletion
-    // For now, return a placeholder response
+    const user = req.user as User;
+    // const photoId = req.params.photoId; // Would extract from params
+    
+    // For now, return a response indicating the endpoint structure is ready
     return {
       success: true,
-      message: 'Photo deletion endpoint - implement photo deletion logic'
+      message: 'Photo deletion endpoint ready - requires photo ID parameter handling',
+      data: {
+        userId: user.id
+      }
     };
   }
 

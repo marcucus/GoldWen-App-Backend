@@ -9,7 +9,8 @@ import { Match } from '../../database/entities/match.entity';
 import { Message } from '../../database/entities/message.entity';
 import { Subscription } from '../../database/entities/subscription.entity';
 import { DailySelection } from '../../database/entities/daily-selection.entity';
-import { ProfilesModule } from '../profiles/profiles.module';
+import { PromptAnswer } from '../../database/entities/prompt-answer.entity';
+import { Prompt } from '../../database/entities/prompt.entity';
 
 @Module({
   imports: [
@@ -20,8 +21,9 @@ import { ProfilesModule } from '../profiles/profiles.module';
       Message,
       Subscription,
       DailySelection,
+      PromptAnswer,
+      Prompt,
     ]),
-    ProfilesModule,
   ],
   providers: [UsersService],
   controllers: [UsersController],
