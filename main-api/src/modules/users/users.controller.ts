@@ -23,6 +23,7 @@ import type { Request } from 'express';
 
 import { UsersService } from './users.service';
 import { UpdateUserDto, UpdateUserSettingsDto } from './dto/update-user.dto';
+import { RegisterPushTokenDto, DeletePushTokenDto } from './dto/push-token.dto';
 import { SuccessResponseDto } from '../../common/dto/response.dto';
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
@@ -233,5 +234,42 @@ export class UsersController {
     await this.usersService.deleteUser(user.id);
 
     return new SuccessResponseDto('Account deleted successfully');
+  }
+
+  @ApiOperation({ summary: 'Register device push token' })
+  @ApiResponse({ status: 201, description: 'Push token registered successfully' })
+  @Post('me/push-tokens')
+  async registerPushToken(
+    @Req() req: Request,
+    @Body() registerPushTokenDto: RegisterPushTokenDto,
+  ) {
+    const user = req.user as User;
+    const pushToken = await this.usersService.registerPushToken(user.id, registerPushTokenDto);
+
+    return {
+      success: true,
+      message: 'Push token registered successfully',
+      data: {
+        id: pushToken.id,
+        platform: pushToken.platform,
+        createdAt: pushToken.createdAt,
+      },
+    };
+  }
+
+  @ApiOperation({ summary: 'Delete device push token' })
+  @ApiResponse({ status: 200, description: 'Push token deleted successfully' })
+  @Delete('me/push-tokens')
+  async deletePushToken(
+    @Req() req: Request,
+    @Body() deletePushTokenDto: DeletePushTokenDto,
+  ) {
+    const user = req.user as User;
+    await this.usersService.deletePushToken(user.id, deletePushTokenDto.token);
+
+    return {
+      success: true,
+      message: 'Push token deleted successfully',
+    };
   }
 }

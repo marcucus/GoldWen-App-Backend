@@ -205,6 +205,29 @@ Cette documentation liste toutes les routes API disponibles pour le frontend et 
 **Description**: Suppression du compte utilisateur  
 **Headers**: `Authorization: Bearer <token>`
 
+### POST /users/me/push-tokens
+**Description**: Enregistrement d'un token de notification push  
+**Headers**: `Authorization: Bearer <token>`  
+**Body**:
+```json
+{
+  "token": "firebase_device_token_here",
+  "platform": "ios",
+  "appVersion": "1.0.0",
+  "deviceId": "device-unique-id"
+}
+```
+
+### DELETE /users/me/push-tokens
+**Description**: Suppression d'un token de notification push  
+**Headers**: `Authorization: Bearer <token>`  
+**Body**:
+```json
+{
+  "token": "firebase_device_token_here"
+}
+```
+
 ---
 
 ## 📝 Profiles Routes
@@ -518,9 +541,19 @@ Cette documentation liste toutes les routes API disponibles pour le frontend et 
 ```
 **Note**: Disponible uniquement en environnement de développement
 
-### POST /notifications/test
-**Description**: Envoyer une notification de test (dev only)  
-**Headers**: `Authorization: Bearer <token>`
+### POST /notifications/send-group
+**Description**: Envoyer une notification à un groupe d'utilisateurs (admin only)  
+**Headers**: `Authorization: Bearer <token>`  
+**Body**:
+```json
+{
+  "userIds": ["user-id-1", "user-id-2"],
+  "type": "daily_selection",
+  "title": "Notification Title",
+  "body": "Notification content",
+  "data": {}
+}
+```
 
 ---
 

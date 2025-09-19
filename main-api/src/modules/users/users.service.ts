@@ -8,12 +8,14 @@ import { Match } from '../../database/entities/match.entity';
 import { Message } from '../../database/entities/message.entity';
 import { Subscription } from '../../database/entities/subscription.entity';
 import { DailySelection } from '../../database/entities/daily-selection.entity';
+import { PushToken } from '../../database/entities/push-token.entity';
 import {
   UserStatus,
   MatchStatus,
   SubscriptionStatus,
 } from '../../common/enums';
 import { UpdateUserDto, UpdateUserSettingsDto } from './dto/update-user.dto';
+import { RegisterPushTokenDto } from './dto/push-token.dto';
 
 @Injectable()
 export class UsersService {
@@ -30,6 +32,8 @@ export class UsersService {
     private subscriptionRepository: Repository<Subscription>,
     @InjectRepository(DailySelection)
     private dailySelectionRepository: Repository<DailySelection>,
+    @InjectRepository(PushToken)
+    private pushTokenRepository: Repository<PushToken>,
   ) {}
 
   async findById(id: string): Promise<User> {
@@ -196,5 +200,56 @@ export class UsersService {
           ? Math.round((totalMatches / dailySelectionsUsed) * 100) / 100
           : 0,
     };
+  }
+
+  async registerPushToken(userId: string, registerPushTokenDto: RegisterPushTokenDto): Promise<PushToken> {
+    const { token, platform, appVersion, deviceId } = registerPushTokenDto;
+
+    // Check if token already exists for this user
+    const existingToken = await this.pushTokenRepository.findOne({
+      where: { userId, token },
+    });
+
+    if (existingToken) {
+      // Update existing token
+      existingToken.platform = platform;
+      existingToken.appVersion = appVersion;
+      existingToken.deviceId = deviceId;
+      existingToken.isActive = true;
+      existingToken.lastUsedAt = new Date();
+      return this.pushTokenRepository.save(existingToken);
+    }
+
+    // Create new push token
+    const pushToken = this.pushTokenRepository.create({
+      userId,
+      token,
+      platform,
+      appVersion,
+      deviceId,
+      isActive: true,
+      lastUsedAt: new Date(),
+    });
+
+    return this.pushTokenRepository.save(pushToken);
+  }
+
+  async deletePushToken(userId: string, token: string): Promise<void> {
+    const pushToken = await this.pushTokenRepository.findOne({
+      where: { userId, token },
+    });
+
+    if (!pushToken) {
+      throw new NotFoundException('Push token not found');
+    }
+
+    await this.pushTokenRepository.remove(pushToken);
+  }
+
+  async getUserPushTokens(userId: string): Promise<PushToken[]> {
+    return this.pushTokenRepository.find({
+      where: { userId, isActive: true },
+      order: { createdAt: 'DESC' },
+    });
   }
 }

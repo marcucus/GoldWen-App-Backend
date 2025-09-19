@@ -10,14 +10,17 @@ import { ConfigService } from '@nestjs/config';
 import { Notification } from '../../database/entities/notification.entity';
 import { User } from '../../database/entities/user.entity';
 import { NotificationPreferences } from '../../database/entities/notification-preferences.entity';
+import { PushToken } from '../../database/entities/push-token.entity';
 import { NotificationType } from '../../common/enums';
 import { CustomLoggerService } from '../../common/logger';
+import { FcmService } from './fcm.service';
 
 import {
   GetNotificationsDto,
   CreateNotificationDto,
   UpdateNotificationSettingsDto,
   TestNotificationDto,
+  SendGroupNotificationDto,
 } from './dto/notifications.dto';
 
 @Injectable()
@@ -29,8 +32,11 @@ export class NotificationsService {
     private userRepository: Repository<User>,
     @InjectRepository(NotificationPreferences)
     private notificationPreferencesRepository: Repository<NotificationPreferences>,
+    @InjectRepository(PushToken)
+    private pushTokenRepository: Repository<PushToken>,
     private configService: ConfigService,
     private logger: CustomLoggerService,
+    private fcmService: FcmService,
   ) {}
 
   async getNotifications(
@@ -257,20 +263,19 @@ export class NotificationsService {
     notification: Notification,
   ): Promise<void> {
     try {
-      // Get user's FCM token and notification preferences
+      // Get user and their push tokens
       const user = await this.userRepository.findOne({
         where: { id: notification.userId },
-        select: ['id', 'fcmToken', 'notificationsEnabled'],
+        select: ['id', 'notificationsEnabled'],
         relations: ['notificationPreferences'],
       });
 
-      if (!user || !user.notificationsEnabled || !user.fcmToken) {
+      if (!user || !user.notificationsEnabled) {
         this.logger.info(
-          'Push notification skipped - user preferences or token unavailable',
+          'Push notification skipped - user preferences unavailable',
           {
             notificationId: notification.id,
             userId: notification.userId,
-            hasToken: !!user?.fcmToken,
             notificationsEnabled: user?.notificationsEnabled,
           },
         );
@@ -308,75 +313,84 @@ export class NotificationsService {
         return;
       }
 
-      const fcmServerKey = this.configService.get('notification.fcmServerKey');
+      // Get active push tokens for the user
+      const pushTokens = await this.pushTokenRepository.find({
+        where: { userId: notification.userId, isActive: true },
+      });
 
-      if (!fcmServerKey) {
-        this.logger.warn(
-          'FCM server key not configured, skipping push notification',
+      if (!pushTokens || pushTokens.length === 0) {
+        this.logger.info(
+          'Push notification skipped - no active push tokens',
+          {
+            notificationId: notification.id,
+            userId: notification.userId,
+          },
         );
         return;
       }
 
-      // Prepare FCM payload
-      const fcmPayload = {
-        to: user.fcmToken,
-        notification: {
-          title: notification.title,
-          body: notification.body,
-          icon: 'ic_notification',
-          sound: 'default',
-          click_action: 'FLUTTER_NOTIFICATION_CLICK',
-        },
-        data: {
-          notificationId: notification.id,
-          type: notification.type,
-          ...notification.data,
-        },
-      };
+      // Send to all active push tokens
+      const sendPromises = pushTokens.map(async (pushToken) => {
+        try {
+          const payload = {
+            title: notification.title,
+            body: notification.body,
+            data: {
+              notificationId: notification.id,
+              type: notification.type,
+              ...notification.data,
+            },
+          };
 
-      // Send FCM request
-      const response = await fetch('https://fcm.googleapis.com/fcm/send', {
-        method: 'POST',
-        headers: {
-          Authorization: `key=${fcmServerKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(fcmPayload),
+          const result = await this.fcmService.sendToDevice(pushToken.token, payload);
+          
+          if (!result.success) {
+            this.logger.warn(
+              `Failed to send to push token ${pushToken.id}: ${result.error}`,
+              'NotificationsService'
+            );
+            
+            // Deactivate invalid tokens
+            if (result.error?.includes('InvalidRegistration') || 
+                result.error?.includes('NotRegistered')) {
+              await this.pushTokenRepository.update(pushToken.id, { isActive: false });
+            }
+          } else {
+            // Update last used time for successful sends
+            await this.pushTokenRepository.update(pushToken.id, { 
+              lastUsedAt: new Date(),
+            });
+          }
+
+          return result;
+        } catch (error) {
+          this.logger.error(
+            `Error sending to push token ${pushToken.id}: ${error.message}`,
+            'NotificationsService'
+          );
+          return { success: false, error: error.message };
+        }
       });
 
-      if (!response.ok) {
-        throw new Error(
-          `FCM request failed: ${response.status} ${response.statusText}`,
-        );
-      }
+      const results = await Promise.all(sendPromises);
+      const successCount = results.filter(r => r.success).length;
 
-      const result = await response.json();
+      this.logger.info('Push notification batch completed', {
+        notificationId: notification.id,
+        userId: notification.userId,
+        type: notification.type,
+        title: notification.title,
+        totalTokens: pushTokens.length,
+        successCount,
+      });
 
-      if (result.failure > 0) {
-        this.logger.warn(
-          'FCM notification partially failed',
-          JSON.stringify({
-            notificationId: notification.id,
-            userId: notification.userId,
-            success: result.success,
-            failure: result.failure,
-            results: result.results,
-          }),
-        );
-      } else {
-        this.logger.info('Push notification sent successfully', {
-          notificationId: notification.id,
-          userId: notification.userId,
-          type: notification.type,
-          title: notification.title,
+      // Update notification as sent if at least one succeeded
+      if (successCount > 0) {
+        await this.notificationRepository.update(notification.id, {
+          isSent: true,
+          sentAt: new Date(),
         });
       }
-
-      // Update notification as sent
-      await this.notificationRepository.update(notification.id, {
-        isSent: true,
-        sentAt: new Date(),
-      });
     } catch (error) {
       this.logger.error(
         'Failed to send push notification',
@@ -500,5 +514,32 @@ export class NotificationsService {
       body: 'Renouvelez votre abonnement pour continuer à profiter des fonctionnalités premium.',
       data: { action: 'renew_subscription' },
     });
+  }
+
+  async sendGroupNotification(
+    sendGroupNotificationDto: SendGroupNotificationDto,
+  ): Promise<Notification[]> {
+    const { userIds, type, title, body, data } = sendGroupNotificationDto;
+    
+    const notifications = await Promise.all(
+      userIds.map(userId =>
+        this.createNotification({
+          userId,
+          type,
+          title,
+          body,
+          data,
+        })
+      )
+    );
+
+    this.logger.info('Group notification sent', {
+      type,
+      title,
+      userCount: userIds.length,
+      notificationIds: notifications.map(n => n.id),
+    });
+
+    return notifications;
   }
 }
