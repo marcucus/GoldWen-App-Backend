@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Put,
+  Post,
   Body,
   UseGuards,
   Req,
@@ -20,13 +21,18 @@ import { UsersService } from './users.service';
 import { UpdateUserDto, UpdateUserSettingsDto } from './dto/update-user.dto';
 import { SuccessResponseDto } from '../../common/dto/response.dto';
 import { User } from '../../database/entities/user.entity';
+import { ProfilesService } from '../profiles/profiles.service';
+import { SubmitPromptAnswersDto } from '../profiles/dto/profiles.dto';
 
 @ApiTags('Users')
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'))
 @Controller('users')
 export class UsersController {
-  constructor(private usersService: UsersService) {}
+  constructor(
+    private usersService: UsersService,
+    private profilesService: ProfilesService
+  ) {}
 
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'User profile retrieved' })
@@ -110,6 +116,46 @@ export class UsersController {
     await this.usersService.deactivateUser(user.id);
 
     return new SuccessResponseDto('Account deactivated successfully');
+  }
+
+  @ApiOperation({ summary: 'Submit user prompt answers' })
+  @ApiResponse({ status: 201, description: 'Prompt answers submitted successfully' })
+  @Post('me/prompts')
+  async submitPrompts(
+    @Req() req: Request,
+    @Body() promptAnswersDto: SubmitPromptAnswersDto,
+  ) {
+    const user = req.user as User;
+    await this.profilesService.submitPromptAnswers(user.id, promptAnswersDto);
+    
+    return {
+      success: true,
+      message: 'Prompt answers submitted successfully'
+    };
+  }
+
+  @ApiOperation({ summary: 'Upload user photos' })
+  @ApiResponse({ status: 201, description: 'Photos uploaded successfully' })
+  @Post('me/photos')
+  async uploadPhotos(@Req() req: Request) {
+    // This endpoint would handle photo uploads
+    // For now, return a placeholder response
+    return {
+      success: true,
+      message: 'Photo upload endpoint - implement file handling'
+    };
+  }
+
+  @ApiOperation({ summary: 'Delete user photo' })
+  @ApiResponse({ status: 200, description: 'Photo deleted successfully' })
+  @Delete('me/photos/:photoId')
+  async deletePhoto(@Req() req: Request) {
+    // This endpoint would handle photo deletion
+    // For now, return a placeholder response
+    return {
+      success: true,
+      message: 'Photo deletion endpoint - implement photo deletion logic'
+    };
   }
 
   @ApiOperation({ summary: 'Delete user account' })

@@ -6,6 +6,7 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 
 import { ProfilesController } from './profiles.controller';
+import { PersonalityController } from './personality.controller';
 import { ProfilesService } from './profiles.service';
 import { DatabaseSeederService } from './database-seeder.service';
 
@@ -55,7 +56,7 @@ import { PromptAnswer } from '../../database/entities/prompt-answer.entity';
     }),
   ],
   providers: [ProfilesService, DatabaseSeederService],
-  controllers: [ProfilesController],
+  controllers: [ProfilesController, PersonalityController],
   exports: [ProfilesService],
 })
 export class ProfilesModule {}
