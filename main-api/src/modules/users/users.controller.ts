@@ -127,7 +127,10 @@ export class UsersController {
   }
 
   @ApiOperation({ summary: 'Submit user prompt answers' })
-  @ApiResponse({ status: 201, description: 'Prompt answers submitted successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Prompt answers submitted successfully',
+  })
   @Post('me/prompts')
   async submitPrompts(
     @Req() req: Request,
@@ -164,14 +167,19 @@ export class UsersController {
       });
 
       await this.promptAnswerRepository.save(answerEntities);
-      
+
       return {
         success: true,
-        message: 'Prompt answers submitted successfully'
+        message: 'Prompt answers submitted successfully',
       };
     } catch (error) {
       // Log the error for debugging
-      console.error('Error saving prompt answers for user', user.id, ':', error);
+      console.error(
+        'Error saving prompt answers for user',
+        user.id,
+        ':',
+        error,
+      );
       throw new BadRequestException(
         'Failed to save prompt answers: ' + error.message,
       );
@@ -183,18 +191,19 @@ export class UsersController {
   @Post('me/photos')
   async uploadPhotos(@Req() req: Request) {
     const user = req.user as User;
-    
+
     // For now, return a response indicating the endpoint structure is ready
     // In a full implementation, this would handle multipart/form-data file uploads
     return {
       success: true,
-      message: 'Photo upload endpoint ready - requires multipart/form-data implementation',
+      message:
+        'Photo upload endpoint ready - requires multipart/form-data implementation',
       data: {
         userId: user.id,
         maxPhotos: 6,
         supportedFormats: ['jpg', 'jpeg', 'png'],
-        maxFileSize: '10MB'
-      }
+        maxFileSize: '10MB',
+      },
     };
   }
 
@@ -204,14 +213,15 @@ export class UsersController {
   async deletePhoto(@Req() req: Request) {
     const user = req.user as User;
     // const photoId = req.params.photoId; // Would extract from params
-    
+
     // For now, return a response indicating the endpoint structure is ready
     return {
       success: true,
-      message: 'Photo deletion endpoint ready - requires photo ID parameter handling',
+      message:
+        'Photo deletion endpoint ready - requires photo ID parameter handling',
       data: {
-        userId: user.id
-      }
+        userId: user.id,
+      },
     };
   }
 
