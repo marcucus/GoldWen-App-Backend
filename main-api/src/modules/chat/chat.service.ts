@@ -133,9 +133,9 @@ export class ChatService {
   }
 
   async acceptChatRequest(
-    matchId: string, 
-    userId: string, 
-    accept: boolean
+    matchId: string,
+    userId: string,
+    accept: boolean,
   ): Promise<{
     success: boolean;
     data: {
@@ -146,16 +146,18 @@ export class ChatService {
   }> {
     // Find the match where current user is the target (user2)
     const match = await this.matchRepository.findOne({
-      where: { 
-        id: matchId, 
-        user2Id: userId, 
-        status: MatchStatus.MATCHED 
+      where: {
+        id: matchId,
+        user2Id: userId,
+        status: MatchStatus.MATCHED,
       },
       relations: ['user1', 'user1.profile', 'user2', 'user2.profile'],
     });
 
     if (!match) {
-      throw new NotFoundException('Match not found or you are not authorized to accept this match');
+      throw new NotFoundException(
+        'Match not found or you are not authorized to accept this match',
+      );
     }
 
     // Check if chat already exists
@@ -170,17 +172,17 @@ export class ChatService {
     if (accept) {
       // Create the chat
       const chat = await this.createChatForMatch(matchId);
-      
+
       // Send notifications to both users about chat acceptance
       try {
         await this.notificationsService.sendChatAcceptedNotification(
           match.user1Id, // Original initiator
-          match.user2.profile?.firstName || 'Someone'
+          match.user2.profile?.firstName || 'Someone',
         );
-        
+
         await this.notificationsService.sendChatAcceptedNotification(
           match.user2Id, // User who accepted
-          match.user1.profile?.firstName || 'Someone'
+          match.user1.profile?.firstName || 'Someone',
         );
       } catch (error) {
         // Log error but don't fail the whole operation

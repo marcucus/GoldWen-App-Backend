@@ -393,7 +393,7 @@ export class MatchingService {
           status: MatchStatus.MATCHED,
           matchedAt: new Date(),
         });
-        
+
         match = await this.matchRepository.save(match);
         responseData.matchId = match.id;
         responseData.isMatch = true;
@@ -424,7 +424,7 @@ export class MatchingService {
               targetUserId,
               initiatorUser.profile?.firstName || 'Someone',
             );
-            
+
             // Also notify the initiator that they made a match
             await this.notificationsService.sendNewMatchNotification(
               userId,
@@ -491,28 +491,31 @@ export class MatchingService {
   async getPendingMatches(userId: string): Promise<any[]> {
     // Get matches where user is the target (user2) and hasn't accepted the chat yet
     const matches = await this.matchRepository.find({
-      where: { 
+      where: {
         user2Id: userId,
-        status: MatchStatus.MATCHED
+        status: MatchStatus.MATCHED,
       },
       relations: ['user1', 'user1.profile', 'user2', 'user2.profile', 'chat'],
       order: { createdAt: 'DESC' },
     });
 
     // Filter matches that don't have an active chat (meaning chat hasn't been accepted yet)
-    const pendingMatches = matches.filter(match => !match.chat || match.chat.status !== ChatStatus.ACTIVE);
+    const pendingMatches = matches.filter(
+      (match) => !match.chat || match.chat.status !== ChatStatus.ACTIVE,
+    );
 
-    return pendingMatches.map(match => {
+    return pendingMatches.map((match) => {
       const targetUser = match.user1; // The user who initiated the match
       return {
         matchId: match.id,
         targetUser: {
           id: targetUser.id,
-          profile: targetUser.profile
+          profile: targetUser.profile,
         },
         status: 'pending',
-        matchedAt: match.matchedAt?.toISOString() || match.createdAt.toISOString(),
-        canInitiateChat: true
+        matchedAt:
+          match.matchedAt?.toISOString() || match.createdAt.toISOString(),
+        canInitiateChat: true,
       };
     });
   }

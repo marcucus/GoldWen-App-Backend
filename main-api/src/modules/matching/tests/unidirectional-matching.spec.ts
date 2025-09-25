@@ -122,13 +122,24 @@ describe('MatchingService - Unidirectional Matching', () => {
     service = module.get<MatchingService>(MatchingService);
     matchRepository = module.get<Repository<Match>>(getRepositoryToken(Match));
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
-    profileRepository = module.get<Repository<Profile>>(getRepositoryToken(Profile));
-    dailySelectionRepository = module.get<Repository<DailySelection>>(getRepositoryToken(DailySelection));
-    personalityAnswerRepository = module.get<Repository<PersonalityAnswer>>(getRepositoryToken(PersonalityAnswer));
-    subscriptionRepository = module.get<Repository<Subscription>>(getRepositoryToken(Subscription));
+    profileRepository = module.get<Repository<Profile>>(
+      getRepositoryToken(Profile),
+    );
+    dailySelectionRepository = module.get<Repository<DailySelection>>(
+      getRepositoryToken(DailySelection),
+    );
+    personalityAnswerRepository = module.get<Repository<PersonalityAnswer>>(
+      getRepositoryToken(PersonalityAnswer),
+    );
+    subscriptionRepository = module.get<Repository<Subscription>>(
+      getRepositoryToken(Subscription),
+    );
     chatService = module.get<ChatService>(ChatService);
-    notificationsService = module.get<NotificationsService>(NotificationsService);
-    matchingIntegrationService = module.get<MatchingIntegrationService>(MatchingIntegrationService);
+    notificationsService =
+      module.get<NotificationsService>(NotificationsService);
+    matchingIntegrationService = module.get<MatchingIntegrationService>(
+      MatchingIntegrationService,
+    );
     logger = module.get<CustomLoggerService>(CustomLoggerService);
   });
 
@@ -168,7 +179,9 @@ describe('MatchingService - Unidirectional Matching', () => {
         chosenProfileIds: [],
         choicesUsed: 0,
       };
-      mockDailySelectionRepository.findOne.mockResolvedValue(freshDailySelection);
+      mockDailySelectionRepository.findOne.mockResolvedValue(
+        freshDailySelection,
+      );
       mockDailySelectionRepository.save.mockResolvedValue({
         ...freshDailySelection,
         chosenProfileIds: [targetUserId],
@@ -200,7 +213,7 @@ describe('MatchingService - Unidirectional Matching', () => {
       expect(result.data.isMatch).toBe(true);
       expect(result.data.matchId).toBe('match-1');
       expect(result.data.message).toBe('Félicitations ! Vous avez un match !');
-      
+
       expect(mockMatchRepository.create).toHaveBeenCalledWith({
         user1Id: userId,
         user2Id: targetUserId,
@@ -208,21 +221,24 @@ describe('MatchingService - Unidirectional Matching', () => {
         matchedAt: expect.any(Date),
       });
 
-      expect(mockLogger.logBusinessEvent).toHaveBeenCalledWith('unidirectional_match_created', {
-        matchId: 'match-1',
-        initiatorId: userId,
-        targetId: targetUserId,
-      });
+      expect(mockLogger.logBusinessEvent).toHaveBeenCalledWith(
+        'unidirectional_match_created',
+        {
+          matchId: 'match-1',
+          initiatorId: userId,
+          targetId: targetUserId,
+        },
+      );
 
-      expect(mockNotificationsService.sendNewMatchNotification).toHaveBeenCalledTimes(2);
-      expect(mockNotificationsService.sendNewMatchNotification).toHaveBeenCalledWith(
-        targetUserId,
-        'John'
-      );
-      expect(mockNotificationsService.sendNewMatchNotification).toHaveBeenCalledWith(
-        userId,
-        'Jane'
-      );
+      expect(
+        mockNotificationsService.sendNewMatchNotification,
+      ).toHaveBeenCalledTimes(2);
+      expect(
+        mockNotificationsService.sendNewMatchNotification,
+      ).toHaveBeenCalledWith(targetUserId, 'John');
+      expect(
+        mockNotificationsService.sendNewMatchNotification,
+      ).toHaveBeenCalledWith(userId, 'Jane');
     });
 
     it('should not create match for pass choice', async () => {
@@ -234,7 +250,9 @@ describe('MatchingService - Unidirectional Matching', () => {
       expect(result.data.isMatch).toBe(false);
       expect(result.data.matchId).toBeUndefined();
       expect(mockMatchRepository.create).not.toHaveBeenCalled();
-      expect(mockNotificationsService.sendNewMatchNotification).not.toHaveBeenCalled();
+      expect(
+        mockNotificationsService.sendNewMatchNotification,
+      ).not.toHaveBeenCalled();
     });
 
     it('should handle existing match gracefully', async () => {
@@ -255,7 +273,9 @@ describe('MatchingService - Unidirectional Matching', () => {
       expect(result.success).toBe(true);
       expect(result.data.isMatch).toBe(true);
       expect(result.data.matchId).toBe('existing-match-1');
-      expect(result.data.message).toBe('Vous avez déjà un match avec ce profil !');
+      expect(result.data.message).toBe(
+        'Vous avez déjà un match avec ce profil !',
+      );
     });
   });
 

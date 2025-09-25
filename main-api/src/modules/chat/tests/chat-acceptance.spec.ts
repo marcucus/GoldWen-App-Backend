@@ -71,10 +71,13 @@ describe('ChatService - Chat Acceptance', () => {
 
     service = module.get<ChatService>(ChatService);
     chatRepository = module.get<Repository<Chat>>(getRepositoryToken(Chat));
-    messageRepository = module.get<Repository<Message>>(getRepositoryToken(Message));
+    messageRepository = module.get<Repository<Message>>(
+      getRepositoryToken(Message),
+    );
     matchRepository = module.get<Repository<Match>>(getRepositoryToken(Match));
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
-    notificationsService = module.get<NotificationsService>(NotificationsService);
+    notificationsService =
+      module.get<NotificationsService>(NotificationsService);
   });
 
   afterEach(() => {
@@ -110,7 +113,7 @@ describe('ChatService - Chat Acceptance', () => {
       it('should create chat and send notifications when chat is accepted', async () => {
         // Arrange
         mockChatRepository.findOne.mockResolvedValue(null); // No existing chat
-        
+
         const newChat = {
           id: 'chat-1',
           matchId,
@@ -135,15 +138,15 @@ describe('ChatService - Chat Acceptance', () => {
           expiresAt: expect.any(Date),
         });
 
-        expect(mockNotificationsService.sendChatAcceptedNotification).toHaveBeenCalledTimes(2);
-        expect(mockNotificationsService.sendChatAcceptedNotification).toHaveBeenCalledWith(
-          initiatorId,
-          'Jane'
-        );
-        expect(mockNotificationsService.sendChatAcceptedNotification).toHaveBeenCalledWith(
-          userId,
-          'John'
-        );
+        expect(
+          mockNotificationsService.sendChatAcceptedNotification,
+        ).toHaveBeenCalledTimes(2);
+        expect(
+          mockNotificationsService.sendChatAcceptedNotification,
+        ).toHaveBeenCalledWith(initiatorId, 'Jane');
+        expect(
+          mockNotificationsService.sendChatAcceptedNotification,
+        ).toHaveBeenCalledWith(userId, 'John');
       });
 
       it('should throw error if chat already exists and is active', async () => {
@@ -157,7 +160,7 @@ describe('ChatService - Chat Acceptance', () => {
 
         // Act & Assert
         await expect(
-          service.acceptChatRequest(matchId, userId, true)
+          service.acceptChatRequest(matchId, userId, true),
         ).rejects.toThrow(BadRequestException);
       });
     });
@@ -180,11 +183,13 @@ describe('ChatService - Chat Acceptance', () => {
           expect.objectContaining({
             id: matchId,
             status: MatchStatus.REJECTED,
-          })
+          }),
         );
 
         expect(mockChatRepository.create).not.toHaveBeenCalled();
-        expect(mockNotificationsService.sendChatAcceptedNotification).not.toHaveBeenCalled();
+        expect(
+          mockNotificationsService.sendChatAcceptedNotification,
+        ).not.toHaveBeenCalled();
       });
     });
 
@@ -195,7 +200,7 @@ describe('ChatService - Chat Acceptance', () => {
 
         // Act & Assert
         await expect(
-          service.acceptChatRequest(matchId, userId, true)
+          service.acceptChatRequest(matchId, userId, true),
         ).rejects.toThrow(NotFoundException);
       });
 
@@ -206,14 +211,14 @@ describe('ChatService - Chat Acceptance', () => {
 
         // Act & Assert
         await expect(
-          service.acceptChatRequest(matchId, differentUserId, true)
+          service.acceptChatRequest(matchId, differentUserId, true),
         ).rejects.toThrow(NotFoundException);
       });
 
       it('should handle notification failures gracefully', async () => {
         // Arrange
         mockChatRepository.findOne.mockResolvedValue(null);
-        
+
         const newChat = {
           id: 'chat-1',
           matchId,
@@ -225,7 +230,7 @@ describe('ChatService - Chat Acceptance', () => {
 
         // Mock notification failure
         mockNotificationsService.sendChatAcceptedNotification.mockRejectedValue(
-          new Error('Notification service error')
+          new Error('Notification service error'),
         );
 
         // Act

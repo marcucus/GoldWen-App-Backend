@@ -81,7 +81,10 @@ export class MatchingController {
   @ApiOperation({ summary: 'Get user matches' })
   @ApiResponse({ status: 200, description: 'Matches retrieved successfully' })
   async getMatches(@Request() req: any, @Query() query: GetMatchesDto) {
-    const matches = await this.matchingService.getUserMatches(req.user.id, query.status);
+    const matches = await this.matchingService.getUserMatches(
+      req.user.id,
+      query.status,
+    );
     return {
       success: true,
       data: matches,
@@ -90,9 +93,14 @@ export class MatchingController {
 
   @Get('pending-matches')
   @ApiOperation({ summary: 'Get pending matches awaiting chat acceptance' })
-  @ApiResponse({ status: 200, description: 'Pending matches retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Pending matches retrieved successfully',
+  })
   async getPendingMatches(@Request() req: any) {
-    const pendingMatches = await this.matchingService.getPendingMatches(req.user.id);
+    const pendingMatches = await this.matchingService.getPendingMatches(
+      req.user.id,
+    );
     return {
       success: true,
       data: pendingMatches,

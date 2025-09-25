@@ -18,7 +18,12 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ChatService } from './chat.service';
-import { SendMessageDto, GetMessagesDto, ExtendChatDto, AcceptChatDto } from './dto/chat.dto';
+import {
+  SendMessageDto,
+  GetMessagesDto,
+  ExtendChatDto,
+  AcceptChatDto,
+} from './dto/chat.dto';
 
 @ApiTags('chat')
 @Controller('chat')
@@ -120,7 +125,10 @@ export class ChatController {
 
   @Post('accept/:matchId')
   @ApiOperation({ summary: 'Accept or decline a chat request from a match' })
-  @ApiResponse({ status: 200, description: 'Chat request processed successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Chat request processed successfully',
+  })
   async acceptChatRequest(
     @Request() req: any,
     @Param('matchId') matchId: string,
