@@ -15,7 +15,15 @@ import { SupportTicket } from '../../database/entities/support-ticket.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Admin, User, Report, Match, Chat, Subscription, SupportTicket]),
+    TypeOrmModule.forFeature([
+      Admin,
+      User,
+      Report,
+      Match,
+      Chat,
+      Subscription,
+      SupportTicket,
+    ]),
     forwardRef(() => NotificationsModule),
   ],
   providers: [AdminService],

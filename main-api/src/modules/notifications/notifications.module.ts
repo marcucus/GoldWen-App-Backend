@@ -15,12 +15,12 @@ import { Chat } from '../../database/entities/chat.entity';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
-      Notification, 
-      NotificationPreferences, 
-      User, 
-      PushToken, 
-      DailySelection, 
-      Chat
+      Notification,
+      NotificationPreferences,
+      User,
+      PushToken,
+      DailySelection,
+      Chat,
     ]),
   ],
   providers: [NotificationsService, FcmService, ScheduledNotificationsService],

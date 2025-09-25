@@ -182,7 +182,10 @@ export class AdminController {
   async replySupportTicket(@Body() supportReplyDto: SupportReplyDto) {
     // In a real implementation, you'd get the admin email from the JWT token
     const adminEmail = 'admin@goldwen.com';
-    const ticket = await this.adminService.replySupportTicket(supportReplyDto, adminEmail);
+    const ticket = await this.adminService.replySupportTicket(
+      supportReplyDto,
+      adminEmail,
+    );
     return {
       message: 'Support reply sent successfully',
       ticket,

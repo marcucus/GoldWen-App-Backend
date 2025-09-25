@@ -245,3 +245,15 @@ export class UpdateProfileStatusDto {
   @IsBoolean()
   completed: boolean;
 }
+
+export class UpdatePhotoOrderDto {
+  @ApiProperty({
+    description: 'New order position for the photo (1-6)',
+    minimum: 1,
+    maximum: 6,
+  })
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(1)
+  @Max(6)
+  newOrder: number;
+}

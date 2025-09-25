@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as path from 'path';
+import * as fs from 'fs';
 
 import { Profile } from '../../database/entities/profile.entity';
 import { User } from '../../database/entities/user.entity';
@@ -20,6 +22,8 @@ import {
   SubmitPromptAnswersDto,
   UpdateProfileStatusDto,
 } from './dto/profiles.dto';
+
+import { ImageProcessorUtil } from '../../common/utils/image-processor.util';
 
 @Injectable()
 export class ProfilesService {
@@ -188,29 +192,89 @@ export class ProfilesService {
       throw new NotFoundException('Profile not found');
     }
 
-    // Validate minimum photos requirement
-    const totalPhotos = (profile.photos?.length || 0) + files.length;
-    if (totalPhotos < 3) {
-      throw new BadRequestException('Minimum 3 photos required');
+    // Validate maximum photos requirement (6 max total)
+    const currentPhotosCount = profile.photos?.length || 0;
+    const totalPhotos = currentPhotosCount + files.length;
+    if (totalPhotos > 6) {
+      throw new BadRequestException(
+        `Maximum 6 photos allowed. You currently have ${currentPhotosCount} photos.`,
+      );
     }
 
-    // Create photo entities
-    const photoEntities = files.map((file, index) => {
-      return this.photoRepository.create({
-        profileId: profile.id,
-        url: `/uploads/photos/${file.filename}`,
-        filename: file.filename,
-        mimeType: file.mimetype,
-        fileSize: file.size,
-        order: (profile.photos?.length || 0) + index + 1,
-        isPrimary: (profile.photos?.length || 0) === 0 && index === 0,
-        isApproved: true, // Auto-approve for MVP, can be changed later
-      });
-    });
+    // Validate at least one file is provided
+    if (files.length === 0) {
+      throw new BadRequestException('At least one photo is required');
+    }
 
-    const savedPhotos = await this.photoRepository.save(photoEntities);
+    const processedPhotos: Photo[] = [];
 
-    // Check if profile is now complete
+    for (let index = 0; index < files.length; index++) {
+      const file = files[index];
+
+      // Validate image file
+      const validation = ImageProcessorUtil.validateImage(file);
+      if (!validation.isValid) {
+        throw new BadRequestException(validation.error);
+      }
+
+      // Process and compress the image
+      const processedImagePath = path.join(
+        path.dirname(file.path),
+        `processed-${path.basename(file.path)}`,
+      );
+
+      try {
+        const processingResult = await ImageProcessorUtil.processImage(
+          file.path,
+          processedImagePath,
+          {
+            maxWidth: 1200,
+            maxHeight: 1600,
+            quality: 85,
+            format: 'jpeg',
+          },
+        );
+
+        // Remove the original file and rename processed file
+        fs.unlinkSync(file.path);
+        fs.renameSync(processedImagePath, file.path);
+
+        // Create photo entity with processed image info
+        const photoEntity = this.photoRepository.create({
+          profileId: profile.id,
+          url: `/uploads/photos/${file.filename}`,
+          filename: file.filename,
+          mimeType: 'image/jpeg', // All images are converted to JPEG
+          fileSize: processingResult.processedSize,
+          width: processingResult.width,
+          height: processingResult.height,
+          order: currentPhotosCount + index + 1,
+          isPrimary: currentPhotosCount === 0 && index === 0, // First photo is primary if no photos exist
+          isApproved: true, // Auto-approve for MVP, can be changed later
+        });
+
+        processedPhotos.push(photoEntity);
+      } catch (error) {
+        console.error('Image processing error:', error);
+        // Fallback to original file if processing fails
+        const photoEntity = this.photoRepository.create({
+          profileId: profile.id,
+          url: `/uploads/photos/${file.filename}`,
+          filename: file.filename,
+          mimeType: file.mimetype,
+          fileSize: file.size,
+          order: currentPhotosCount + index + 1,
+          isPrimary: currentPhotosCount === 0 && index === 0,
+          isApproved: true,
+        });
+
+        processedPhotos.push(photoEntity);
+      }
+    }
+
+    const savedPhotos = await this.photoRepository.save(processedPhotos);
+
+    // Check if profile is now complete after upload
     await this.updateProfileCompletionStatus(userId);
 
     return savedPhotos;
@@ -239,6 +303,67 @@ export class ProfilesService {
 
     // Set this photo as primary
     photo.isPrimary = true;
+    return this.photoRepository.save(photo);
+  }
+
+  async updatePhotoOrder(
+    userId: string,
+    photoId: string,
+    newOrder: number,
+  ): Promise<Photo> {
+    const profile = await this.profileRepository.findOne({
+      where: { userId },
+      relations: ['photos'],
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    const photo = profile.photos?.find((p) => p.id === photoId);
+    if (!photo) {
+      throw new NotFoundException('Photo not found');
+    }
+
+    const totalPhotos = profile.photos?.length || 0;
+    if (newOrder < 1 || newOrder > totalPhotos) {
+      throw new BadRequestException(
+        `Invalid order. Must be between 1 and ${totalPhotos}`,
+      );
+    }
+
+    const currentOrder = photo.order;
+
+    // If the order hasn't changed, return the photo as is
+    if (currentOrder === newOrder) {
+      return photo;
+    }
+
+    // Update the orders of other photos
+    if (newOrder < currentOrder) {
+      // Moving photo to an earlier position - shift others down
+      await this.photoRepository
+        .createQueryBuilder()
+        .update(Photo)
+        .set({ order: () => '"order" + 1' })
+        .where('profileId = :profileId', { profileId: profile.id })
+        .andWhere('order >= :newOrder', { newOrder })
+        .andWhere('order < :currentOrder', { currentOrder })
+        .execute();
+    } else {
+      // Moving photo to a later position - shift others up
+      await this.photoRepository
+        .createQueryBuilder()
+        .update(Photo)
+        .set({ order: () => '"order" - 1' })
+        .where('profileId = :profileId', { profileId: profile.id })
+        .andWhere('order > :currentOrder', { currentOrder })
+        .andWhere('order <= :newOrder', { newOrder })
+        .execute();
+    }
+
+    // Update the target photo's order
+    photo.order = newOrder;
     return this.photoRepository.save(photo);
   }
 
@@ -367,11 +492,22 @@ export class ProfilesService {
   }
 
   async getProfileCompletion(userId: string): Promise<{
-    isCompleted: boolean;
-    hasPhotos: boolean;
-    hasPrompts: boolean;
-    hasPersonalityAnswers: boolean;
-    hasRequiredProfileFields: boolean;
+    isComplete: boolean;
+    completionPercentage: number;
+    requirements: {
+      minimumPhotos: {
+        required: number;
+        current: number;
+        satisfied: boolean;
+      };
+      promptAnswers: {
+        required: number;
+        current: number;
+        satisfied: boolean;
+      };
+      personalityQuestionnaire: boolean;
+      basicInfo: boolean;
+    };
     missingSteps: string[];
   }> {
     const user = await this.userRepository.findOne({
@@ -388,8 +524,10 @@ export class ProfilesService {
       throw new NotFoundException('Profile not found');
     }
 
-    const hasPhotos = (user.profile.photos?.length || 0) >= 3;
-    const hasPrompts = (user.profile.promptAnswers?.length || 0) >= 3;
+    const photosCount = user.profile.photos?.length || 0;
+    const promptsCount = user.profile.promptAnswers?.length || 0;
+    const hasPhotos = photosCount >= 3;
+    const hasPrompts = promptsCount >= 3;
     const hasRequiredProfileFields = !!(
       user.profile.birthDate && user.profile.bio
     );
@@ -416,16 +554,37 @@ export class ProfilesService {
       );
     }
 
+    const isComplete =
+      hasPhotos &&
+      hasPrompts &&
+      hasPersonalityAnswers &&
+      hasRequiredProfileFields;
+
+    // Calculate completion percentage based on the 4 requirements
+    let completed = 0;
+    if (hasPhotos) completed++;
+    if (hasPrompts) completed++;
+    if (hasPersonalityAnswers) completed++;
+    if (hasRequiredProfileFields) completed++;
+    const completionPercentage = Math.round((completed / 4) * 100);
+
     return {
-      isCompleted:
-        hasPhotos &&
-        hasPrompts &&
-        hasPersonalityAnswers &&
-        hasRequiredProfileFields,
-      hasPhotos,
-      hasPrompts,
-      hasPersonalityAnswers,
-      hasRequiredProfileFields,
+      isComplete,
+      completionPercentage,
+      requirements: {
+        minimumPhotos: {
+          required: 3,
+          current: photosCount,
+          satisfied: hasPhotos,
+        },
+        promptAnswers: {
+          required: 3,
+          current: promptsCount,
+          satisfied: hasPrompts,
+        },
+        personalityQuestionnaire: hasPersonalityAnswers,
+        basicInfo: hasRequiredProfileFields,
+      },
       missingSteps,
     };
   }

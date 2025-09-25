@@ -319,13 +319,10 @@ export class NotificationsService {
       });
 
       if (!pushTokens || pushTokens.length === 0) {
-        this.logger.info(
-          'Push notification skipped - no active push tokens',
-          {
-            notificationId: notification.id,
-            userId: notification.userId,
-          },
-        );
+        this.logger.info('Push notification skipped - no active push tokens', {
+          notificationId: notification.id,
+          userId: notification.userId,
+        });
         return;
       }
 
@@ -342,22 +339,29 @@ export class NotificationsService {
             },
           };
 
-          const result = await this.fcmService.sendToDevice(pushToken.token, payload);
-          
+          const result = await this.fcmService.sendToDevice(
+            pushToken.token,
+            payload,
+          );
+
           if (!result.success) {
             this.logger.warn(
               `Failed to send to push token ${pushToken.id}: ${result.error}`,
-              'NotificationsService'
+              'NotificationsService',
             );
-            
+
             // Deactivate invalid tokens
-            if (result.error?.includes('InvalidRegistration') || 
-                result.error?.includes('NotRegistered')) {
-              await this.pushTokenRepository.update(pushToken.id, { isActive: false });
+            if (
+              result.error?.includes('InvalidRegistration') ||
+              result.error?.includes('NotRegistered')
+            ) {
+              await this.pushTokenRepository.update(pushToken.id, {
+                isActive: false,
+              });
             }
           } else {
             // Update last used time for successful sends
-            await this.pushTokenRepository.update(pushToken.id, { 
+            await this.pushTokenRepository.update(pushToken.id, {
               lastUsedAt: new Date(),
             });
           }
@@ -366,14 +370,14 @@ export class NotificationsService {
         } catch (error) {
           this.logger.error(
             `Error sending to push token ${pushToken.id}: ${error.message}`,
-            'NotificationsService'
+            'NotificationsService',
           );
           return { success: false, error: error.message };
         }
       });
 
       const results = await Promise.all(sendPromises);
-      const successCount = results.filter(r => r.success).length;
+      const successCount = results.filter((r) => r.success).length;
 
       this.logger.info('Push notification batch completed', {
         notificationId: notification.id,
@@ -520,24 +524,24 @@ export class NotificationsService {
     sendGroupNotificationDto: SendGroupNotificationDto,
   ): Promise<Notification[]> {
     const { userIds, type, title, body, data } = sendGroupNotificationDto;
-    
+
     const notifications = await Promise.all(
-      userIds.map(userId =>
+      userIds.map((userId) =>
         this.createNotification({
           userId,
           type,
           title,
           body,
           data,
-        })
-      )
+        }),
+      ),
     );
 
     this.logger.info('Group notification sent', {
       type,
       title,
       userCount: userIds.length,
-      notificationIds: notifications.map(n => n.id),
+      notificationIds: notifications.map((n) => n.id),
     });
 
     return notifications;

@@ -237,14 +237,20 @@ export class UsersController {
   }
 
   @ApiOperation({ summary: 'Register device push token' })
-  @ApiResponse({ status: 201, description: 'Push token registered successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Push token registered successfully',
+  })
   @Post('me/push-tokens')
   async registerPushToken(
     @Req() req: Request,
     @Body() registerPushTokenDto: RegisterPushTokenDto,
   ) {
     const user = req.user as User;
-    const pushToken = await this.usersService.registerPushToken(user.id, registerPushTokenDto);
+    const pushToken = await this.usersService.registerPushToken(
+      user.id,
+      registerPushTokenDto,
+    );
 
     return {
       success: true,
