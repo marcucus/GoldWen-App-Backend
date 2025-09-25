@@ -16,12 +16,13 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ProfileCompletionGuard } from '../auth/guards/profile-completion.guard';
 import { MatchingService } from './matching.service';
 import { GetMatchesDto } from './dto/matching.dto';
 
 @ApiTags('matching')
 @Controller('matching')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ProfileCompletionGuard)
 @ApiBearerAuth()
 export class MatchingController {
   constructor(private readonly matchingService: MatchingService) {}
