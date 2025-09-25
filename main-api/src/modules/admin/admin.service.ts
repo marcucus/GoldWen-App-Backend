@@ -18,6 +18,7 @@ import {
   SupportTicket,
   SupportStatus,
 } from '../../database/entities/support-ticket.entity';
+import { Prompt } from '../../database/entities/prompt.entity';
 import { CustomLoggerService } from '../../common/logger';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -40,6 +41,7 @@ import {
   GetReportsDto,
   SupportReplyDto,
 } from './dto/admin.dto';
+import { CreatePromptDto, UpdatePromptDto } from './dto/prompt.dto';
 
 @Injectable()
 export class AdminService {
@@ -58,6 +60,8 @@ export class AdminService {
     private subscriptionRepository: Repository<Subscription>,
     @InjectRepository(SupportTicket)
     private supportTicketRepository: Repository<SupportTicket>,
+    @InjectRepository(Prompt)
+    private promptRepository: Repository<Prompt>,
     @Inject(forwardRef(() => NotificationsService))
     private notificationsService: NotificationsService,
     private logger: CustomLoggerService,
@@ -526,5 +530,51 @@ export class AdminService {
       recentReports,
       recentMatches,
     };
+  }
+
+  // Prompt Management Methods
+  async getPrompts(): Promise<Prompt[]> {
+    return this.promptRepository.find({
+      order: { order: 'ASC' },
+    });
+  }
+
+  async createPrompt(createPromptDto: CreatePromptDto): Promise<Prompt> {
+    const prompt = this.promptRepository.create({
+      ...createPromptDto,
+      isRequired: createPromptDto.isRequired ?? true,
+      isActive: createPromptDto.isActive ?? true,
+      maxLength: createPromptDto.maxLength ?? 500,
+    });
+
+    return this.promptRepository.save(prompt);
+  }
+
+  async updatePrompt(
+    promptId: string,
+    updatePromptDto: UpdatePromptDto,
+  ): Promise<Prompt> {
+    const prompt = await this.promptRepository.findOne({
+      where: { id: promptId },
+    });
+
+    if (!prompt) {
+      throw new NotFoundException('Prompt not found');
+    }
+
+    Object.assign(prompt, updatePromptDto);
+    return this.promptRepository.save(prompt);
+  }
+
+  async deletePrompt(promptId: string): Promise<void> {
+    const prompt = await this.promptRepository.findOne({
+      where: { id: promptId },
+    });
+
+    if (!prompt) {
+      throw new NotFoundException('Prompt not found');
+    }
+
+    await this.promptRepository.remove(prompt);
   }
 }

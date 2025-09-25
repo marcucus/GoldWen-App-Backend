@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
+import { ProfilesModule } from '../profiles/profiles.module';
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
 import { Match } from '../../database/entities/match.entity';
@@ -26,6 +27,7 @@ import { PushToken } from '../../database/entities/push-token.entity';
       Prompt,
       PushToken,
     ]),
+    ProfilesModule,
   ],
   providers: [UsersService],
   controllers: [UsersController],

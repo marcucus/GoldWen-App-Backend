@@ -374,15 +374,58 @@ export class ProfilesService {
     });
   }
 
+  async getUserPromptAnswers(userId: string): Promise<PromptAnswer[]> {
+    const profile = await this.profileRepository.findOne({
+      where: { userId },
+      relations: ['promptAnswers', 'promptAnswers.prompt'],
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    return profile.promptAnswers || [];
+  }
+
   async submitPromptAnswers(
     userId: string,
     promptAnswersDto: SubmitPromptAnswersDto,
   ): Promise<void> {
     const { answers } = promptAnswersDto;
 
-    // Validate that 3 prompts are answered (as required by specifications)
-    if (answers.length !== 3) {
-      throw new BadRequestException('Exactly 3 prompt answers are required');
+    // Get required prompts to validate answers
+    const requiredPrompts = await this.promptRepository.find({
+      where: { isActive: true, isRequired: true },
+    });
+
+    // Validate that all required prompts are answered
+    const answeredPromptIds = new Set(answers.map((a) => a.promptId));
+    const missingRequired = requiredPrompts.filter(
+      (p) => !answeredPromptIds.has(p.id),
+    );
+
+    if (missingRequired.length > 0) {
+      throw new BadRequestException({
+        message: `Missing answers for required prompts: ${missingRequired.map((p) => p.text).join(', ')}`,
+        missingPrompts: missingRequired.map((p) => p.id),
+      });
+    }
+
+    // Validate that answered prompts exist and are active
+    const allPrompts = await this.promptRepository.find({
+      where: { isActive: true },
+    });
+    const activePromptIds = new Set(allPrompts.map((p) => p.id));
+    
+    const invalidAnswers = answers.filter(
+      (a) => !activePromptIds.has(a.promptId),
+    );
+
+    if (invalidAnswers.length > 0) {
+      throw new BadRequestException(
+        'Some prompts are invalid or inactive: ' +
+          invalidAnswers.map((a) => a.promptId).join(', '),
+      );
     }
 
     const profile = await this.profileRepository.findOne({
@@ -453,11 +496,26 @@ export class ProfilesService {
 
     // Check completion criteria from specifications:
     // 1. Minimum 3 photos
-    // 2. 3 prompt answers
+    // 2. All required prompt answers
     // 3. All required personality questions answered
     // 4. Required profile fields: birthDate (gender and interestedInGenders are optional for now)
     const hasMinPhotos = (user.profile.photos?.length || 0) >= 3;
-    const hasPromptAnswers = (user.profile.promptAnswers?.length || 0) >= 3;
+    
+    // Get required prompts count and validate answers
+    const requiredPrompts = await this.promptRepository.find({
+      where: { isActive: true, isRequired: true },
+    });
+    
+    const answeredPromptIds = new Set(
+      (user.profile.promptAnswers || []).map((a) => a.promptId),
+    );
+    
+    const missingRequiredPrompts = requiredPrompts.filter(
+      (p) => !answeredPromptIds.has(p.id),
+    );
+    
+    const hasPromptAnswers = missingRequiredPrompts.length === 0;
+    
     const hasRequiredProfileFields = !!(
       user.profile.birthDate && user.profile.bio
     );
@@ -504,6 +562,7 @@ export class ProfilesService {
         required: number;
         current: number;
         satisfied: boolean;
+        missing: Array<{ id: string; text: string }>;
       };
       personalityQuestionnaire: boolean;
       basicInfo: boolean;
@@ -525,12 +584,27 @@ export class ProfilesService {
     }
 
     const photosCount = user.profile.photos?.length || 0;
-    const promptsCount = user.profile.promptAnswers?.length || 0;
     const hasPhotos = photosCount >= 3;
-    const hasPrompts = promptsCount >= 3;
     const hasRequiredProfileFields = !!(
       user.profile.birthDate && user.profile.bio
     );
+
+    // Get required prompts and check if user has answered all of them
+    const requiredPrompts = await this.promptRepository.find({
+      where: { isActive: true, isRequired: true },
+    });
+    
+    const answeredPromptIds = new Set(
+      (user.profile.promptAnswers || []).map((a) => a.promptId),
+    );
+    
+    const missingRequiredPrompts = requiredPrompts.filter(
+      (p) => !answeredPromptIds.has(p.id),
+    );
+    
+    const hasPrompts = missingRequiredPrompts.length === 0;
+    const promptsCount = user.profile.promptAnswers?.length || 0;
+    const requiredPromptsCount = requiredPrompts.length;
 
     const requiredQuestionsCount =
       await this.personalityQuestionRepository.count({
@@ -542,7 +616,15 @@ export class ProfilesService {
 
     const missingSteps: string[] = [];
     if (!hasPhotos) missingSteps.push('Upload at least 3 photos');
-    if (!hasPrompts) missingSteps.push('Answer 3 prompts');
+    if (!hasPrompts) {
+      const missingPromptTexts = missingRequiredPrompts
+        .map((p) => p.text)
+        .slice(0, 3) // Show max 3 for readability
+        .join(', ');
+      const moreCount = missingRequiredPrompts.length - 3;
+      const moreText = moreCount > 0 ? ` and ${moreCount} more` : '';
+      missingSteps.push(`Answer required prompts: ${missingPromptTexts}${moreText}`);
+    }
     if (!hasPersonalityAnswers)
       missingSteps.push('Complete personality questionnaire');
     if (!hasRequiredProfileFields) {
@@ -578,9 +660,13 @@ export class ProfilesService {
           satisfied: hasPhotos,
         },
         promptAnswers: {
-          required: 3,
+          required: requiredPromptsCount,
           current: promptsCount,
           satisfied: hasPrompts,
+          missing: missingRequiredPrompts.map((p) => ({
+            id: p.id,
+            text: p.text,
+          })),
         },
         personalityQuestionnaire: hasPersonalityAnswers,
         basicInfo: hasRequiredProfileFields,

@@ -161,6 +161,16 @@ export class ProfilesController {
     return { message: 'Prompt answers submitted successfully' };
   }
 
+  @Get('me/prompt-answers')
+  @ApiOperation({ summary: 'Get user prompt answers' })
+  @ApiResponse({
+    status: 200,
+    description: 'User prompt answers retrieved successfully',
+  })
+  async getUserPromptAnswers(@Request() req: any) {
+    return this.profilesService.getUserPromptAnswers(req.user.id);
+  }
+
   @Put('me/status')
   @ApiOperation({ summary: 'Update profile status' })
   @ApiResponse({

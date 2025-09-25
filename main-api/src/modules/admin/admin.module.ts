@@ -12,6 +12,7 @@ import { Match } from '../../database/entities/match.entity';
 import { Chat } from '../../database/entities/chat.entity';
 import { Subscription } from '../../database/entities/subscription.entity';
 import { SupportTicket } from '../../database/entities/support-ticket.entity';
+import { Prompt } from '../../database/entities/prompt.entity';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { SupportTicket } from '../../database/entities/support-ticket.entity';
       Chat,
       Subscription,
       SupportTicket,
+      Prompt,
     ]),
     forwardRef(() => NotificationsModule),
   ],
