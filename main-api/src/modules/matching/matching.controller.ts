@@ -5,6 +5,7 @@ import {
   Delete,
   Param,
   Query,
+  Body,
   UseGuards,
   Request,
 } from '@nestjs/common';
@@ -25,14 +26,24 @@ import { GetMatchesDto } from './dto/matching.dto';
 export class MatchingController {
   constructor(private readonly matchingService: MatchingService) {}
 
+  @Get('user-choices')
+  @ApiOperation({ summary: 'Get user choices history' })
+  @ApiResponse({
+    status: 200,
+    description: 'User choices retrieved successfully',
+  })
+  async getUserChoices(@Request() req: any, @Query('date') date?: string) {
+    return this.matchingService.getUserChoices(req.user.id, date);
+  }
+
   @Get('daily-selection')
   @ApiOperation({ summary: 'Get daily selection of profiles' })
   @ApiResponse({
     status: 200,
     description: 'Daily selection retrieved successfully',
   })
-  async getDailySelection(@Request() req: any) {
-    return this.matchingService.getDailySelection(req.user.id);
+  async getDailySelection(@Request() req: any, @Query('preload') preload?: boolean) {
+    return this.matchingService.getDailySelection(req.user.id, preload);
   }
 
   @Post('daily-selection/generate')
@@ -54,8 +65,9 @@ export class MatchingController {
   async chooseProfile(
     @Request() req: any,
     @Param('targetUserId') targetUserId: string,
+    @Body() body: { choice: 'like' | 'pass' },
   ) {
-    return this.matchingService.chooseProfile(req.user.id, targetUserId);
+    return this.matchingService.chooseProfile(req.user.id, targetUserId, body.choice);
   }
 
   @Get('matches')

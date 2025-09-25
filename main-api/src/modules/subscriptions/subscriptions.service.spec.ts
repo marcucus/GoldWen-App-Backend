@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { SubscriptionsService } from './subscriptions.service';
 import { Subscription } from '../../database/entities/subscription.entity';
 import { User } from '../../database/entities/user.entity';
+import { DailySelection } from '../../database/entities/daily-selection.entity';
 import { SubscriptionStatus, SubscriptionPlan } from '../../common/enums';
 import { CustomLoggerService } from '../../common/logger';
 
@@ -23,6 +24,10 @@ describe('SubscriptionsService', () => {
   };
 
   const mockUserRepository = {
+    findOne: jest.fn(),
+  };
+
+  const mockDailySelectionRepository = {
     findOne: jest.fn(),
   };
 
@@ -47,6 +52,10 @@ describe('SubscriptionsService', () => {
         {
           provide: getRepositoryToken(User),
           useValue: mockUserRepository,
+        },
+        {
+          provide: getRepositoryToken(DailySelection),
+          useValue: mockDailySelectionRepository,
         },
         {
           provide: ConfigService,
@@ -202,23 +211,30 @@ describe('SubscriptionsService', () => {
       };
 
       mockSubscriptionRepository.findOne.mockResolvedValue(mockSubscription);
+      mockDailySelectionRepository.findOne.mockResolvedValue(null);
 
       const result = await service.getUsage('user1');
 
-      expect(result).toHaveProperty('dailySelections');
-      expect(result.dailySelections.limit).toBe(3);
-      expect(result).toHaveProperty('chatExtensions');
-      expect(result.chatExtensions?.limit).toBe(10);
+      expect(result).toHaveProperty('dailyChoices');
+      expect(result.dailyChoices.limit).toBe(3);
+      expect(result.dailyChoices.used).toBe(0);
+      expect(result.dailyChoices.remaining).toBe(3);
+      expect(result.subscription.tier).toBe('premium');
+      expect(result.subscription.isActive).toBe(true);
     });
 
     it('should return usage for free user', async () => {
       mockSubscriptionRepository.findOne.mockResolvedValue(null);
+      mockDailySelectionRepository.findOne.mockResolvedValue(null);
 
       const result = await service.getUsage('user1');
 
-      expect(result).toHaveProperty('dailySelections');
-      expect(result.dailySelections.limit).toBe(1);
-      expect(result.chatExtensions).toBeUndefined();
+      expect(result).toHaveProperty('dailyChoices');
+      expect(result.dailyChoices.limit).toBe(1);
+      expect(result.dailyChoices.used).toBe(0);
+      expect(result.dailyChoices.remaining).toBe(1);
+      expect(result.subscription.tier).toBe('free');
+      expect(result.subscription.isActive).toBe(false);
     });
   });
 

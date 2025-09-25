@@ -10,6 +10,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 
 import { Subscription } from '../../database/entities/subscription.entity';
 import { User } from '../../database/entities/user.entity';
+import { DailySelection } from '../../database/entities/daily-selection.entity';
 import { SubscriptionStatus, SubscriptionPlan } from '../../common/enums';
 import { CustomLoggerService } from '../../common/logger';
 
@@ -26,6 +27,8 @@ export class SubscriptionsService {
     private subscriptionRepository: Repository<Subscription>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(DailySelection)
+    private dailySelectionRepository: Repository<DailySelection>,
     private configService: ConfigService,
     private logger: CustomLoggerService,
   ) {}
@@ -470,14 +473,15 @@ export class SubscriptionsService {
 
   // Get subscription usage for a user
   async getUsage(userId: string): Promise<{
-    dailySelections: {
-      used: number;
+    dailyChoices: {
       limit: number;
+      used: number;
+      remaining: number;
       resetTime: string;
     };
-    chatExtensions?: {
-      used: number;
-      limit: number;
+    subscription: {
+      tier: 'free' | 'premium';
+      isActive: boolean;
     };
   }> {
     const subscription = await this.getActiveSubscription(userId);
@@ -486,25 +490,37 @@ export class SubscriptionsService {
       subscription.isActive &&
       subscription.plan === SubscriptionPlan.GOLDWEN_PLUS;
 
-    // Calculate daily selections used (this would connect to your daily selection service)
-    // For now, returning mock data as per FRONTEND_BACKEND_PROCESSES.md
+    // Get today's daily selection to check actual usage
     const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-    tomorrow.setHours(12, 0, 0, 0); // Reset at 12:00 PM next day
+    today.setHours(0, 0, 0, 0);
+
+    const dailySelection = await this.dailySelectionRepository.findOne({
+      where: {
+        userId,
+        selectionDate: today,
+      },
+    });
+
+    const limit = isPremium ? 3 : 1;
+    const used = dailySelection ? dailySelection.choicesUsed : 0;
+    const remaining = Math.max(0, limit - used);
+
+    // Calculate reset time (next day at noon)
+    const resetTime = new Date();
+    resetTime.setDate(resetTime.getDate() + 1);
+    resetTime.setHours(12, 0, 0, 0);
 
     return {
-      dailySelections: {
-        used: 0, // This should come from actual daily selections count
-        limit: isPremium ? 3 : 1,
-        resetTime: tomorrow.toISOString(),
+      dailyChoices: {
+        limit,
+        used,
+        remaining,
+        resetTime: resetTime.toISOString(),
       },
-      ...(isPremium && {
-        chatExtensions: {
-          used: 0, // This should come from actual chat extensions used
-          limit: 10,
-        },
-      }),
+      subscription: {
+        tier: isPremium ? 'premium' : 'free',
+        isActive: subscription ? subscription.isActive : false,
+      },
     };
   }
 
