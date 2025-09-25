@@ -27,6 +27,7 @@ import {
   GetReportsDto,
   SupportReplyDto,
 } from './dto/admin.dto';
+import { CreatePromptDto, UpdatePromptDto } from './dto/prompt.dto';
 
 @ApiTags('admin')
 @Controller('admin')
@@ -190,5 +191,46 @@ export class AdminController {
       message: 'Support reply sent successfully',
       ticket,
     };
+  }
+
+  // Prompt Management Routes
+  @Get('prompts')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all prompts for admin management' })
+  @ApiResponse({ status: 200, description: 'Prompts retrieved successfully' })
+  async getPromptsAdmin() {
+    return this.adminService.getPrompts();
+  }
+
+  @Post('prompts')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a new prompt' })
+  @ApiResponse({ status: 201, description: 'Prompt created successfully' })
+  async createPrompt(@Body() createPromptDto: CreatePromptDto) {
+    return this.adminService.createPrompt(createPromptDto);
+  }
+
+  @Put('prompts/:promptId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update an existing prompt' })
+  @ApiResponse({ status: 200, description: 'Prompt updated successfully' })
+  async updatePrompt(
+    @Param('promptId') promptId: string,
+    @Body() updatePromptDto: UpdatePromptDto,
+  ) {
+    return this.adminService.updatePrompt(promptId, updatePromptDto);
+  }
+
+  @Delete('prompts/:promptId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete a prompt' })
+  @ApiResponse({ status: 200, description: 'Prompt deleted successfully' })
+  async deletePrompt(@Param('promptId') promptId: string) {
+    await this.adminService.deletePrompt(promptId);
+    return { message: 'Prompt deleted successfully' };
   }
 }

@@ -22,6 +22,7 @@ import { Repository } from 'typeorm';
 import type { Request } from 'express';
 
 import { UsersService } from './users.service';
+import { ProfilesService } from '../profiles/profiles.service';
 import { UpdateUserDto, UpdateUserSettingsDto } from './dto/update-user.dto';
 import { RegisterPushTokenDto, DeletePushTokenDto } from './dto/push-token.dto';
 import { SuccessResponseDto } from '../../common/dto/response.dto';
@@ -37,6 +38,7 @@ import { SubmitPromptAnswersDto } from '../profiles/dto/profiles.dto';
 export class UsersController {
   constructor(
     private usersService: UsersService,
+    private profilesService: ProfilesService,
     @InjectRepository(Profile)
     private profileRepository: Repository<Profile>,
     @InjectRepository(PromptAnswer)
@@ -138,53 +140,25 @@ export class UsersController {
     @Body() promptAnswersDto: SubmitPromptAnswersDto,
   ) {
     const user = req.user as User;
-    const { answers } = promptAnswersDto;
+    
+    // Delegate to ProfilesService which now handles dynamic validation
+    await this.profilesService.submitPromptAnswers(user.id, promptAnswersDto);
 
-    // Validate that 3 prompts are answered (as required by specifications)
-    if (answers.length !== 3) {
-      throw new BadRequestException('Exactly 3 prompt answers are required');
-    }
+    return {
+      success: true,
+      message: 'Prompt answers submitted successfully',
+    };
+  }
 
-    const profile = await this.profileRepository.findOne({
-      where: { userId: user.id },
-    });
-
-    if (!profile) {
-      throw new NotFoundException('Profile not found');
-    }
-
-    try {
-      // Delete existing prompt answers
-      await this.promptAnswerRepository.delete({ profileId: profile.id });
-
-      // Create new prompt answers
-      const answerEntities = answers.map((answer, index) => {
-        return this.promptAnswerRepository.create({
-          profileId: profile.id,
-          promptId: answer.promptId,
-          answer: answer.answer,
-          order: index + 1, // Set order field which is required by the entity
-        });
-      });
-
-      await this.promptAnswerRepository.save(answerEntities);
-
-      return {
-        success: true,
-        message: 'Prompt answers submitted successfully',
-      };
-    } catch (error) {
-      // Log the error for debugging
-      console.error(
-        'Error saving prompt answers for user',
-        user.id,
-        ':',
-        error,
-      );
-      throw new BadRequestException(
-        'Failed to save prompt answers: ' + error.message,
-      );
-    }
+  @ApiOperation({ summary: 'Get user prompt answers' })
+  @ApiResponse({
+    status: 200,
+    description: 'User prompt answers retrieved successfully',
+  })
+  @Get('me/prompts')
+  async getUserPrompts(@Req() req: Request) {
+    const user = req.user as User;
+    return this.profilesService.getUserPromptAnswers(user.id);
   }
 
   @ApiOperation({ summary: 'Upload user photos' })

@@ -231,7 +231,7 @@ export class SubmitPromptAnswersDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => PromptAnswerDto)
-  @ArrayMinSize(3)
+  @ArrayMinSize(1)
   answers: PromptAnswerDto[];
 }
 
