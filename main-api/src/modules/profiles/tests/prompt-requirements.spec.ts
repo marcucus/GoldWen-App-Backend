@@ -110,9 +110,7 @@ describe('ProfilesService - Dynamic Prompt Requirements', () => {
       jest
         .spyOn(promptAnswerRepository, 'create')
         .mockImplementation((data) => data as any);
-      jest
-        .spyOn(promptAnswerRepository, 'save')
-        .mockResolvedValue([] as any);
+      jest.spyOn(promptAnswerRepository, 'save').mockResolvedValue([] as any);
 
       // Mock updateProfileCompletionStatus method
       const updateSpy = jest
@@ -194,14 +192,29 @@ describe('ProfilesService - Dynamic Prompt Requirements', () => {
       };
 
       // Mock that prompts exist and are valid, but profile doesn't exist
-      jest.spyOn(promptRepository, 'find')
-        .mockImplementationOnce(() => Promise.resolve([
-          { id: 'prompt-1', isActive: true, isRequired: true, text: 'Prompt 1' },
-        ] as any))
-        .mockImplementationOnce(() => Promise.resolve([
-          { id: 'prompt-1', isActive: true, isRequired: true, text: 'Prompt 1' },
-        ] as any));
-      
+      jest
+        .spyOn(promptRepository, 'find')
+        .mockImplementationOnce(() =>
+          Promise.resolve([
+            {
+              id: 'prompt-1',
+              isActive: true,
+              isRequired: true,
+              text: 'Prompt 1',
+            },
+          ] as any),
+        )
+        .mockImplementationOnce(() =>
+          Promise.resolve([
+            {
+              id: 'prompt-1',
+              isActive: true,
+              isRequired: true,
+              text: 'Prompt 1',
+            },
+          ] as any),
+        );
+
       jest.spyOn(profileRepository, 'findOne').mockResolvedValue(null);
 
       await expect(

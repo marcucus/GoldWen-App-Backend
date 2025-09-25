@@ -416,7 +416,7 @@ export class ProfilesService {
       where: { isActive: true },
     });
     const activePromptIds = new Set(allPrompts.map((p) => p.id));
-    
+
     const invalidAnswers = answers.filter(
       (a) => !activePromptIds.has(a.promptId),
     );
@@ -500,22 +500,22 @@ export class ProfilesService {
     // 3. All required personality questions answered
     // 4. Required profile fields: birthDate (gender and interestedInGenders are optional for now)
     const hasMinPhotos = (user.profile.photos?.length || 0) >= 3;
-    
+
     // Get required prompts count and validate answers
     const requiredPrompts = await this.promptRepository.find({
       where: { isActive: true, isRequired: true },
     });
-    
+
     const answeredPromptIds = new Set(
       (user.profile.promptAnswers || []).map((a) => a.promptId),
     );
-    
+
     const missingRequiredPrompts = requiredPrompts.filter(
       (p) => !answeredPromptIds.has(p.id),
     );
-    
+
     const hasPromptAnswers = missingRequiredPrompts.length === 0;
-    
+
     const hasRequiredProfileFields = !!(
       user.profile.birthDate && user.profile.bio
     );
@@ -593,15 +593,15 @@ export class ProfilesService {
     const requiredPrompts = await this.promptRepository.find({
       where: { isActive: true, isRequired: true },
     });
-    
+
     const answeredPromptIds = new Set(
       (user.profile.promptAnswers || []).map((a) => a.promptId),
     );
-    
+
     const missingRequiredPrompts = requiredPrompts.filter(
       (p) => !answeredPromptIds.has(p.id),
     );
-    
+
     const hasPrompts = missingRequiredPrompts.length === 0;
     const promptsCount = user.profile.promptAnswers?.length || 0;
     const requiredPromptsCount = requiredPrompts.length;
@@ -623,7 +623,9 @@ export class ProfilesService {
         .join(', ');
       const moreCount = missingRequiredPrompts.length - 3;
       const moreText = moreCount > 0 ? ` and ${moreCount} more` : '';
-      missingSteps.push(`Answer required prompts: ${missingPromptTexts}${moreText}`);
+      missingSteps.push(
+        `Answer required prompts: ${missingPromptTexts}${moreText}`,
+      );
     }
     if (!hasPersonalityAnswers)
       missingSteps.push('Complete personality questionnaire');

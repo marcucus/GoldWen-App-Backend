@@ -244,9 +244,18 @@ export class MatchingService {
     }
   }
 
-  async getDailySelection(userId: string): Promise<{
-    selection: DailySelection;
+  async getDailySelection(
+    userId: string,
+    preload?: boolean,
+  ): Promise<{
     profiles: User[];
+    metadata: {
+      date: string;
+      choicesRemaining: number;
+      choicesMade: number;
+      maxChoices: number;
+      refreshTime: string;
+    };
   }> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -258,24 +267,65 @@ export class MatchingService {
       },
     });
 
+    let currentSelection: DailySelection;
     if (!selection) {
-      const newSelection = await this.generateDailySelection(userId);
-      const profiles = await this.userRepository.find({
-        where: { id: In(newSelection.selectedProfileIds) },
-        relations: ['profile', 'profile.photos'],
-      });
-      return { selection: newSelection, profiles };
+      currentSelection = await this.generateDailySelection(userId);
+    } else {
+      currentSelection = selection;
     }
 
-    const profiles = await this.userRepository.find({
-      where: { id: In(selection.selectedProfileIds) },
-      relations: ['profile', 'profile.photos'],
-    });
+    // Get profiles that haven't been chosen yet
+    const availableProfileIds = currentSelection.selectedProfileIds.filter(
+      (profileId) => !currentSelection.chosenProfileIds.includes(profileId),
+    );
 
-    return { selection, profiles };
+    // If user has used all their choices, return empty profiles array (masking)
+    const shouldMaskProfiles =
+      currentSelection.choicesUsed >= currentSelection.maxChoicesAllowed;
+    const profileIds = shouldMaskProfiles ? [] : availableProfileIds;
+
+    const profiles =
+      profileIds.length > 0
+        ? await this.userRepository.find({
+            where: { id: In(profileIds) },
+            relations: ['profile', 'profile.photos'],
+          })
+        : [];
+
+    // Calculate refresh time (next day at noon)
+    const refreshTime = new Date();
+    refreshTime.setDate(refreshTime.getDate() + 1);
+    refreshTime.setHours(12, 0, 0, 0);
+
+    return {
+      profiles,
+      metadata: {
+        date: today.toISOString().split('T')[0], // YYYY-MM-DD format
+        choicesRemaining: Math.max(
+          0,
+          currentSelection.maxChoicesAllowed - currentSelection.choicesUsed,
+        ),
+        choicesMade: currentSelection.choicesUsed,
+        maxChoices: currentSelection.maxChoicesAllowed,
+        refreshTime: refreshTime.toISOString(),
+      },
+    };
   }
 
-  async chooseProfile(userId: string, targetUserId: string): Promise<any> {
+  async chooseProfile(
+    userId: string,
+    targetUserId: string,
+    choice: 'like' | 'pass' = 'like',
+  ): Promise<{
+    success: boolean;
+    data: {
+      isMatch: boolean;
+      matchId?: string;
+      choicesRemaining: number;
+      message: string;
+      canContinue: boolean;
+    };
+  }> {
     // Check if target user is in today's selection
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -308,97 +358,133 @@ export class MatchingService {
     dailySelection.choicesUsed += 1;
     await this.dailySelectionRepository.save(dailySelection);
 
-    // Create or update match
-    let match = await this.matchRepository.findOne({
-      where: [
-        { user1Id: userId, user2Id: targetUserId },
-        { user1Id: targetUserId, user2Id: userId },
-      ],
-    });
+    const choicesRemaining =
+      dailySelection.maxChoicesAllowed - dailySelection.choicesUsed;
+    const canContinue = choicesRemaining > 0;
 
-    if (!match) {
-      // Create new match
-      match = this.matchRepository.create({
-        user1Id: userId,
-        user2Id: targetUserId,
-        status: MatchStatus.PENDING,
+    const responseData = {
+      isMatch: false,
+      matchId: undefined as string | undefined,
+      choicesRemaining,
+      message: this.getChoiceMessage(
+        choice,
+        choicesRemaining,
+        dailySelection.maxChoicesAllowed,
+      ),
+      canContinue,
+    };
+
+    // Only create match for 'like' choices
+    if (choice === 'like') {
+      // Create or update match
+      let match = await this.matchRepository.findOne({
+        where: [
+          { user1Id: userId, user2Id: targetUserId },
+          { user1Id: targetUserId, user2Id: userId },
+        ],
       });
-    }
 
-    match = await this.matchRepository.save(match);
-
-    // Check if it's a mutual match
-    const reverseMatch = await this.matchRepository.findOne({
-      where: { user1Id: targetUserId, user2Id: userId },
-    });
-
-    if (reverseMatch) {
-      // It's a mutual match!
-      match.status = MatchStatus.MATCHED;
-      match.matchedAt = new Date();
-      await this.matchRepository.save(match);
-
-      // Create chat for the match
-      try {
-        await this.chatService.createChatForMatch(match.id);
-        this.logger.logBusinessEvent('chat_created_for_match', {
-          matchId: match.id,
-          user1Id: match.user1Id,
-          user2Id: match.user2Id,
+      if (!match) {
+        // Create new match
+        match = this.matchRepository.create({
+          user1Id: userId,
+          user2Id: targetUserId,
+          status: MatchStatus.PENDING,
         });
-      } catch (error) {
-        this.logger.error(
-          'Failed to create chat for match',
-          error.stack,
-          'MatchingService',
-        );
       }
 
-      // Send notifications to both users about the mutual match
-      try {
-        const user1 = await this.userRepository.findOne({
-          where: { id: match.user1Id },
-          relations: ['profile'],
-        });
-        const user2 = await this.userRepository.findOne({
-          where: { id: match.user2Id },
-          relations: ['profile'],
-        });
+      match = await this.matchRepository.save(match);
+      responseData.matchId = match.id;
 
-        if (user1 && user2) {
-          // Send notification to user1 about matching with user2
-          await this.notificationsService.sendNewMatchNotification(
-            user1.id,
-            user2.profile?.firstName || 'Someone',
-          );
+      // Check if it's a mutual match
+      const reverseMatch = await this.matchRepository.findOne({
+        where: { user1Id: targetUserId, user2Id: userId },
+      });
 
-          // Send notification to user2 about matching with user1
-          await this.notificationsService.sendNewMatchNotification(
-            user2.id,
-            user1.profile?.firstName || 'Someone',
+      if (reverseMatch) {
+        // It's a mutual match!
+        match.status = MatchStatus.MATCHED;
+        match.matchedAt = new Date();
+        await this.matchRepository.save(match);
+
+        responseData.isMatch = true;
+        responseData.message = 'Félicitations ! Vous avez un match !';
+
+        // Create chat for the match
+        try {
+          await this.chatService.createChatForMatch(match.id);
+          this.logger.logBusinessEvent('chat_created_for_match', {
+            matchId: match.id,
+            user1Id: match.user1Id,
+            user2Id: match.user2Id,
+          });
+        } catch (error) {
+          this.logger.error(
+            'Failed to create chat for match',
+            error.stack,
+            'MatchingService',
           );
         }
-      } catch (error) {
-        this.logger.error(
-          'Failed to send match notifications',
-          error.stack,
-          'MatchingService',
-        );
-        // Don't throw error as match creation succeeded
-      }
 
-      return {
-        match,
-        isMutual: true,
-        message: 'Congratulations! You have a mutual match!',
-      };
+        // Send notifications to both users about the mutual match
+        try {
+          const user1 = await this.userRepository.findOne({
+            where: { id: match.user1Id },
+            relations: ['profile'],
+          });
+          const user2 = await this.userRepository.findOne({
+            where: { id: match.user2Id },
+            relations: ['profile'],
+          });
+
+          if (user1 && user2) {
+            // Send notification to user1 about matching with user2
+            await this.notificationsService.sendNewMatchNotification(
+              user1.id,
+              user2.profile?.firstName || 'Someone',
+            );
+
+            // Send notification to user2 about matching with user1
+            await this.notificationsService.sendNewMatchNotification(
+              user2.id,
+              user1.profile?.firstName || 'Someone',
+            );
+          }
+        } catch (error) {
+          this.logger.error(
+            'Failed to send match notifications',
+            error.stack,
+            'MatchingService',
+          );
+          // Don't throw error as match creation succeeded
+        }
+      }
     }
 
     return {
-      match,
-      isMutual: false,
-      message: 'Your choice has been registered!',
+      success: true,
+      data: responseData,
     };
+  }
+
+  private getChoiceMessage(
+    choice: 'like' | 'pass',
+    choicesRemaining: number,
+    maxChoices: number,
+  ): string {
+    if (choicesRemaining === 0) {
+      if (maxChoices === 1) {
+        return 'Votre choix est fait. Revenez demain pour de nouveaux profils !';
+      } else {
+        return `Vos ${maxChoices} choix sont faits. Revenez demain pour de nouveaux profils !`;
+      }
+    }
+
+    if (choice === 'like') {
+      return `Votre choix a été enregistré ! Il vous reste ${choicesRemaining} choix${choicesRemaining > 1 ? 's' : ''} aujourd'hui.`;
+    } else {
+      return `Profil passé ! Il vous reste ${choicesRemaining} choix${choicesRemaining > 1 ? 's' : ''} aujourd'hui.`;
+    }
   }
 
   async getUserMatches(userId: string, status?: MatchStatus): Promise<Match[]> {
@@ -537,6 +623,64 @@ export class MatchingService {
     // Free users: 1 choice per day
     // Premium users: 3 choices per day (as per specifications)
     return activeSubscription?.status === SubscriptionStatus.ACTIVE ? 3 : 1;
+  }
+
+  async getUserChoices(
+    userId: string,
+    date?: string,
+  ): Promise<{
+    date: string;
+    choicesRemaining: number;
+    choicesMade: number;
+    maxChoices: number;
+    choices: Array<{
+      targetUserId: string;
+      chosenAt: string;
+    }>;
+  }> {
+    let targetDate: Date;
+    if (date) {
+      targetDate = new Date(date);
+      targetDate.setHours(0, 0, 0, 0);
+    } else {
+      targetDate = new Date();
+      targetDate.setHours(0, 0, 0, 0);
+    }
+
+    const dailySelection = await this.dailySelectionRepository.findOne({
+      where: {
+        userId,
+        selectionDate: targetDate,
+      },
+    });
+
+    if (!dailySelection) {
+      return {
+        date: targetDate.toISOString().split('T')[0],
+        choicesRemaining: 1, // Default for free users
+        choicesMade: 0,
+        maxChoices: 1,
+        choices: [],
+      };
+    }
+
+    // For now, we don't have individual timestamps for each choice
+    // So we'll use the updatedAt timestamp for all choices
+    const choices = dailySelection.chosenProfileIds.map((targetUserId) => ({
+      targetUserId,
+      chosenAt: dailySelection.updatedAt.toISOString(),
+    }));
+
+    return {
+      date: targetDate.toISOString().split('T')[0],
+      choicesRemaining: Math.max(
+        0,
+        dailySelection.maxChoicesAllowed - dailySelection.choicesUsed,
+      ),
+      choicesMade: dailySelection.choicesUsed,
+      maxChoices: dailySelection.maxChoicesAllowed,
+      choices,
+    };
   }
 
   async deleteMatch(userId: string, matchId: string): Promise<void> {
