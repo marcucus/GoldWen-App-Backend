@@ -306,7 +306,7 @@ export class SubscriptionsService {
       userId: webhookData.app_user_id,
       eventType: webhookData.event.type,
     });
-    
+
     // Additional billing issue handling could be added here
     return Promise.resolve();
   }

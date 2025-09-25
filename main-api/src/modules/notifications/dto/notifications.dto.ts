@@ -117,7 +117,10 @@ export class TestNotificationDto {
 }
 
 export class SendGroupNotificationDto {
-  @ApiProperty({ description: 'User IDs to send notification to', type: [String] })
+  @ApiProperty({
+    description: 'User IDs to send notification to',
+    type: [String],
+  })
   @IsString({ each: true })
   userIds: string[];
 

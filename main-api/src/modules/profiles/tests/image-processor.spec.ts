@@ -62,14 +62,17 @@ describe('ImageProcessorUtil', () => {
     it('should generate unique filename with correct extension', () => {
       const filename1 = ImageProcessorUtil.generateUniqueFilename('test.jpg');
       const filename2 = ImageProcessorUtil.generateUniqueFilename('test.jpg');
-      
+
       expect(filename1).toMatch(/^photo-\d+-\d+\.jpg$/);
       expect(filename2).toMatch(/^photo-\d+-\d+\.jpg$/);
       expect(filename1).not.toBe(filename2);
     });
 
     it('should use specified format', () => {
-      const filename = ImageProcessorUtil.generateUniqueFilename('test.png', 'jpeg');
+      const filename = ImageProcessorUtil.generateUniqueFilename(
+        'test.png',
+        'jpeg',
+      );
       expect(filename).toMatch(/^photo-\d+-\d+\.jpeg$/);
     });
 

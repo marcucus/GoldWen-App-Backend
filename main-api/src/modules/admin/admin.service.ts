@@ -14,7 +14,10 @@ import { Report } from '../../database/entities/report.entity';
 import { Match } from '../../database/entities/match.entity';
 import { Chat } from '../../database/entities/chat.entity';
 import { Subscription } from '../../database/entities/subscription.entity';
-import { SupportTicket, SupportStatus } from '../../database/entities/support-ticket.entity';
+import {
+  SupportTicket,
+  SupportStatus,
+} from '../../database/entities/support-ticket.entity';
 import { CustomLoggerService } from '../../common/logger';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -439,7 +442,10 @@ export class AdminService {
     };
   }
 
-  async replySupportTicket(supportReplyDto: SupportReplyDto, adminEmail: string): Promise<SupportTicket> {
+  async replySupportTicket(
+    supportReplyDto: SupportReplyDto,
+    adminEmail: string,
+  ): Promise<SupportTicket> {
     const { ticketId, reply, status, priority } = supportReplyDto;
 
     const ticket = await this.supportTicketRepository.findOne({

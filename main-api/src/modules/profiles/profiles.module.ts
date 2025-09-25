@@ -49,7 +49,10 @@ import { PromptAnswer } from '../../database/entities/prompt-answer.entity';
         }),
         fileFilter: (req, file, callback) => {
           if (!file.mimetype.match(/\/(jpg|jpeg|png|webp)$/)) {
-            callback(new Error('Only image files (JPEG, PNG, WebP) are allowed!'), false);
+            callback(
+              new Error('Only image files (JPEG, PNG, WebP) are allowed!'),
+              false,
+            );
           } else {
             callback(null, true);
           }

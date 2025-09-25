@@ -207,10 +207,10 @@ export class ProfilesService {
     }
 
     const processedPhotos: Photo[] = [];
-    
+
     for (let index = 0; index < files.length; index++) {
       const file = files[index];
-      
+
       // Validate image file
       const validation = ImageProcessorUtil.validateImage(file);
       if (!validation.isValid) {
@@ -220,9 +220,9 @@ export class ProfilesService {
       // Process and compress the image
       const processedImagePath = path.join(
         path.dirname(file.path),
-        `processed-${path.basename(file.path)}`
+        `processed-${path.basename(file.path)}`,
       );
-      
+
       try {
         const processingResult = await ImageProcessorUtil.processImage(
           file.path,
@@ -231,8 +231,8 @@ export class ProfilesService {
             maxWidth: 1200,
             maxHeight: 1600,
             quality: 85,
-            format: 'jpeg'
-          }
+            format: 'jpeg',
+          },
         );
 
         // Remove the original file and rename processed file
@@ -333,7 +333,7 @@ export class ProfilesService {
     }
 
     const currentOrder = photo.order;
-    
+
     // If the order hasn't changed, return the photo as is
     if (currentOrder === newOrder) {
       return photo;

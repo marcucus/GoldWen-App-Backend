@@ -46,15 +46,15 @@ export class ImageProcessorUtil {
 
       // Process the image
       const sharpInstance = sharp(inputPath);
-      
+
       // Get image metadata
       const metadata = await sharpInstance.metadata();
-      
+
       // Resize if necessary (maintain aspect ratio)
-      const shouldResize = 
+      const shouldResize =
         (metadata.width && metadata.width > maxWidth) ||
         (metadata.height && metadata.height > maxHeight);
-      
+
       if (shouldResize) {
         sharpInstance.resize(maxWidth, maxHeight, {
           fit: 'inside',
@@ -93,13 +93,13 @@ export class ImageProcessorUtil {
         height: finalMetadata.height || 0,
         format: finalMetadata.format || format,
       };
-    } catch (error) {
+    } catch (_error) {
       // If processing fails, copy the original file
       fs.copyFileSync(inputPath, outputPath);
-      
+
       const stats = fs.statSync(outputPath);
       const metadata = await sharp(outputPath).metadata();
-      
+
       return {
         filename: path.basename(outputPath),
         originalSize: stats.size,
@@ -114,9 +114,17 @@ export class ImageProcessorUtil {
   /**
    * Validate image file type and size
    */
-  static validateImage(file: Express.Multer.File): { isValid: boolean; error?: string } {
+  static validateImage(file: Express.Multer.File): {
+    isValid: boolean;
+    error?: string;
+  } {
     // Check file type
-    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const allowedMimeTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp',
+    ];
     if (!allowedMimeTypes.includes(file.mimetype)) {
       return {
         isValid: false,
@@ -140,7 +148,8 @@ export class ImageProcessorUtil {
    * Generate unique filename with proper extension
    */
   static generateUniqueFilename(originalName: string, format?: string): string {
-    const ext = format || path.extname(originalName).toLowerCase().slice(1) || 'jpg';
+    const ext =
+      format || path.extname(originalName).toLowerCase().slice(1) || 'jpg';
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     return `photo-${uniqueSuffix}.${ext}`;
   }

@@ -67,7 +67,9 @@ describe('ProfilesService - Photo Management', () => {
     }).compile();
 
     service = module.get<ProfilesService>(ProfilesService);
-    profileRepository = module.get<Repository<Profile>>(getRepositoryToken(Profile));
+    profileRepository = module.get<Repository<Profile>>(
+      getRepositoryToken(Profile),
+    );
     photoRepository = module.get<Repository<Photo>>(getRepositoryToken(Photo));
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
     personalityQuestionRepository = module.get<Repository<PersonalityQuestion>>(
@@ -94,7 +96,9 @@ describe('ProfilesService - Photo Management', () => {
         photos: mockPhotos,
       };
 
-      jest.spyOn(profileRepository, 'findOne').mockResolvedValue(profileWithPhotos as any);
+      jest
+        .spyOn(profileRepository, 'findOne')
+        .mockResolvedValue(profileWithPhotos as any);
       jest.spyOn(photoRepository, 'createQueryBuilder').mockReturnValue({
         update: jest.fn().mockReturnThis(),
         set: jest.fn().mockReturnThis(),
@@ -135,7 +139,9 @@ describe('ProfilesService - Photo Management', () => {
         photos: [{ id: 'photo-1', order: 1 }],
       };
 
-      jest.spyOn(profileRepository, 'findOne').mockResolvedValue(profileWithPhotos as any);
+      jest
+        .spyOn(profileRepository, 'findOne')
+        .mockResolvedValue(profileWithPhotos as any);
 
       await expect(
         service.updatePhotoOrder('user-1', 'photo-1', 5),
@@ -149,11 +155,7 @@ describe('ProfilesService - Photo Management', () => {
         ...mockUser,
         profile: {
           ...mockProfile,
-          photos: [
-            { id: 'photo-1' },
-            { id: 'photo-2' },
-            { id: 'photo-3' },
-          ],
+          photos: [{ id: 'photo-1' }, { id: 'photo-2' }, { id: 'photo-3' }],
           promptAnswers: [
             { id: 'prompt-1' },
             { id: 'prompt-2' },
@@ -162,13 +164,12 @@ describe('ProfilesService - Photo Management', () => {
           birthDate: new Date(),
           bio: 'Test bio',
         },
-        personalityAnswers: [
-          { id: 'answer-1' },
-          { id: 'answer-2' },
-        ],
+        personalityAnswers: [{ id: 'answer-1' }, { id: 'answer-2' }],
       };
 
-      jest.spyOn(userRepository, 'findOne').mockResolvedValue(userWithData as any);
+      jest
+        .spyOn(userRepository, 'findOne')
+        .mockResolvedValue(userWithData as any);
       jest.spyOn(personalityQuestionRepository, 'count').mockResolvedValue(2);
 
       const result = await service.getProfileCompletion('user-1');
@@ -195,13 +196,12 @@ describe('ProfilesService - Photo Management', () => {
           birthDate: new Date(),
           bio: 'Test bio',
         },
-        personalityAnswers: [
-          { id: 'answer-1' },
-          { id: 'answer-2' },
-        ],
+        personalityAnswers: [{ id: 'answer-1' }, { id: 'answer-2' }],
       };
 
-      jest.spyOn(userRepository, 'findOne').mockResolvedValue(userWithIncompleteData as any);
+      jest
+        .spyOn(userRepository, 'findOne')
+        .mockResolvedValue(userWithIncompleteData as any);
       jest.spyOn(personalityQuestionRepository, 'count').mockResolvedValue(2);
 
       const result = await service.getProfileCompletion('user-1');
@@ -222,7 +222,9 @@ describe('ProfilesService - Photo Management', () => {
         photos: Array.from({ length: 6 }, (_, i) => ({ id: `photo-${i + 1}` })),
       };
 
-      jest.spyOn(profileRepository, 'findOne').mockResolvedValue(profileWith6Photos as any);
+      jest
+        .spyOn(profileRepository, 'findOne')
+        .mockResolvedValue(profileWith6Photos as any);
 
       const mockFiles = [
         {
@@ -233,19 +235,21 @@ describe('ProfilesService - Photo Management', () => {
         },
       ] as Express.Multer.File[];
 
-      await expect(
-        service.uploadPhotos('user-1', mockFiles),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.uploadPhotos('user-1', mockFiles)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should validate minimum file requirement', async () => {
-      jest.spyOn(profileRepository, 'findOne').mockResolvedValue(mockProfile as any);
+      jest
+        .spyOn(profileRepository, 'findOne')
+        .mockResolvedValue(mockProfile as any);
 
       const mockFiles: Express.Multer.File[] = [];
 
-      await expect(
-        service.uploadPhotos('user-1', mockFiles),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.uploadPhotos('user-1', mockFiles)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 });

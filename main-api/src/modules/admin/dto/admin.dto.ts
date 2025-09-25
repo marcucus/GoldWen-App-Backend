@@ -14,7 +14,10 @@ import {
   ReportType,
   NotificationType,
 } from '../../../common/enums';
-import { SupportStatus, SupportPriority } from '../../../database/entities/support-ticket.entity';
+import {
+  SupportStatus,
+  SupportPriority,
+} from '../../../database/entities/support-ticket.entity';
 
 export class AdminLoginDto {
   @ApiProperty()

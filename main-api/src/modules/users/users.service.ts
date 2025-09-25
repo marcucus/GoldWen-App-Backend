@@ -202,7 +202,10 @@ export class UsersService {
     };
   }
 
-  async registerPushToken(userId: string, registerPushTokenDto: RegisterPushTokenDto): Promise<PushToken> {
+  async registerPushToken(
+    userId: string,
+    registerPushTokenDto: RegisterPushTokenDto,
+  ): Promise<PushToken> {
     const { token, platform, appVersion, deviceId } = registerPushTokenDto;
 
     // Check if token already exists for this user

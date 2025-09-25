@@ -130,7 +130,11 @@ export class ProfilesController {
     @Param('photoId') photoId: string,
     @Body() orderDto: UpdatePhotoOrderDto,
   ) {
-    return this.profilesService.updatePhotoOrder(req.user.id, photoId, orderDto.newOrder);
+    return this.profilesService.updatePhotoOrder(
+      req.user.id,
+      photoId,
+      orderDto.newOrder,
+    );
   }
 
   @Get('prompts')

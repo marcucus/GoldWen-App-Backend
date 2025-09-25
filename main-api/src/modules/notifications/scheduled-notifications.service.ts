@@ -31,10 +31,13 @@ export class ScheduledNotificationsService {
     timeZone: 'Europe/Paris', // Adjust based on your main timezone
   })
   async sendDailySelectionNotifications() {
-    const isProduction = this.configService.get('app.environment') === 'production';
-    
+    const isProduction =
+      this.configService.get('app.environment') === 'production';
+
     if (!isProduction) {
-      this.logger.info('Skipping daily selection notifications in non-production environment');
+      this.logger.info(
+        'Skipping daily selection notifications in non-production environment',
+      );
       return;
     }
 
@@ -48,7 +51,9 @@ export class ScheduledNotificationsService {
         .leftJoinAndSelect('user.notificationPreferences', 'prefs')
         .where('user.status = :status', { status: 'ACTIVE' })
         .andWhere('user.notificationsEnabled = true')
-        .andWhere('(prefs.dailySelection IS NULL OR prefs.dailySelection = true)')
+        .andWhere(
+          '(prefs.dailySelection IS NULL OR prefs.dailySelection = true)',
+        )
         .getMany();
 
       let successCount = 0;
@@ -67,11 +72,16 @@ export class ScheduledNotificationsService {
             .getOne();
 
           if (hasSelection) {
-            await this.notificationsService.sendDailySelectionNotification(user.id);
+            await this.notificationsService.sendDailySelectionNotification(
+              user.id,
+            );
             successCount++;
           }
         } catch (error) {
-          this.logger.error(`Failed to send daily selection notification to user ${user.id}`, error);
+          this.logger.error(
+            `Failed to send daily selection notification to user ${user.id}`,
+            error,
+          );
           errorCount++;
         }
       }
@@ -115,7 +125,7 @@ export class ScheduledNotificationsService {
       for (const chat of expiringChats) {
         try {
           const match = chat.match;
-          
+
           // Send notification to both users
           await Promise.all([
             this.notificationsService.createNotification({
@@ -144,7 +154,10 @@ export class ScheduledNotificationsService {
 
           notificationCount += 2;
         } catch (error) {
-          this.logger.error(`Failed to send expiring chat notification for chat ${chat.id}`, error);
+          this.logger.error(
+            `Failed to send expiring chat notification for chat ${chat.id}`,
+            error,
+          );
         }
       }
 
@@ -162,7 +175,7 @@ export class ScheduledNotificationsService {
     if (this.configService.get('app.environment') !== 'development') {
       throw new Error('Manual trigger only allowed in development');
     }
-    
+
     await this.sendDailySelectionNotifications();
   }
 }

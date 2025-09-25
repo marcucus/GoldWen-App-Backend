@@ -206,7 +206,7 @@ export class NotificationsController {
       success: true,
       data: {
         count: notifications.length,
-        notifications: notifications.map(n => ({
+        notifications: notifications.map((n) => ({
           id: n.id,
           userId: n.userId,
           type: n.type,
@@ -220,9 +220,13 @@ export class NotificationsController {
   @Post('trigger-daily-selection')
   @ApiOperation({
     summary: 'Manually trigger daily selection notifications (dev only)',
-    description: 'Manually trigger the daily selection notification job for testing',
+    description:
+      'Manually trigger the daily selection notification job for testing',
   })
-  @ApiResponse({ status: 201, description: 'Daily selection notifications triggered' })
+  @ApiResponse({
+    status: 201,
+    description: 'Daily selection notifications triggered',
+  })
   async triggerDailySelectionNotifications(@Request() req: any) {
     const userId = req.user.id;
 
