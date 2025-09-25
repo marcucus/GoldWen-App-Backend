@@ -9,6 +9,7 @@ import { ProfilesController } from './profiles.controller';
 import { PersonalityController } from './personality.controller';
 import { ProfilesService } from './profiles.service';
 import { DatabaseSeederService } from './database-seeder.service';
+import { ProfileCompletionGuard } from '../auth/guards/profile-completion.guard';
 
 import { Profile } from '../../database/entities/profile.entity';
 import { User } from '../../database/entities/user.entity';
@@ -65,8 +66,8 @@ import { PromptAnswer } from '../../database/entities/prompt-answer.entity';
       inject: [ConfigService],
     }),
   ],
-  providers: [ProfilesService, DatabaseSeederService],
+  providers: [ProfilesService, DatabaseSeederService, ProfileCompletionGuard],
   controllers: [ProfilesController, PersonalityController],
-  exports: [ProfilesService],
+  exports: [ProfilesService, ProfileCompletionGuard],
 })
 export class ProfilesModule {}

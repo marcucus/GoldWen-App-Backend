@@ -7,6 +7,7 @@ import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
 import { ChatGateway } from './chat.gateway';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { ProfilesModule } from '../profiles/profiles.module';
 
 import { Chat } from '../../database/entities/chat.entity';
 import { Message } from '../../database/entities/message.entity';
@@ -26,6 +27,7 @@ import { User } from '../../database/entities/user.entity';
       inject: [ConfigService],
     }),
     forwardRef(() => NotificationsModule),
+    ProfilesModule,
   ],
   providers: [ChatService, ChatGateway],
   controllers: [ChatController],

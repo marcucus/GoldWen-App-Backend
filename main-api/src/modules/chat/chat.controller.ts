@@ -17,12 +17,13 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ProfileCompletionGuard } from '../auth/guards/profile-completion.guard';
 import { ChatService } from './chat.service';
 import { SendMessageDto, GetMessagesDto, ExtendChatDto } from './dto/chat.dto';
 
 @ApiTags('chat')
 @Controller('chat')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ProfileCompletionGuard)
 @ApiBearerAuth()
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}

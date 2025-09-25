@@ -568,6 +568,7 @@ export class ProfilesService {
       basicInfo: boolean;
     };
     missingSteps: string[];
+    nextStep: string;
   }> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
@@ -652,6 +653,24 @@ export class ProfilesService {
     if (hasRequiredProfileFields) completed++;
     const completionPercentage = Math.round((completed / 4) * 100);
 
+    // Determine next step based on priority
+    let nextStep = '';
+    if (!hasRequiredProfileFields) {
+      const missingFields = [];
+      if (!user.profile.birthDate) missingFields.push('birth date');
+      if (!user.profile.bio) missingFields.push('bio');
+      nextStep = `Complete basic profile information: ${missingFields.join(', ')}`;
+    } else if (!hasPersonalityAnswers) {
+      nextStep = 'Complete personality questionnaire';
+    } else if (!hasPhotos) {
+      nextStep = 'Upload at least 3 photos';
+    } else if (!hasPrompts) {
+      const missingCount = missingRequiredPrompts.length;
+      nextStep = `Answer ${missingCount} required prompt${missingCount > 1 ? 's' : ''}`;
+    } else {
+      nextStep = 'Profile is complete!';
+    }
+
     return {
       isComplete,
       completionPercentage,
@@ -674,7 +693,17 @@ export class ProfilesService {
         basicInfo: hasRequiredProfileFields,
       },
       missingSteps,
+      nextStep,
     };
+  }
+
+  async isProfileVisible(userId: string): Promise<boolean> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['isProfileCompleted'],
+    });
+
+    return user?.isProfileCompleted ?? false;
   }
 
   async updateProfileStatus(
