@@ -21,6 +21,7 @@ import {
   MatchStatus,
   SubscriptionTier,
   SubscriptionStatus,
+  ChatStatus,
 } from '../../common/enums';
 import { ChatService } from '../chat/chat.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -385,69 +386,49 @@ export class MatchingService {
       });
 
       if (!match) {
-        // Create new match
+        // Create new match - in unidirectional system, this is immediately a match
         match = this.matchRepository.create({
           user1Id: userId,
           user2Id: targetUserId,
-          status: MatchStatus.PENDING,
+          status: MatchStatus.MATCHED,
+          matchedAt: new Date(),
         });
-      }
-
-      match = await this.matchRepository.save(match);
-      responseData.matchId = match.id;
-
-      // Check if it's a mutual match
-      const reverseMatch = await this.matchRepository.findOne({
-        where: { user1Id: targetUserId, user2Id: userId },
-      });
-
-      if (reverseMatch) {
-        // It's a mutual match!
-        match.status = MatchStatus.MATCHED;
-        match.matchedAt = new Date();
-        await this.matchRepository.save(match);
-
+        
+        match = await this.matchRepository.save(match);
+        responseData.matchId = match.id;
         responseData.isMatch = true;
         responseData.message = 'Félicitations ! Vous avez un match !';
 
-        // Create chat for the match
-        try {
-          await this.chatService.createChatForMatch(match.id);
-          this.logger.logBusinessEvent('chat_created_for_match', {
-            matchId: match.id,
-            user1Id: match.user1Id,
-            user2Id: match.user2Id,
-          });
-        } catch (error) {
-          this.logger.error(
-            'Failed to create chat for match',
-            error.stack,
-            'MatchingService',
-          );
-        }
+        // In unidirectional system, chat is available immediately but requires acceptance
+        // Chat will be created when the other user accepts the chat request
+        this.logger.logBusinessEvent('unidirectional_match_created', {
+          matchId: match.id,
+          initiatorId: userId,
+          targetId: targetUserId,
+        });
 
-        // Send notifications to both users about the mutual match
+        // Send notification to target user about the new match
         try {
-          const user1 = await this.userRepository.findOne({
-            where: { id: match.user1Id },
+          const initiatorUser = await this.userRepository.findOne({
+            where: { id: userId },
             relations: ['profile'],
           });
-          const user2 = await this.userRepository.findOne({
-            where: { id: match.user2Id },
+          const targetUser = await this.userRepository.findOne({
+            where: { id: targetUserId },
             relations: ['profile'],
           });
 
-          if (user1 && user2) {
-            // Send notification to user1 about matching with user2
+          if (initiatorUser && targetUser) {
+            // Send notification to target user about getting a match
             await this.notificationsService.sendNewMatchNotification(
-              user1.id,
-              user2.profile?.firstName || 'Someone',
+              targetUserId,
+              initiatorUser.profile?.firstName || 'Someone',
             );
-
-            // Send notification to user2 about matching with user1
+            
+            // Also notify the initiator that they made a match
             await this.notificationsService.sendNewMatchNotification(
-              user2.id,
-              user1.profile?.firstName || 'Someone',
+              userId,
+              targetUser.profile?.firstName || 'Someone',
             );
           }
         } catch (error) {
@@ -458,6 +439,11 @@ export class MatchingService {
           );
           // Don't throw error as match creation succeeded
         }
+      } else {
+        // Match already exists - this shouldn't happen in daily selection flow
+        responseData.matchId = match.id;
+        responseData.isMatch = true;
+        responseData.message = 'Vous avez déjà un match avec ce profil !';
       }
     }
 
@@ -499,6 +485,35 @@ export class MatchingService {
       where: whereCondition,
       relations: ['user1', 'user1.profile', 'user2', 'user2.profile', 'chat'],
       order: { createdAt: 'DESC' },
+    });
+  }
+
+  async getPendingMatches(userId: string): Promise<any[]> {
+    // Get matches where user is the target (user2) and hasn't accepted the chat yet
+    const matches = await this.matchRepository.find({
+      where: { 
+        user2Id: userId,
+        status: MatchStatus.MATCHED
+      },
+      relations: ['user1', 'user1.profile', 'user2', 'user2.profile', 'chat'],
+      order: { createdAt: 'DESC' },
+    });
+
+    // Filter matches that don't have an active chat (meaning chat hasn't been accepted yet)
+    const pendingMatches = matches.filter(match => !match.chat || match.chat.status !== ChatStatus.ACTIVE);
+
+    return pendingMatches.map(match => {
+      const targetUser = match.user1; // The user who initiated the match
+      return {
+        matchId: match.id,
+        targetUser: {
+          id: targetUser.id,
+          profile: targetUser.profile
+        },
+        status: 'pending',
+        matchedAt: match.matchedAt?.toISOString() || match.createdAt.toISOString(),
+        canInitiateChat: true
+      };
     });
   }
 

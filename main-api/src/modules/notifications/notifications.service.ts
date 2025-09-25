@@ -481,6 +481,19 @@ export class NotificationsService {
     });
   }
 
+  async sendChatAcceptedNotification(
+    userId: string,
+    accepterName: string,
+  ): Promise<Notification> {
+    return this.createNotification({
+      userId,
+      type: NotificationType.NEW_MATCH, // Using NEW_MATCH type for now, could create a specific type
+      title: 'Votre demande de chat a été acceptée !',
+      body: `${accepterName} a accepté votre demande de chat. Vous pouvez maintenant discuter !`,
+      data: { action: 'open_chat', accepterName },
+    });
+  }
+
   async sendNewMessageNotification(
     userId: string,
     senderName: string,

@@ -132,6 +132,92 @@ export class ChatService {
     return this.chatRepository.save(chat);
   }
 
+  async acceptChatRequest(
+    matchId: string, 
+    userId: string, 
+    accept: boolean
+  ): Promise<{
+    success: boolean;
+    data: {
+      chatId?: string;
+      match: any;
+      expiresAt?: string;
+    };
+  }> {
+    // Find the match where current user is the target (user2)
+    const match = await this.matchRepository.findOne({
+      where: { 
+        id: matchId, 
+        user2Id: userId, 
+        status: MatchStatus.MATCHED 
+      },
+      relations: ['user1', 'user1.profile', 'user2', 'user2.profile'],
+    });
+
+    if (!match) {
+      throw new NotFoundException('Match not found or you are not authorized to accept this match');
+    }
+
+    // Check if chat already exists
+    const existingChat = await this.chatRepository.findOne({
+      where: { matchId },
+    });
+
+    if (existingChat && existingChat.status === ChatStatus.ACTIVE) {
+      throw new BadRequestException('Chat has already been accepted');
+    }
+
+    if (accept) {
+      // Create the chat
+      const chat = await this.createChatForMatch(matchId);
+      
+      // Send notifications to both users about chat acceptance
+      try {
+        await this.notificationsService.sendChatAcceptedNotification(
+          match.user1Id, // Original initiator
+          match.user2.profile?.firstName || 'Someone'
+        );
+        
+        await this.notificationsService.sendChatAcceptedNotification(
+          match.user2Id, // User who accepted
+          match.user1.profile?.firstName || 'Someone'
+        );
+      } catch (error) {
+        // Log error but don't fail the whole operation
+        console.error('Failed to send chat acceptance notifications:', error);
+      }
+
+      return {
+        success: true,
+        data: {
+          chatId: chat.id,
+          match: {
+            id: match.id,
+            user1: match.user1,
+            user2: match.user2,
+            matchedAt: match.matchedAt,
+          },
+          expiresAt: chat.expiresAt.toISOString(),
+        },
+      };
+    } else {
+      // User declined the chat - update match status or delete it
+      // For now, we'll just mark the match as rejected
+      match.status = MatchStatus.REJECTED;
+      await this.matchRepository.save(match);
+
+      return {
+        success: true,
+        data: {
+          match: {
+            id: match.id,
+            status: 'rejected',
+          },
+        },
+      };
+    }
+  }
+
   async getChatByMatchId(matchId: string, userId: string): Promise<Chat> {
     // Verify user is part of the match
     const match = await this.matchRepository.findOne({
