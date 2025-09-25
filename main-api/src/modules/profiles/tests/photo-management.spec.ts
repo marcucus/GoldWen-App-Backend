@@ -18,6 +18,7 @@ describe('ProfilesService - Photo Management', () => {
   let photoRepository: Repository<Photo>;
   let userRepository: Repository<User>;
   let personalityQuestionRepository: Repository<PersonalityQuestion>;
+  let promptRepository: Repository<Prompt>;
 
   const mockProfile = {
     id: 'profile-1',
@@ -74,6 +75,9 @@ describe('ProfilesService - Photo Management', () => {
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
     personalityQuestionRepository = module.get<Repository<PersonalityQuestion>>(
       getRepositoryToken(PersonalityQuestion),
+    );
+    promptRepository = module.get<Repository<Prompt>>(
+      getRepositoryToken(Prompt),
     );
   });
 
@@ -157,9 +161,9 @@ describe('ProfilesService - Photo Management', () => {
           ...mockProfile,
           photos: [{ id: 'photo-1' }, { id: 'photo-2' }, { id: 'photo-3' }],
           promptAnswers: [
-            { id: 'prompt-1' },
-            { id: 'prompt-2' },
-            { id: 'prompt-3' },
+            { id: 'prompt-answer-1', promptId: 'prompt-1' },
+            { id: 'prompt-answer-2', promptId: 'prompt-2' },
+            { id: 'prompt-answer-3', promptId: 'prompt-3' },
           ],
           birthDate: new Date(),
           bio: 'Test bio',
@@ -171,6 +175,11 @@ describe('ProfilesService - Photo Management', () => {
         .spyOn(userRepository, 'findOne')
         .mockResolvedValue(userWithData as any);
       jest.spyOn(personalityQuestionRepository, 'count').mockResolvedValue(2);
+      jest.spyOn(promptRepository, 'find').mockResolvedValue([
+        { id: 'prompt-1', isActive: true, isRequired: true },
+        { id: 'prompt-2', isActive: true, isRequired: true }, 
+        { id: 'prompt-3', isActive: true, isRequired: true },
+      ] as any);
 
       const result = await service.getProfileCompletion('user-1');
 
@@ -189,9 +198,9 @@ describe('ProfilesService - Photo Management', () => {
           ...mockProfile,
           photos: [{ id: 'photo-1' }], // Only 1 photo, need 3
           promptAnswers: [
-            { id: 'prompt-1' },
-            { id: 'prompt-2' },
-            { id: 'prompt-3' },
+            { id: 'prompt-answer-1', promptId: 'prompt-1' },
+            { id: 'prompt-answer-2', promptId: 'prompt-2' },
+            { id: 'prompt-answer-3', promptId: 'prompt-3' },
           ],
           birthDate: new Date(),
           bio: 'Test bio',
@@ -203,6 +212,11 @@ describe('ProfilesService - Photo Management', () => {
         .spyOn(userRepository, 'findOne')
         .mockResolvedValue(userWithIncompleteData as any);
       jest.spyOn(personalityQuestionRepository, 'count').mockResolvedValue(2);
+      jest.spyOn(promptRepository, 'find').mockResolvedValue([
+        { id: 'prompt-1', isActive: true, isRequired: true },
+        { id: 'prompt-2', isActive: true, isRequired: true }, 
+        { id: 'prompt-3', isActive: true, isRequired: true },
+      ] as any);
 
       const result = await service.getProfileCompletion('user-1');
 

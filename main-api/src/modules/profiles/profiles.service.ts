@@ -562,6 +562,7 @@ export class ProfilesService {
         required: number;
         current: number;
         satisfied: boolean;
+        missing: Array<{ id: string; text: string }>;
       };
       personalityQuestionnaire: boolean;
       basicInfo: boolean;
