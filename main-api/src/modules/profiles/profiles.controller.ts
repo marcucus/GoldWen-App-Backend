@@ -27,6 +27,7 @@ import {
   UploadPhotosDto,
   SubmitPromptAnswersDto,
   UpdateProfileStatusDto,
+  UpdatePhotoOrderDto,
 } from './dto/profiles.dto';
 
 @ApiTags('profiles')
@@ -116,6 +117,20 @@ export class ProfilesController {
     @Param('photoId') photoId: string,
   ) {
     return this.profilesService.setPrimaryPhoto(req.user.id, photoId);
+  }
+
+  @Put('me/photos/:photoId/order')
+  @ApiOperation({ summary: 'Update photo order for drag & drop' })
+  @ApiResponse({
+    status: 200,
+    description: 'Photo order updated successfully',
+  })
+  async updatePhotoOrder(
+    @Request() req: any,
+    @Param('photoId') photoId: string,
+    @Body() orderDto: UpdatePhotoOrderDto,
+  ) {
+    return this.profilesService.updatePhotoOrder(req.user.id, photoId, orderDto.newOrder);
   }
 
   @Get('prompts')

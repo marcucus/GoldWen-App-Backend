@@ -32,17 +32,24 @@ import { PromptAnswer } from '../../database/entities/prompt-answer.entity';
     MulterModule.registerAsync({
       useFactory: (configService: ConfigService) => ({
         storage: diskStorage({
-          destination: './uploads/photos',
+          destination: (req, file, callback) => {
+            const uploadPath = './uploads/photos';
+            // Ensure directory exists
+            if (!require('fs').existsSync(uploadPath)) {
+              require('fs').mkdirSync(uploadPath, { recursive: true });
+            }
+            callback(null, uploadPath);
+          },
           filename: (req, file, callback) => {
             const uniqueSuffix =
               Date.now() + '-' + Math.round(Math.random() * 1e9);
             const ext = extname(file.originalname);
-            callback(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
+            callback(null, `photo-${uniqueSuffix}${ext}`);
           },
         }),
         fileFilter: (req, file, callback) => {
-          if (!file.mimetype.match(/\/(jpg|jpeg|png)$/)) {
-            callback(new Error('Only image files are allowed!'), false);
+          if (!file.mimetype.match(/\/(jpg|jpeg|png|webp)$/)) {
+            callback(new Error('Only image files (JPEG, PNG, WebP) are allowed!'), false);
           } else {
             callback(null, true);
           }
