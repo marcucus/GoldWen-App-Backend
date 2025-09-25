@@ -177,7 +177,7 @@ describe('ProfilesService - Photo Management', () => {
       jest.spyOn(personalityQuestionRepository, 'count').mockResolvedValue(2);
       jest.spyOn(promptRepository, 'find').mockResolvedValue([
         { id: 'prompt-1', isActive: true, isRequired: true },
-        { id: 'prompt-2', isActive: true, isRequired: true }, 
+        { id: 'prompt-2', isActive: true, isRequired: true },
         { id: 'prompt-3', isActive: true, isRequired: true },
       ] as any);
 
@@ -214,7 +214,7 @@ describe('ProfilesService - Photo Management', () => {
       jest.spyOn(personalityQuestionRepository, 'count').mockResolvedValue(2);
       jest.spyOn(promptRepository, 'find').mockResolvedValue([
         { id: 'prompt-1', isActive: true, isRequired: true },
-        { id: 'prompt-2', isActive: true, isRequired: true }, 
+        { id: 'prompt-2', isActive: true, isRequired: true },
         { id: 'prompt-3', isActive: true, isRequired: true },
       ] as any);
 

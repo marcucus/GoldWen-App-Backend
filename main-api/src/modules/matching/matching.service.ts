@@ -244,7 +244,10 @@ export class MatchingService {
     }
   }
 
-  async getDailySelection(userId: string, preload?: boolean): Promise<{
+  async getDailySelection(
+    userId: string,
+    preload?: boolean,
+  ): Promise<{
     profiles: User[];
     metadata: {
       date: string;
@@ -273,19 +276,21 @@ export class MatchingService {
 
     // Get profiles that haven't been chosen yet
     const availableProfileIds = currentSelection.selectedProfileIds.filter(
-      profileId => !currentSelection.chosenProfileIds.includes(profileId)
+      (profileId) => !currentSelection.chosenProfileIds.includes(profileId),
     );
 
     // If user has used all their choices, return empty profiles array (masking)
-    const shouldMaskProfiles = currentSelection.choicesUsed >= currentSelection.maxChoicesAllowed;
+    const shouldMaskProfiles =
+      currentSelection.choicesUsed >= currentSelection.maxChoicesAllowed;
     const profileIds = shouldMaskProfiles ? [] : availableProfileIds;
 
-    const profiles = profileIds.length > 0 
-      ? await this.userRepository.find({
-          where: { id: In(profileIds) },
-          relations: ['profile', 'profile.photos'],
-        })
-      : [];
+    const profiles =
+      profileIds.length > 0
+        ? await this.userRepository.find({
+            where: { id: In(profileIds) },
+            relations: ['profile', 'profile.photos'],
+          })
+        : [];
 
     // Calculate refresh time (next day at noon)
     const refreshTime = new Date();
@@ -296,7 +301,10 @@ export class MatchingService {
       profiles,
       metadata: {
         date: today.toISOString().split('T')[0], // YYYY-MM-DD format
-        choicesRemaining: Math.max(0, currentSelection.maxChoicesAllowed - currentSelection.choicesUsed),
+        choicesRemaining: Math.max(
+          0,
+          currentSelection.maxChoicesAllowed - currentSelection.choicesUsed,
+        ),
         choicesMade: currentSelection.choicesUsed,
         maxChoices: currentSelection.maxChoicesAllowed,
         refreshTime: refreshTime.toISOString(),
@@ -304,7 +312,11 @@ export class MatchingService {
     };
   }
 
-  async chooseProfile(userId: string, targetUserId: string, choice: 'like' | 'pass' = 'like'): Promise<{
+  async chooseProfile(
+    userId: string,
+    targetUserId: string,
+    choice: 'like' | 'pass' = 'like',
+  ): Promise<{
     success: boolean;
     data: {
       isMatch: boolean;
@@ -346,14 +358,19 @@ export class MatchingService {
     dailySelection.choicesUsed += 1;
     await this.dailySelectionRepository.save(dailySelection);
 
-    const choicesRemaining = dailySelection.maxChoicesAllowed - dailySelection.choicesUsed;
+    const choicesRemaining =
+      dailySelection.maxChoicesAllowed - dailySelection.choicesUsed;
     const canContinue = choicesRemaining > 0;
 
-    let responseData = {
+    const responseData = {
       isMatch: false,
       matchId: undefined as string | undefined,
       choicesRemaining,
-      message: this.getChoiceMessage(choice, choicesRemaining, dailySelection.maxChoicesAllowed),
+      message: this.getChoiceMessage(
+        choice,
+        choicesRemaining,
+        dailySelection.maxChoicesAllowed,
+      ),
       canContinue,
     };
 
@@ -450,7 +467,11 @@ export class MatchingService {
     };
   }
 
-  private getChoiceMessage(choice: 'like' | 'pass', choicesRemaining: number, maxChoices: number): string {
+  private getChoiceMessage(
+    choice: 'like' | 'pass',
+    choicesRemaining: number,
+    maxChoices: number,
+  ): string {
     if (choicesRemaining === 0) {
       if (maxChoices === 1) {
         return 'Votre choix est fait. Revenez demain pour de nouveaux profils !';
@@ -458,7 +479,7 @@ export class MatchingService {
         return `Vos ${maxChoices} choix sont faits. Revenez demain pour de nouveaux profils !`;
       }
     }
-    
+
     if (choice === 'like') {
       return `Votre choix a été enregistré ! Il vous reste ${choicesRemaining} choix${choicesRemaining > 1 ? 's' : ''} aujourd'hui.`;
     } else {
@@ -604,7 +625,10 @@ export class MatchingService {
     return activeSubscription?.status === SubscriptionStatus.ACTIVE ? 3 : 1;
   }
 
-  async getUserChoices(userId: string, date?: string): Promise<{
+  async getUserChoices(
+    userId: string,
+    date?: string,
+  ): Promise<{
     date: string;
     choicesRemaining: number;
     choicesMade: number;
@@ -642,14 +666,17 @@ export class MatchingService {
 
     // For now, we don't have individual timestamps for each choice
     // So we'll use the updatedAt timestamp for all choices
-    const choices = dailySelection.chosenProfileIds.map(targetUserId => ({
+    const choices = dailySelection.chosenProfileIds.map((targetUserId) => ({
       targetUserId,
       chosenAt: dailySelection.updatedAt.toISOString(),
     }));
 
     return {
       date: targetDate.toISOString().split('T')[0],
-      choicesRemaining: Math.max(0, dailySelection.maxChoicesAllowed - dailySelection.choicesUsed),
+      choicesRemaining: Math.max(
+        0,
+        dailySelection.maxChoicesAllowed - dailySelection.choicesUsed,
+      ),
       choicesMade: dailySelection.choicesUsed,
       maxChoices: dailySelection.maxChoicesAllowed,
       choices,

@@ -55,17 +55,22 @@ async function seedPrompts() {
   try {
     for (const promptData of prompts) {
       const prompt = await adminService.createPrompt(promptData);
-      console.log(`✅ Created prompt: "${prompt.text}" (Required: ${prompt.isRequired})`);
+      console.log(
+        `✅ Created prompt: "${prompt.text}" (Required: ${prompt.isRequired})`,
+      );
     }
 
     console.log('\n📊 Summary:');
-    console.log(`- ${prompts.filter(p => p.isRequired).length} required prompts`);
-    console.log(`- ${prompts.filter(p => !p.isRequired).length} optional prompts`);
+    console.log(
+      `- ${prompts.filter((p) => p.isRequired).length} required prompts`,
+    );
+    console.log(
+      `- ${prompts.filter((p) => !p.isRequired).length} optional prompts`,
+    );
     console.log(`- Total: ${prompts.length} prompts`);
 
     const allPrompts = await adminService.getPrompts();
     console.log(`\n📋 All prompts in system: ${allPrompts.length}`);
-
   } catch (error) {
     console.error('❌ Error creating prompts:', error);
   } finally {

@@ -140,7 +140,7 @@ export class UsersController {
     @Body() promptAnswersDto: SubmitPromptAnswersDto,
   ) {
     const user = req.user as User;
-    
+
     // Delegate to ProfilesService which now handles dynamic validation
     await this.profilesService.submitPromptAnswers(user.id, promptAnswersDto);
 

@@ -42,7 +42,10 @@ export class MatchingController {
     status: 200,
     description: 'Daily selection retrieved successfully',
   })
-  async getDailySelection(@Request() req: any, @Query('preload') preload?: boolean) {
+  async getDailySelection(
+    @Request() req: any,
+    @Query('preload') preload?: boolean,
+  ) {
     return this.matchingService.getDailySelection(req.user.id, preload);
   }
 
@@ -67,7 +70,11 @@ export class MatchingController {
     @Param('targetUserId') targetUserId: string,
     @Body() body: { choice: 'like' | 'pass' },
   ) {
-    return this.matchingService.chooseProfile(req.user.id, targetUserId, body.choice);
+    return this.matchingService.chooseProfile(
+      req.user.id,
+      targetUserId,
+      body.choice,
+    );
   }
 
   @Get('matches')

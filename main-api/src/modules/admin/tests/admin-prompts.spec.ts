@@ -99,7 +99,9 @@ describe('AdminService - Prompt Management', () => {
         },
       ];
 
-      jest.spyOn(promptRepository, 'find').mockResolvedValue(mockPrompts as any);
+      jest
+        .spyOn(promptRepository, 'find')
+        .mockResolvedValue(mockPrompts as any);
 
       const result = await service.getPrompts();
 
