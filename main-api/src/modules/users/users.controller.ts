@@ -23,6 +23,10 @@ import type { Request } from 'express';
 import { UsersService } from './users.service';
 import { ProfilesService } from '../profiles/profiles.service';
 import { UpdateUserDto, UpdateUserSettingsDto } from './dto/update-user.dto';
+import {
+  AccessibilitySettingsDto,
+  UpdateAccessibilitySettingsDto,
+} from './dto/accessibility-settings.dto';
 import { RegisterPushTokenDto, DeletePushTokenDto } from './dto/push-token.dto';
 import { ConsentDto, ExportDataDto } from './dto/consent.dto';
 import { SuccessResponseDto } from '../../common/dto/response.dto';
@@ -258,6 +262,40 @@ export class UsersController {
       message: 'Push token deleted successfully',
     };
   }
+
+  @ApiOperation({ summary: 'Get accessibility settings' })
+  @ApiResponse({
+    status: 200,
+    description: 'Accessibility settings retrieved successfully',
+    type: AccessibilitySettingsDto,
+  })
+  @Get('me/accessibility-settings')
+  async getAccessibilitySettings(@Req() req: Request) {
+    const user = req.user as User;
+    const settings = await this.usersService.getAccessibilitySettings(user.id);
+
+    return {
+      success: true,
+      data: settings,
+    };
+  }
+
+  @ApiOperation({ summary: 'Update accessibility settings' })
+  @ApiResponse({
+    status: 200,
+    description: 'Accessibility settings updated successfully',
+  })
+  @Put('me/accessibility-settings')
+  async updateAccessibilitySettings(
+    @Req() req: Request,
+    @Body() updateDto: UpdateAccessibilitySettingsDto,
+  ) {
+    const user = req.user as User;
+    await this.usersService.updateAccessibilitySettings(user.id, updateDto);
+
+    return new SuccessResponseDto(
+      'Accessibility settings updated successfully',
+    );
 
   @ApiOperation({ summary: 'Record user consent for GDPR compliance' })
   @ApiResponse({ status: 201, description: 'Consent recorded successfully' })

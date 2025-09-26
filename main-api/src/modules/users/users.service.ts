@@ -16,6 +16,7 @@ import {
   SubscriptionStatus,
 } from '../../common/enums';
 import { UpdateUserDto, UpdateUserSettingsDto } from './dto/update-user.dto';
+import { UpdateAccessibilitySettingsDto } from './dto/accessibility-settings.dto';
 import { RegisterPushTokenDto } from './dto/push-token.dto';
 import { ConsentDto } from './dto/consent.dto';
 
@@ -260,6 +261,40 @@ export class UsersService {
     });
   }
 
+  async getAccessibilitySettings(userId: string) {
+    const user = await this.findById(userId);
+
+    return {
+      fontSize: user.fontSize,
+      highContrast: user.highContrast,
+      reducedMotion: user.reducedMotion,
+      screenReader: user.screenReader,
+    };
+  }
+
+  async updateAccessibilitySettings(
+    userId: string,
+    settingsDto: UpdateAccessibilitySettingsDto,
+  ): Promise<void> {
+    const user = await this.findById(userId);
+
+    // Update only the fields that are provided
+    if (settingsDto.fontSize !== undefined) {
+      user.fontSize = settingsDto.fontSize;
+    }
+    if (settingsDto.highContrast !== undefined) {
+      user.highContrast = settingsDto.highContrast;
+    }
+    if (settingsDto.reducedMotion !== undefined) {
+      user.reducedMotion = settingsDto.reducedMotion;
+    }
+    if (settingsDto.screenReader !== undefined) {
+      user.screenReader = settingsDto.screenReader;
+    }
+
+    await this.userRepository.save(user);
+  }
+
   async recordConsent(
     userId: string,
     consentDto: ConsentDto,
@@ -288,5 +323,6 @@ export class UsersService {
       where: { userId, isActive: true },
       order: { createdAt: 'DESC' },
     });
+
   }
 }

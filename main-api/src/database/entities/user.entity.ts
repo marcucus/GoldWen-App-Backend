@@ -8,7 +8,7 @@ import {
   OneToMany,
   Index,
 } from 'typeorm';
-import { UserStatus } from '../../common/enums';
+import { UserStatus, FontSize } from '../../common/enums';
 import { Profile } from './profile.entity';
 import { PersonalityAnswer } from './personality-answer.entity';
 import { DailySelection } from './daily-selection.entity';
@@ -77,6 +77,23 @@ export class User {
 
   @Column({ default: true })
   notificationsEnabled?: boolean;
+
+  // Accessibility Settings
+  @Column({
+    type: 'enum',
+    enum: FontSize,
+    default: FontSize.MEDIUM,
+  })
+  fontSize?: FontSize;
+
+  @Column({ default: false })
+  highContrast?: boolean;
+
+  @Column({ default: false })
+  reducedMotion?: boolean;
+
+  @Column({ default: false })
+  screenReader?: boolean;
 
   @CreateDateColumn()
   createdAt?: Date;
