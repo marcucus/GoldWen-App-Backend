@@ -73,6 +73,7 @@ async function bootstrap() {
       .addTag('Chat', 'Real-time messaging and chat management')
       .addTag('Subscriptions', 'Premium subscriptions and payments')
       .addTag('Notifications', 'Push notifications and alerts')
+      .addTag('Preferences', 'User preferences management')
       .addTag('Admin', 'Administrative operations')
       .build();
 
