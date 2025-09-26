@@ -22,8 +22,8 @@ export class AppController {
   @Get('health')
   @ApiOperation({ summary: 'Health check endpoint' })
   @ApiResponse({ status: 200, description: 'Service health status' })
-  getHealth() {
-    const healthData = this.appService.getHealth();
+  async getHealth() {
+    const healthData = await this.appService.getHealth();
 
     this.logger.info('Health check requested', {
       status: healthData.status,

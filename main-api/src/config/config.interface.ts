@@ -65,3 +65,17 @@ export interface MatchingServiceConfig {
 export interface RevenueCatConfig {
   apiKey: string;
 }
+
+export interface MonitoringConfig {
+  sentry: {
+    dsn: string;
+    environment: string;
+    tracesSampleRate: number;
+    profilesSampleRate: number;
+  };
+  alerts: {
+    webhookUrl?: string;
+    slackWebhookUrl?: string;
+    emailRecipients: string[];
+  };
+}
