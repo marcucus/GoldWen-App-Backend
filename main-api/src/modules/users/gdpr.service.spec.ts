@@ -70,7 +70,9 @@ describe('GdprService', () => {
 
     service = module.get<GdprService>(GdprService);
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
-    profileRepository = module.get<Repository<Profile>>(getRepositoryToken(Profile));
+    profileRepository = module.get<Repository<Profile>>(
+      getRepositoryToken(Profile),
+    );
   });
 
   it('should be defined', () => {
@@ -100,7 +102,7 @@ describe('GdprService', () => {
 
     it('should handle PDF format request', async () => {
       const userId = 'test-user-id';
-      
+
       mockRepositories.findOne.mockResolvedValue(null);
       mockRepositories.find.mockResolvedValue([]);
 
@@ -108,7 +110,9 @@ describe('GdprService', () => {
 
       expect(result).toBeDefined();
       expect(result.format).toBe('json'); // Currently returns JSON with note about PDF
-      expect(result.note).toContain('PDF export requires additional implementation');
+      expect(result.note).toContain(
+        'PDF export requires additional implementation',
+      );
     });
   });
 

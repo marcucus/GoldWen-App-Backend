@@ -52,9 +52,12 @@ describe('ReportsService', () => {
     }).compile();
 
     service = module.get<ReportsService>(ReportsService);
-    reportRepository = module.get<Repository<Report>>(getRepositoryToken(Report));
+    reportRepository = module.get<Repository<Report>>(
+      getRepositoryToken(Report),
+    );
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
-    notificationsService = module.get<NotificationsService>(NotificationsService);
+    notificationsService =
+      module.get<NotificationsService>(NotificationsService);
   });
 
   afterEach(() => {
@@ -91,7 +94,10 @@ describe('ReportsService', () => {
       mockReportRepository.create.mockReturnValue(mockCreatedReport);
       mockReportRepository.save.mockResolvedValue(mockCreatedReport);
 
-      const result = await service.createReport('reporter-id', mockCreateReportDto);
+      const result = await service.createReport(
+        'reporter-id',
+        mockCreateReportDto,
+      );
 
       expect(mockUserRepository.findOne).toHaveBeenCalledWith({
         where: { id: 'target-user-id' },
@@ -153,7 +159,10 @@ describe('ReportsService', () => {
     it('should handle evidence array properly', async () => {
       const dtoWithEvidence = {
         ...mockCreateReportDto,
-        evidence: ['https://example.com/image1.jpg', 'https://example.com/image2.jpg'],
+        evidence: [
+          'https://example.com/image1.jpg',
+          'https://example.com/image2.jpg',
+        ],
       };
 
       mockUserRepository.findOne.mockResolvedValue(mockTargetUser);
@@ -166,7 +175,10 @@ describe('ReportsService', () => {
       expect(mockReportRepository.create).toHaveBeenCalledWith({
         reporterId: 'reporter-id',
         reportedUserId: 'target-user-id',
-        evidence: JSON.stringify(['https://example.com/image1.jpg', 'https://example.com/image2.jpg']),
+        evidence: JSON.stringify([
+          'https://example.com/image1.jpg',
+          'https://example.com/image2.jpg',
+        ]),
         messageId: undefined,
         chatId: undefined,
         type: ReportType.INAPPROPRIATE_CONTENT,
@@ -208,7 +220,11 @@ describe('ReportsService', () => {
       mockReportRepository.save.mockResolvedValue(updatedReport);
       mockNotificationsService.createNotification.mockResolvedValue(undefined);
 
-      const result = await service.updateReportStatus('report-id', 'reviewer-id', mockUpdateDto);
+      const result = await service.updateReportStatus(
+        'report-id',
+        'reviewer-id',
+        mockUpdateDto,
+      );
 
       expect(mockReportRepository.findOne).toHaveBeenCalledWith({
         where: { id: 'report-id' },
@@ -232,7 +248,11 @@ describe('ReportsService', () => {
       mockReportRepository.findOne.mockResolvedValue(null);
 
       await expect(
-        service.updateReportStatus('non-existent-id', 'reviewer-id', mockUpdateDto),
+        service.updateReportStatus(
+          'non-existent-id',
+          'reviewer-id',
+          mockUpdateDto,
+        ),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -241,10 +261,10 @@ describe('ReportsService', () => {
     it('should return correct statistics', async () => {
       mockReportRepository.count
         .mockResolvedValueOnce(100) // total
-        .mockResolvedValueOnce(25)  // pending
-        .mockResolvedValueOnce(60)  // resolved
-        .mockResolvedValueOnce(10)  // dismissed
-        .mockResolvedValueOnce(5);  // reviewed
+        .mockResolvedValueOnce(25) // pending
+        .mockResolvedValueOnce(60) // resolved
+        .mockResolvedValueOnce(10) // dismissed
+        .mockResolvedValueOnce(5); // reviewed
 
       const mockQueryBuilder = {
         select: jest.fn().mockReturnThis(),

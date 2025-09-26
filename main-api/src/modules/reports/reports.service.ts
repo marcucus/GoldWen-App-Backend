@@ -31,7 +31,8 @@ export class ReportsService {
     reporterId: string,
     createReportDto: CreateReportDto,
   ): Promise<Report> {
-    const { targetUserId, evidence, messageId, chatId, ...reportData } = createReportDto;
+    const { targetUserId, evidence, messageId, chatId, ...reportData } =
+      createReportDto;
 
     // Validate that target user exists
     const targetUser = await this.userRepository.findOne({
@@ -260,9 +261,9 @@ export class ReportsService {
     // This would typically send notifications to all admins/moderators
     // For now, we'll just implement the basic structure
     // In a real implementation, you'd query admin users and send notifications
-    
+
     const message = `New report received: ${report.type} from user ${report.reporterId}`;
-    
+
     // Implementation would depend on your notification system
     // For example:
     // await this.notificationsService.sendToAdmins({

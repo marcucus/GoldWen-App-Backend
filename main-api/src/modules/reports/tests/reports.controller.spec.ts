@@ -81,7 +81,10 @@ describe('ReportsController', () => {
     it('should create a report successfully', async () => {
       mockReportsService.createReport.mockResolvedValue(mockCreatedReport);
 
-      const result = await controller.createReport(mockRequest as any, createReportDto);
+      const result = await controller.createReport(
+        mockRequest as any,
+        createReportDto,
+      );
 
       expect(mockReportsService.createReport).toHaveBeenCalledWith(
         'user-id',
@@ -132,10 +135,13 @@ describe('ReportsController', () => {
         limit: 10,
       });
 
-      expect(mockReportsService.getUserReports).toHaveBeenCalledWith('user-id', {
-        page: 1,
-        limit: 10,
-      });
+      expect(mockReportsService.getUserReports).toHaveBeenCalledWith(
+        'user-id',
+        {
+          page: 1,
+          limit: 10,
+        },
+      );
 
       expect(result).toEqual({
         success: true,
@@ -210,7 +216,9 @@ describe('ReportsController', () => {
         user: { id: 'admin-id', email: 'admin@example.com' },
       };
 
-      mockReportsService.updateReportStatus.mockResolvedValue(mockUpdatedReport);
+      mockReportsService.updateReportStatus.mockResolvedValue(
+        mockUpdatedReport,
+      );
 
       const result = await controller.updateReportStatus(
         'report-id',

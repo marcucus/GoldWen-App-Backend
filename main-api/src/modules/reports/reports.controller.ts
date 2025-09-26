@@ -34,12 +34,13 @@ import { AdminGuard } from '../auth/guards/admin.guard';
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Create a new report',
-    description: 'Submit a report for inappropriate content, harassment, or other violations'
+    description:
+      'Submit a report for inappropriate content, harassment, or other violations',
   })
-  @ApiResponse({ 
-    status: HttpStatus.CREATED, 
+  @ApiResponse({
+    status: HttpStatus.CREATED,
     description: 'Report created successfully',
     schema: {
       example: {
@@ -50,21 +51,21 @@ export class ReportsController {
           type: 'inappropriate_content',
           status: 'pending',
           reason: 'This user posted inappropriate content',
-          createdAt: '2023-01-01T12:00:00Z'
-        }
-      }
-    }
+          createdAt: '2023-01-01T12:00:00Z',
+        },
+      },
+    },
   })
-  @ApiResponse({ 
-    status: HttpStatus.BAD_REQUEST, 
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
     description: 'Invalid input or duplicate report',
     schema: {
       example: {
         success: false,
         message: 'You have already submitted a similar report for this user',
-        error: 'BadRequestException'
-      }
-    }
+        error: 'BadRequestException',
+      },
+    },
   })
   @Post()
   async createReport(
@@ -91,12 +92,12 @@ export class ReportsController {
     };
   }
 
-  @ApiOperation({ 
-    summary: 'Get user\'s submitted reports',
-    description: 'Retrieve all reports submitted by the current user'
+  @ApiOperation({
+    summary: "Get user's submitted reports",
+    description: 'Retrieve all reports submitted by the current user',
   })
-  @ApiResponse({ 
-    status: HttpStatus.OK, 
+  @ApiResponse({
+    status: HttpStatus.OK,
     description: 'Reports retrieved successfully',
     schema: {
       example: {
@@ -108,8 +109,8 @@ export class ReportsController {
             status: 'resolved',
             reason: 'User was sending inappropriate messages',
             createdAt: '2023-01-01T12:00:00Z',
-            reviewedAt: '2023-01-02T10:00:00Z'
-          }
+            reviewedAt: '2023-01-02T10:00:00Z',
+          },
         ],
         pagination: {
           page: 1,
@@ -117,10 +118,10 @@ export class ReportsController {
           total: 1,
           pages: 1,
           hasNext: false,
-          hasPrev: false
-        }
-      }
-    }
+          hasPrev: false,
+        },
+      },
+    },
   })
   @Get('me')
   async getUserReports(
@@ -140,12 +141,13 @@ export class ReportsController {
     };
   }
 
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get all reports (Admin only)',
-    description: 'Retrieve all reports for moderation (requires admin privileges)'
+    description:
+      'Retrieve all reports for moderation (requires admin privileges)',
   })
-  @ApiResponse({ 
-    status: HttpStatus.OK, 
+  @ApiResponse({
+    status: HttpStatus.OK,
     description: 'Reports retrieved successfully',
     schema: {
       example: {
@@ -158,14 +160,14 @@ export class ReportsController {
             reason: 'User is sending spam messages',
             reporter: {
               id: 'reporter-id',
-              email: 'reporter@example.com'
+              email: 'reporter@example.com',
             },
             reportedUser: {
               id: 'reported-id',
-              email: 'reported@example.com'
+              email: 'reported@example.com',
             },
-            createdAt: '2023-01-01T12:00:00Z'
-          }
+            createdAt: '2023-01-01T12:00:00Z',
+          },
         ],
         pagination: {
           page: 1,
@@ -173,14 +175,14 @@ export class ReportsController {
           total: 1,
           pages: 1,
           hasNext: false,
-          hasPrev: false
-        }
-      }
-    }
+          hasPrev: false,
+        },
+      },
+    },
   })
-  @ApiResponse({ 
-    status: HttpStatus.FORBIDDEN, 
-    description: 'Access denied - Admin privileges required' 
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'Access denied - Admin privileges required',
   })
   @UseGuards(AdminGuard)
   @Get()
@@ -194,9 +196,9 @@ export class ReportsController {
     };
   }
 
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Update report status (Admin only)',
-    description: 'Update the status of a report and add review notes'
+    description: 'Update the status of a report and add review notes',
   })
   @ApiParam({
     name: 'reportId',
@@ -204,8 +206,8 @@ export class ReportsController {
     type: 'string',
     format: 'uuid',
   })
-  @ApiResponse({ 
-    status: HttpStatus.OK, 
+  @ApiResponse({
+    status: HttpStatus.OK,
     description: 'Report status updated successfully',
     schema: {
       example: {
@@ -215,18 +217,18 @@ export class ReportsController {
           id: '123e4567-e89b-12d3-a456-426614174000',
           status: 'resolved',
           reviewNotes: 'User has been warned and content removed',
-          reviewedAt: '2023-01-02T10:00:00Z'
-        }
-      }
-    }
+          reviewedAt: '2023-01-02T10:00:00Z',
+        },
+      },
+    },
   })
-  @ApiResponse({ 
-    status: HttpStatus.NOT_FOUND, 
-    description: 'Report not found' 
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Report not found',
   })
-  @ApiResponse({ 
-    status: HttpStatus.FORBIDDEN, 
-    description: 'Access denied - Admin privileges required' 
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'Access denied - Admin privileges required',
   })
   @UseGuards(AdminGuard)
   @Put(':reportId/status')
@@ -256,9 +258,9 @@ export class ReportsController {
     };
   }
 
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get report by ID (Admin only)',
-    description: 'Retrieve detailed information about a specific report'
+    description: 'Retrieve detailed information about a specific report',
   })
   @ApiParam({
     name: 'reportId',
@@ -266,17 +268,17 @@ export class ReportsController {
     type: 'string',
     format: 'uuid',
   })
-  @ApiResponse({ 
-    status: HttpStatus.OK, 
-    description: 'Report retrieved successfully' 
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Report retrieved successfully',
   })
-  @ApiResponse({ 
-    status: HttpStatus.NOT_FOUND, 
-    description: 'Report not found' 
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Report not found',
   })
-  @ApiResponse({ 
-    status: HttpStatus.FORBIDDEN, 
-    description: 'Access denied - Admin privileges required' 
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'Access denied - Admin privileges required',
   })
   @UseGuards(AdminGuard)
   @Get(':reportId')
@@ -289,12 +291,12 @@ export class ReportsController {
     };
   }
 
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get report statistics (Admin only)',
-    description: 'Get aggregated statistics about reports for admin dashboard'
+    description: 'Get aggregated statistics about reports for admin dashboard',
   })
-  @ApiResponse({ 
-    status: HttpStatus.OK, 
+  @ApiResponse({
+    status: HttpStatus.OK,
     description: 'Statistics retrieved successfully',
     schema: {
       example: {
@@ -305,22 +307,22 @@ export class ReportsController {
             pending: 25,
             reviewed: 50,
             resolved: 60,
-            dismissed: 15
+            dismissed: 15,
           },
           byType: {
             inappropriate_content: 45,
             harassment: 30,
             fake_profile: 25,
             spam: 35,
-            other: 15
-          }
-        }
-      }
-    }
+            other: 15,
+          },
+        },
+      },
+    },
   })
-  @ApiResponse({ 
-    status: HttpStatus.FORBIDDEN, 
-    description: 'Access denied - Admin privileges required' 
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'Access denied - Admin privileges required',
   })
   @UseGuards(AdminGuard)
   @Get('admin/statistics')
