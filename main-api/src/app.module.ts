@@ -3,12 +3,19 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { BullModule } from '@nestjs/bull';
+import { RedisModule } from '@nestjs-modules/ioredis';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
 // Logger
 import { LoggerModule, LoggingMiddleware } from './common/logger';
+
+// Monitoring
+import { MonitoringModule } from './common/monitoring';
+
+// Middleware
+import { SecurityLoggingMiddleware } from './common/middleware';
 
 // Configuration
 import {
@@ -22,6 +29,7 @@ import {
   emailConfig,
   matchingServiceConfig,
   revenueCatConfig,
+  monitoringConfig,
 } from './config/configuration';
 
 // Modules
@@ -54,6 +62,7 @@ import { AdminModule } from './modules/admin/admin.module';
         emailConfig,
         matchingServiceConfig,
         revenueCatConfig,
+        monitoringConfig,
       ],
     }),
 
@@ -88,8 +97,25 @@ import { AdminModule } from './modules/admin/admin.module';
       inject: [ConfigService],
     }),
 
+    // Redis for application use (separate from Bull queues)
+    RedisModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'single',
+        url: `redis://${configService.get('redis.host')}:${configService.get('redis.port')}`,
+        options: {
+          password: configService.get('redis.password') || undefined,
+        },
+      }),
+      inject: [ConfigService],
+    }),
+
     // Schedule for cron jobs
     ScheduleModule.forRoot(),
+
+    // Global modules
+    LoggerModule,
+    MonitoringModule,
 
     // Feature modules
     AuthModule,
@@ -108,5 +134,6 @@ import { AdminModule } from './modules/admin/admin.module';
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(LoggingMiddleware).forRoutes('*'); // Apply to all routes
+    consumer.apply(SecurityLoggingMiddleware).forRoutes('*'); // Apply security logging
   }
 }

@@ -3,6 +3,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
+import { MonitoringController } from './monitoring.controller';
+import { MonitoringService } from './monitoring.service';
 import { NotificationsModule } from '../notifications/notifications.module';
 
 import { Admin } from '../../database/entities/admin.entity';
@@ -28,8 +30,8 @@ import { Prompt } from '../../database/entities/prompt.entity';
     ]),
     forwardRef(() => NotificationsModule),
   ],
-  providers: [AdminService],
-  controllers: [AdminController],
+  providers: [AdminService, MonitoringService],
+  controllers: [AdminController, MonitoringController],
   exports: [AdminService],
 })
 export class AdminModule {}
