@@ -7,8 +7,6 @@ import {
   UseGuards,
   Req,
   Delete,
-  BadRequestException,
-  NotFoundException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import {
@@ -24,6 +22,10 @@ import type { Request } from 'express';
 import { UsersService } from './users.service';
 import { ProfilesService } from '../profiles/profiles.service';
 import { UpdateUserDto, UpdateUserSettingsDto } from './dto/update-user.dto';
+import {
+  AccessibilitySettingsDto,
+  UpdateAccessibilitySettingsDto,
+} from './dto/accessibility-settings.dto';
 import { RegisterPushTokenDto, DeletePushTokenDto } from './dto/push-token.dto';
 import { SuccessResponseDto } from '../../common/dto/response.dto';
 import { User } from '../../database/entities/user.entity';
@@ -251,5 +253,40 @@ export class UsersController {
       success: true,
       message: 'Push token deleted successfully',
     };
+  }
+
+  @ApiOperation({ summary: 'Get accessibility settings' })
+  @ApiResponse({
+    status: 200,
+    description: 'Accessibility settings retrieved successfully',
+    type: AccessibilitySettingsDto,
+  })
+  @Get('me/accessibility-settings')
+  async getAccessibilitySettings(@Req() req: Request) {
+    const user = req.user as User;
+    const settings = await this.usersService.getAccessibilitySettings(user.id);
+
+    return {
+      success: true,
+      data: settings,
+    };
+  }
+
+  @ApiOperation({ summary: 'Update accessibility settings' })
+  @ApiResponse({
+    status: 200,
+    description: 'Accessibility settings updated successfully',
+  })
+  @Put('me/accessibility-settings')
+  async updateAccessibilitySettings(
+    @Req() req: Request,
+    @Body() updateDto: UpdateAccessibilitySettingsDto,
+  ) {
+    const user = req.user as User;
+    await this.usersService.updateAccessibilitySettings(user.id, updateDto);
+
+    return new SuccessResponseDto(
+      'Accessibility settings updated successfully',
+    );
   }
 }

@@ -84,3 +84,10 @@ export enum ReportType {
   SPAM = 'spam',
   OTHER = 'other',
 }
+
+export enum FontSize {
+  SMALL = 'small',
+  MEDIUM = 'medium',
+  LARGE = 'large',
+  XLARGE = 'xlarge',
+}
