@@ -5,6 +5,13 @@ import { GdprService } from './gdpr.service';
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
 import { UserConsent } from '../../database/entities/user-consent.entity';
+import { Match } from '../../database/entities/match.entity';
+import { Message } from '../../database/entities/message.entity';
+import { Subscription } from '../../database/entities/subscription.entity';
+import { DailySelection } from '../../database/entities/daily-selection.entity';
+import { PushToken } from '../../database/entities/push-token.entity';
+import { Notification } from '../../database/entities/notification.entity';
+import { Report } from '../../database/entities/report.entity';
 
 describe('GdprService', () => {
   let service: GdprService;
@@ -34,19 +41,19 @@ describe('GdprService', () => {
           useValue: mockRepositories,
         },
         {
-          provide: getRepositoryToken('MatchRepository'),
+          provide: getRepositoryToken(Match),
           useValue: mockRepositories,
         },
         {
-          provide: getRepositoryToken('MessageRepository'),
+          provide: getRepositoryToken(Message),
           useValue: mockRepositories,
         },
         {
-          provide: getRepositoryToken('SubscriptionRepository'),
+          provide: getRepositoryToken(Subscription),
           useValue: mockRepositories,
         },
         {
-          provide: getRepositoryToken('DailySelectionRepository'),
+          provide: getRepositoryToken(DailySelection),
           useValue: mockRepositories,
         },
         {
@@ -54,15 +61,15 @@ describe('GdprService', () => {
           useValue: mockRepositories,
         },
         {
-          provide: getRepositoryToken('PushTokenRepository'),
+          provide: getRepositoryToken(PushToken),
           useValue: mockRepositories,
         },
         {
-          provide: getRepositoryToken('NotificationRepository'),
+          provide: getRepositoryToken(Notification),
           useValue: mockRepositories,
         },
         {
-          provide: getRepositoryToken('ReportRepository'),
+          provide: getRepositoryToken(Report),
           useValue: mockRepositories,
         },
       ],
