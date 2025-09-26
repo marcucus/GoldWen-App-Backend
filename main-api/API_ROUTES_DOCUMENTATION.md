@@ -433,6 +433,104 @@ Cette documentation complète liste toutes les routes API disponibles dans le ba
 
 ---
 
+## Routes Préférences
+
+**Préfixe**: `/preferences`  
+**Authentification**: Bearer Token (toutes les routes)
+
+### GET /preferences/me
+**Description**: Obtenir toutes les préférences utilisateur consolidées  
+**Authentification**: Bearer Token  
+**Réponse**:
+```json
+{
+  "success": "boolean",
+  "data": {
+    "notifications": {
+      "dailySelection": "boolean",
+      "newMatches": "boolean", 
+      "newMessages": "boolean",
+      "chatExpiring": "boolean",
+      "subscriptionUpdates": "boolean",
+      "marketingEmails": "boolean",
+      "pushNotifications": "boolean",
+      "emailNotifications": "boolean"
+    },
+    "privacy": {
+      "analytics": "boolean",
+      "marketing": "boolean",
+      "functionalCookies": "boolean",
+      "dataRetention": "number (optionnel)"
+    },
+    "accessibility": {
+      "fontSize": "string (small|medium|large|xlarge)",
+      "highContrast": "boolean",
+      "reducedMotion": "boolean",
+      "screenReader": "boolean"
+    },
+    "filters": {
+      "ageMin": "number (optionnel)",
+      "ageMax": "number (optionnel)",
+      "maxDistance": "number (optionnel)",
+      "preferredGenders": "array of strings (optionnel)",
+      "showMeInDiscovery": "boolean"
+    }
+  }
+}
+```
+
+### PUT /preferences/me
+**Description**: Mettre à jour les préférences utilisateur de manière unifiée  
+**Authentification**: Bearer Token  
+**Body**:
+```json
+{
+  "notifications?": {
+    "dailySelection?": "boolean",
+    "newMatches?": "boolean",
+    "newMessages?": "boolean",
+    "chatExpiring?": "boolean",
+    "subscriptionUpdates?": "boolean",
+    "marketingEmails?": "boolean",
+    "pushNotifications?": "boolean",
+    "emailNotifications?": "boolean"
+  },
+  "privacy?": {
+    "analytics?": "boolean",
+    "marketing?": "boolean",
+    "functionalCookies?": "boolean",
+    "dataRetention?": "number"
+  },
+  "accessibility?": {
+    "fontSize?": "string (small|medium|large|xlarge)",
+    "highContrast?": "boolean",
+    "reducedMotion?": "boolean",
+    "screenReader?": "boolean"
+  },
+  "filters?": {
+    "ageMin?": "number",
+    "ageMax?": "number", 
+    "maxDistance?": "number",
+    "preferredGenders?": "array of strings",
+    "showMeInDiscovery?": "boolean"
+  }
+}
+```
+**Note**: Tous les champs sont optionnels. Seules les préférences fournies seront mises à jour.
+
+**Réponse**:
+```json
+{
+  "success": "boolean",
+  "message": "string",
+  "data": {
+    // Même structure que GET /preferences/me
+  }
+}
+```
+
+---
+
 ## Routes Profils
 
 **Préfixe**: `/profiles`  

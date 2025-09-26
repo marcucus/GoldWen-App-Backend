@@ -41,6 +41,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { ConversationsModule } from './modules/conversations/conversations.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { PreferencesModule } from './modules/preferences/preferences.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ReportsModule } from './modules/reports/reports.module';
 
@@ -127,6 +128,7 @@ import { ReportsModule } from './modules/reports/reports.module';
     ConversationsModule,
     SubscriptionsModule,
     NotificationsModule,
+    PreferencesModule,
     AdminModule,
     ReportsModule,
   ],

@@ -22,7 +22,11 @@ async function demonstrateUXImprovements() {
     debug: (msg: string, context?: string) => console.log(`[DEBUG] ${msg}`),
   } as any;
 
-  const filter = new HttpExceptionFilter(mockLogger);
+  const mockSentry = {
+    captureException: (error: any) => console.log(`[SENTRY] ${error}`),
+  } as any;
+
+  const filter = new HttpExceptionFilter(mockLogger, mockSentry);
   
   // Mock request/response objects
   const mockRequest = {
