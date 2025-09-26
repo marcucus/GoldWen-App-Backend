@@ -22,6 +22,8 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SkipProfileCompletion } from '../auth/decorators/skip-profile-completion.decorator';
 import { ProfilesService } from './profiles.service';
+import { CacheControl } from '../../common/interceptors/cache.interceptor';
+import { CacheStrategy } from '../../common/enums/cache-strategy.enum';
 import {
   UpdateProfileDto,
   SubmitPersonalityAnswersDto,
@@ -39,6 +41,7 @@ export class ProfilesController {
   constructor(private readonly profilesService: ProfilesService) {}
 
   @Get('me')
+  @CacheControl(CacheStrategy.SHORT_CACHE)
   @SkipProfileCompletion()
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'Profile retrieved successfully' })
@@ -66,6 +69,7 @@ export class ProfilesController {
   }
 
   @Get('personality-questions')
+  @CacheControl(CacheStrategy.LONG_CACHE)
   @SkipProfileCompletion()
   @ApiOperation({ summary: 'Get personality questionnaire questions' })
   @ApiResponse({ status: 200, description: 'Personality questions retrieved' })
@@ -148,6 +152,7 @@ export class ProfilesController {
   }
 
   @Get('prompts')
+  @CacheControl(CacheStrategy.LONG_CACHE)
   @SkipProfileCompletion()
   @ApiOperation({ summary: 'Get available prompts' })
   @ApiResponse({ status: 200, description: 'Prompts retrieved successfully' })

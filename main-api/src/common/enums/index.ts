@@ -91,3 +91,7 @@ export enum FontSize {
   LARGE = 'large',
   XLARGE = 'xlarge',
 }
+
+// Export new enums
+export * from './error-codes.enum';
+export * from './cache-strategy.enum';

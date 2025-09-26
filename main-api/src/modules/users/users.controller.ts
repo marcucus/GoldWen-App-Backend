@@ -296,6 +296,7 @@ export class UsersController {
     return new SuccessResponseDto(
       'Accessibility settings updated successfully',
     );
+  }
 
   @ApiOperation({ summary: 'Record user consent for GDPR compliance' })
   @ApiResponse({ status: 201, description: 'Consent recorded successfully' })

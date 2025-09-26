@@ -2,16 +2,18 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
+import { Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { CustomLoggerService } from './common/logger';
 import { HttpExceptionFilter } from './common/filters';
-import { ResponseInterceptor } from './common/interceptors';
+import { ResponseInterceptor, CacheInterceptor } from './common/interceptors';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
   const logger = app.get(CustomLoggerService);
+  const reflector = app.get(Reflector);
 
   // Use custom logger
   app.useLogger(logger);
@@ -43,7 +45,8 @@ async function bootstrap() {
   // Global exception filter
   app.useGlobalFilters(new HttpExceptionFilter(logger));
 
-  // Global response interceptor
+  // Global interceptors - order matters for interceptor chain
+  app.useGlobalInterceptors(new CacheInterceptor(reflector));
   app.useGlobalInterceptors(new ResponseInterceptor(logger));
 
   // CORS
