@@ -3,18 +3,18 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
 
-import { UsersService } from '../users.service';
-import { User } from '../../../database/entities/user.entity';
-import { Profile } from '../../../database/entities/profile.entity';
-import { Match } from '../../../database/entities/match.entity';
-import { Message } from '../../../database/entities/message.entity';
-import { Subscription } from '../../../database/entities/subscription.entity';
-import { DailySelection } from '../../../database/entities/daily-selection.entity';
-import { PushToken } from '../../../database/entities/push-token.entity';
-import { UserConsent } from '../../../database/entities/user-consent.entity';
-import { CustomLoggerService } from '../../../common/logger/logger.service';
-import { UserRole } from '../../../common/enums';
-import { UpdateUserRoleDto } from '../dto/role-management.dto';
+import { UsersService } from './users.service';
+import { User } from '../../database/entities/user.entity';
+import { Profile } from '../../database/entities/profile.entity';
+import { Match } from '../../database/entities/match.entity';
+import { Message } from '../../database/entities/message.entity';
+import { Subscription } from '../../database/entities/subscription.entity';
+import { DailySelection } from '../../database/entities/daily-selection.entity';
+import { PushToken } from '../../database/entities/push-token.entity';
+import { UserConsent } from '../../database/entities/user-consent.entity';
+import { CustomLoggerService } from '../../common/logger/logger.service';
+import { UserRole } from '../../common/enums';
+import { UpdateUserRoleDto } from './dto/role-management.dto';
 
 describe('UsersService Role Management', () => {
   let service: UsersService;
@@ -116,10 +116,11 @@ describe('UsersService Role Management', () => {
     it('should update user role successfully', async () => {
       const updateRoleDto: UpdateUserRoleDto = { role: UserRole.MODERATOR };
       const adminUserId = 'admin-1';
+      const userCopy = { ...mockUser };
       
-      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as User);
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(userCopy as User);
       jest.spyOn(userRepository, 'save').mockResolvedValue({
-        ...mockUser,
+        ...userCopy,
         role: UserRole.MODERATOR,
       } as User);
 
@@ -156,7 +157,8 @@ describe('UsersService Role Management', () => {
 
   describe('getUserRole', () => {
     it('should return user role', async () => {
-      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as User);
+      const userCopy = { ...mockUser };
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(userCopy as User);
 
       const result = await service.getUserRole(mockUser.id);
 

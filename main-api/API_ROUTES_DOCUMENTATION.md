@@ -414,6 +414,70 @@ Cette documentation complète liste toutes les routes API disponibles dans le ba
 }
 ```
 
+### PUT /users/me/privacy-settings
+**Description**: Mettre à jour les paramètres de confidentialité  
+**Body**:
+```json
+{
+  "analytics": "boolean",
+  "marketing": "boolean", 
+  "functionalCookies": "boolean",
+  "dataRetention?": "number"
+}
+```
+
+### GET /users/roles
+**Description**: Obtenir la liste des utilisateurs avec leurs rôles (Admin/Modérateur uniquement)  
+**Authentification**: Bearer Token (JWT)  
+**Permissions**: Admin ou Modérateur uniquement  
+**Query Parameters**:
+- `page`: number (défaut: 1)
+- `limit`: number (défaut: 10)  
+**Réponse**:
+```json
+{
+  "success": "boolean",
+  "data": {
+    "users": [
+      {
+        "id": "string (UUID)",
+        "email": "string",
+        "role": "user|moderator|admin",
+        "updatedAt": "ISO date string"
+      }
+    ],
+    "total": "number",
+    "page": "number", 
+    "limit": "number"
+  }
+}
+```
+
+### PUT /users/:userId/role
+**Description**: Modifier le rôle d'un utilisateur (Admin uniquement)  
+**Authentification**: Bearer Token (JWT)  
+**Permissions**: Admin uniquement  
+**Paramètres**: `userId` (string UUID)  
+**Body**:
+```json
+{
+  "role": "user|moderator|admin"
+}
+```
+**Réponse**:
+```json
+{
+  "success": "boolean",
+  "message": "User role updated to {role} successfully",
+  "data": {
+    "id": "string (UUID)",
+    "email": "string", 
+    "role": "user|moderator|admin",
+    "updatedAt": "ISO date string"
+  }
+}
+```
+
 ### GET /users/me/accessibility-settings
 **Description**: Obtenir les paramètres d'accessibilité utilisateur  
 **Authentification**: Bearer Token  
