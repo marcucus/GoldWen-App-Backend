@@ -323,6 +323,5 @@ export class UsersService {
       where: { userId, isActive: true },
       order: { createdAt: 'DESC' },
     });
-
   }
 }
