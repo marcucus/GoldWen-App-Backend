@@ -13,7 +13,7 @@ import {
   ApiOperation,
   ApiResponse,
 } from '@nestjs/swagger';
-import { Request } from 'express';
+import type { Request } from 'express';
 
 import { User } from '../../database/entities/user.entity';
 import { PreferencesService } from './preferences.service';

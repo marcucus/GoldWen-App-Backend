@@ -7,6 +7,7 @@ import { NotificationPreferences } from '../../database/entities/notification-pr
 import { UserConsent } from '../../database/entities/user-consent.entity';
 import { Profile } from '../../database/entities/profile.entity';
 import { CustomLoggerService } from '../../common/logger';
+import { FontSize } from '../../common/enums';
 
 import {
   UserPreferencesDto,
@@ -106,7 +107,7 @@ export class PreferencesService {
         dataRetention: undefined, // Could be added later
       },
       accessibility: {
-        fontSize: user.fontSize || 'medium',
+        fontSize: user.fontSize || FontSize.MEDIUM,
         highContrast: user.highContrast || false,
         reducedMotion: user.reducedMotion || false,
         screenReader: user.screenReader || false,
@@ -120,7 +121,7 @@ export class PreferencesService {
       },
     };
 
-    this.logger.logUserAction('get_user_preferences', userId);
+    this.logger.logUserAction('get_user_preferences', { userId });
 
     return preferences;
   }
@@ -155,7 +156,7 @@ export class PreferencesService {
       await this.updateMatchingFilters(userId, updateDto.filters);
     }
 
-    this.logger.logUserAction('update_user_preferences', userId);
+    this.logger.logUserAction('update_user_preferences', { userId });
 
     // Return updated preferences
     const updatedPreferences = await this.getUserPreferences(userId);
@@ -170,6 +171,8 @@ export class PreferencesService {
     userId: string,
     updates: UpdateUserPreferencesDto['notifications'],
   ): Promise<void> {
+    if (!updates) return;
+
     let preferences = await this.notificationPreferencesRepository.findOne({
       where: { userId },
     });
@@ -190,6 +193,8 @@ export class PreferencesService {
     userId: string,
     updates: UpdateUserPreferencesDto['privacy'],
   ): Promise<void> {
+    if (!updates) return;
+
     // Find active consent record
     let consent = await this.userConsentRepository.findOne({
       where: { userId, isActive: true },
@@ -223,7 +228,10 @@ export class PreferencesService {
     userId: string,
     updates: UpdateUserPreferencesDto['accessibility'],
   ): Promise<void> {
+    if (!updates) return;
+
     const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) return;
     
     if (updates.fontSize !== undefined) {
       user.fontSize = updates.fontSize;
@@ -245,6 +253,8 @@ export class PreferencesService {
     userId: string,
     updates: UpdateUserPreferencesDto['filters'],
   ): Promise<void> {
+    if (!updates) return;
+
     let profile = await this.profileRepository.findOne({
       where: { userId },
     });
