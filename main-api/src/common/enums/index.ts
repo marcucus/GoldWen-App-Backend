@@ -70,6 +70,12 @@ export enum AdminRole {
   MODERATOR = 'moderator',
 }
 
+export enum UserRole {
+  USER = 'user',
+  MODERATOR = 'moderator', 
+  ADMIN = 'admin',
+}
+
 export enum ReportStatus {
   PENDING = 'pending',
   REVIEWED = 'reviewed',

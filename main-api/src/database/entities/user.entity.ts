@@ -8,7 +8,7 @@ import {
   OneToMany,
   Index,
 } from 'typeorm';
-import { UserStatus, FontSize } from '../../common/enums';
+import { UserStatus, FontSize, UserRole } from '../../common/enums';
 import { Profile } from './profile.entity';
 import { PersonalityAnswer } from './personality-answer.entity';
 import { DailySelection } from './daily-selection.entity';
@@ -47,6 +47,13 @@ export class User {
     default: UserStatus.ACTIVE,
   })
   status?: UserStatus;
+
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.USER,
+  })
+  role?: UserRole;
 
   @Column({ default: false })
   isEmailVerified?: boolean;
