@@ -4,15 +4,20 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
+  Inject,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { CustomLoggerService } from '../logger';
 import { StandardErrorCode, ErrorRecoveryActions } from '../enums/error-codes.enum';
 import { ErrorResponseDto } from '../dto/response.dto';
+import { SentryService } from '../monitoring';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
-  constructor(private readonly logger: CustomLoggerService) {}
+  constructor(
+    private readonly logger: CustomLoggerService,
+    @Inject(SentryService) private readonly sentry: SentryService,
+  ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -57,6 +62,18 @@ export class HttpExceptionFilter implements ExceptionFilter {
         exception instanceof Error ? exception.stack : undefined,
         'HttpExceptionFilter',
       );
+
+      // Send to Sentry for 5xx errors
+      if (exception instanceof Error) {
+        this.sentry.captureException(exception, {
+          request: {
+            method: request.method,
+            url: request.url,
+            headers: this.filterSensitiveHeaders(request.headers),
+            user: (request as any).user,
+          },
+        });
+      }
     }
 
     // Get recovery action
@@ -70,6 +87,18 @@ export class HttpExceptionFilter implements ExceptionFilter {
         undefined,
         'HttpExceptionFilter',
       );
+      
+      // Also send 5xx errors to Sentry if it's an unexpected error
+      if (exception instanceof Error && status === HttpStatus.INTERNAL_SERVER_ERROR) {
+        this.sentry.captureException(exception, {
+          request: {
+            method: request.method,
+            url: request.url,
+            headers: this.filterSensitiveHeaders(request.headers),
+            user: (request as any).user,
+          },
+        });
+      }
     } else if (status >= 400) {
       this.logger.debug(
         `HTTP ${status} Client Error: ${message}`,
@@ -162,5 +191,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   private generateRequestId(): string {
     return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  private filterSensitiveHeaders(headers: any): any {
+    const sensitiveHeaders = ['authorization', 'cookie', 'x-api-key'];
+    const filtered = { ...headers };
+    
+    sensitiveHeaders.forEach(header => {
+      if (filtered[header]) {
+        filtered[header] = '[FILTERED]';
+      }
+    });
+    
+    return filtered;
   }
 }
