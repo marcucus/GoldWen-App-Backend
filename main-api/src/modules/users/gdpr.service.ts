@@ -42,8 +42,13 @@ export class GdprService {
   /**
    * Export all user data in a structured format
    */
-  async exportUserData(userId: string, format: 'json' | 'pdf' = 'json'): Promise<any> {
-    this.logger.log(`Starting data export for user ${userId} in ${format} format`);
+  async exportUserData(
+    userId: string,
+    format: 'json' | 'pdf' = 'json',
+  ): Promise<any> {
+    this.logger.log(
+      `Starting data export for user ${userId} in ${format} format`,
+    );
 
     // Get all user data
     const userData = await this.collectUserData(userId);
@@ -83,59 +88,74 @@ export class GdprService {
       notifications,
       reports,
     ] = await Promise.all([
-      this.userRepository.findOne({ 
+      this.userRepository.findOne({
         where: { id: userId },
         select: [
-          'id', 'email', 'status', 'isEmailVerified', 'isOnboardingCompleted',
-          'isProfileCompleted', 'notificationsEnabled', 'lastLoginAt', 'createdAt'
-        ]
+          'id',
+          'email',
+          'status',
+          'isEmailVerified',
+          'isOnboardingCompleted',
+          'isProfileCompleted',
+          'notificationsEnabled',
+          'lastLoginAt',
+          'createdAt',
+        ],
       }),
       this.profileRepository.findOne({ where: { userId } }),
-      this.matchRepository.find({ 
+      this.matchRepository.find({
         where: [{ user1Id: userId }, { user2Id: userId }],
-        take: 100 // Limit for performance
+        take: 100, // Limit for performance
       }),
-      this.messageRepository.find({ 
+      this.messageRepository.find({
         where: { senderId: userId },
         order: { createdAt: 'DESC' },
-        take: 500 // Limit for performance
+        take: 500, // Limit for performance
       }),
-      this.subscriptionRepository.find({ 
-        where: { userId },
-        order: { createdAt: 'DESC' }
-      }),
-      this.dailySelectionRepository.find({ 
+      this.subscriptionRepository.find({
         where: { userId },
         order: { createdAt: 'DESC' },
-        take: 100 // Limit for performance
       }),
-      this.userConsentRepository.find({ 
+      this.dailySelectionRepository.find({
         where: { userId },
-        order: { createdAt: 'DESC' }
+        order: { createdAt: 'DESC' },
+        take: 100, // Limit for performance
+      }),
+      this.userConsentRepository.find({
+        where: { userId },
+        order: { createdAt: 'DESC' },
       }),
       this.pushTokenRepository.find({ where: { userId } }),
-      this.notificationRepository.find({ 
+      this.notificationRepository.find({
         where: { userId },
         order: { createdAt: 'DESC' },
-        take: 100 // Limit for performance
+        take: 100, // Limit for performance
       }),
-      this.reportRepository.find({ 
+      this.reportRepository.find({
         where: { reporterId: userId },
-        order: { createdAt: 'DESC' }
+        order: { createdAt: 'DESC' },
       }),
     ]);
 
     return {
       user: this.sanitizeUserData(user),
       profile: this.sanitizeProfileData(profile),
-      matches: matches?.map(match => this.sanitizeMatchData(match, userId)) || [],
-      messages: messages?.map(msg => this.sanitizeMessageData(msg)) || [],
-      subscriptions: subscriptions?.map(sub => this.sanitizeSubscriptionData(sub)) || [],
-      dailySelections: dailySelections?.map(sel => this.sanitizeDailySelectionData(sel)) || [],
-      consents: consents?.map(consent => this.sanitizeConsentData(consent)) || [],
-      pushTokens: pushTokens?.map(token => this.sanitizePushTokenData(token)) || [],
-      notifications: notifications?.map(notif => this.sanitizeNotificationData(notif)) || [],
-      reports: reports?.map(report => this.sanitizeReportData(report)) || [],
+      matches:
+        matches?.map((match) => this.sanitizeMatchData(match, userId)) || [],
+      messages: messages?.map((msg) => this.sanitizeMessageData(msg)) || [],
+      subscriptions:
+        subscriptions?.map((sub) => this.sanitizeSubscriptionData(sub)) || [],
+      dailySelections:
+        dailySelections?.map((sel) => this.sanitizeDailySelectionData(sel)) ||
+        [],
+      consents:
+        consents?.map((consent) => this.sanitizeConsentData(consent)) || [],
+      pushTokens:
+        pushTokens?.map((token) => this.sanitizePushTokenData(token)) || [],
+      notifications:
+        notifications?.map((notif) => this.sanitizeNotificationData(notif)) ||
+        [],
+      reports: reports?.map((report) => this.sanitizeReportData(report)) || [],
     };
   }
 
@@ -182,11 +202,11 @@ export class GdprService {
   private async anonymizeUserMessages(userId: string): Promise<void> {
     await this.messageRepository.update(
       { senderId: userId },
-      { 
+      {
         senderId: 'deleted-user',
         // Note: In a real implementation, you might want to also anonymize message content
         // depending on your data retention policies
-      }
+      },
     );
   }
 
@@ -197,12 +217,12 @@ export class GdprService {
     // Replace user ID in matches with anonymous identifier
     await this.matchRepository.update(
       { user1Id: userId },
-      { user1Id: 'deleted-user' }
+      { user1Id: 'deleted-user' },
     );
-    
+
     await this.matchRepository.update(
       { user2Id: userId },
-      { user2Id: 'deleted-user' }
+      { user2Id: 'deleted-user' },
     );
   }
 
@@ -212,7 +232,7 @@ export class GdprService {
   private async anonymizeReportsAgainstUser(userId: string): Promise<void> {
     await this.reportRepository.update(
       { reportedUserId: userId },
-      { reportedUserId: 'deleted-user' }
+      { reportedUserId: 'deleted-user' },
     );
   }
 
@@ -224,27 +244,38 @@ export class GdprService {
     // This would integrate with your logging system
     // For example, if using a centralized logging service, you'd call their API
     // to anonymize or delete log entries containing the user ID
-    this.logger.log(`Anonymizing logs for user ${userId} - implementation depends on logging infrastructure`);
+    await Promise.resolve(); // Placeholder for actual async log anonymization
+    this.logger.log(
+      `Anonymizing logs for user ${userId} - implementation depends on logging infrastructure`,
+    );
   }
 
   // Sanitization methods to clean sensitive data for export
-  private sanitizeUserData(user: User | null) {
+  private sanitizeUserData(user: User | null): Record<string, any> | null {
     if (!user) return null;
-    const { passwordHash, emailVerificationToken, resetPasswordToken, ...safeData } = user as any;
+    // Remove sensitive fields before export
+    const {
+      passwordHash: _passwordHash,
+      emailVerificationToken: _token,
+      resetPasswordToken: _resetToken,
+      ...safeData
+    } = user as any;
     return safeData;
   }
 
   private sanitizeProfileData(profile: Profile | null) {
-    return profile ? {
-      id: profile.id,
-      firstName: profile.firstName,
-      birthDate: profile.birthDate,
-      location: profile.location,
-      bio: profile.bio,
-      interests: profile.interests,
-      createdAt: profile.createdAt,
-      updatedAt: profile.updatedAt,
-    } : null;
+    return profile
+      ? {
+          id: profile.id,
+          firstName: profile.firstName,
+          birthDate: profile.birthDate,
+          location: profile.location,
+          bio: profile.bio,
+          interests: profile.interests,
+          createdAt: profile.createdAt,
+          updatedAt: profile.updatedAt,
+        }
+      : null;
   }
 
   private sanitizeMatchData(match: Match, userId: string) {

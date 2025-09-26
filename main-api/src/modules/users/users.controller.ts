@@ -8,8 +8,6 @@ import {
   Req,
   Delete,
   Query,
-  BadRequestException,
-  NotFoundException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import {
@@ -209,11 +207,13 @@ export class UsersController {
   @Delete('me')
   async deleteAccount(@Req() req: Request) {
     const user = req.user as User;
-    
+
     // Use GDPR service for complete deletion with anonymization
     await this.gdprService.deleteUserCompletely(user.id);
 
-    return new SuccessResponseDto('Account deleted successfully with complete anonymization');
+    return new SuccessResponseDto(
+      'Account deleted successfully with complete anonymization',
+    );
   }
 
   @ApiOperation({ summary: 'Register device push token' })
@@ -262,10 +262,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Record user consent for GDPR compliance' })
   @ApiResponse({ status: 201, description: 'Consent recorded successfully' })
   @Post('consent')
-  async recordConsent(
-    @Req() req: Request,
-    @Body() consentDto: ConsentDto,
-  ) {
+  async recordConsent(@Req() req: Request, @Body() consentDto: ConsentDto) {
     const user = req.user as User;
     const consent = await this.usersService.recordConsent(user.id, consentDto);
 
@@ -283,15 +280,17 @@ export class UsersController {
     };
   }
 
-  @ApiOperation({ summary: 'Export user data for GDPR compliance (data portability)' })
+  @ApiOperation({
+    summary: 'Export user data for GDPR compliance (data portability)',
+  })
   @ApiResponse({ status: 200, description: 'User data export generated' })
   @Get('me/export')
-  async exportUserData(
-    @Req() req: Request,
-    @Query() exportDto: ExportDataDto,
-  ) {
+  async exportUserData(@Req() req: Request, @Query() exportDto: ExportDataDto) {
     const user = req.user as User;
-    const exportData = await this.gdprService.exportUserData(user.id, exportDto.format);
+    const exportData = await this.gdprService.exportUserData(
+      user.id,
+      exportDto.format,
+    );
 
     return {
       success: true,
@@ -309,15 +308,17 @@ export class UsersController {
 
     return {
       success: true,
-      data: consent ? {
-        id: consent.id,
-        dataProcessing: consent.dataProcessing,
-        marketing: consent.marketing,
-        analytics: consent.analytics,
-        consentedAt: consent.consentedAt,
-        isActive: consent.isActive,
-        createdAt: consent.createdAt,
-      } : null,
+      data: consent
+        ? {
+            id: consent.id,
+            dataProcessing: consent.dataProcessing,
+            marketing: consent.marketing,
+            analytics: consent.analytics,
+            consentedAt: consent.consentedAt,
+            isActive: consent.isActive,
+            createdAt: consent.createdAt,
+          }
+        : null,
     };
   }
 }

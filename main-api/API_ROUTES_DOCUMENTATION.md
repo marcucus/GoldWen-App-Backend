@@ -303,7 +303,16 @@ Cette documentation complète liste toutes les routes API disponibles dans le ba
 **Paramètres**: `photoId` (string)
 
 ### DELETE /users/me
-**Description**: Supprimer le compte utilisateur  
+**Description**: Supprimer définitivement le compte utilisateur avec anonymisation RGPD  
+**Authentification**: Bearer Token  
+**Réponse**:
+```json
+{
+  "success": "boolean",
+  "message": "Account deleted successfully with complete anonymization"
+}
+```
+**Note**: Suppression irréversible avec anonymisation complète des données historiques  
 
 ### POST /users/me/push-tokens
 **Description**: Enregistrer un token push device  
@@ -345,6 +354,52 @@ Cette documentation complète liste toutes les routes API disponibles dans le ba
 **Query Parameters**:
 - `format?`: string (json|pdf, défaut: json)
 **Réponse**: Fichier téléchargeable avec toutes les données utilisateur
+
+### GET /users/consent
+**Description**: Obtenir le statut de consentement RGPD actuel  
+**Authentification**: Bearer Token  
+**Réponse**:
+```json
+{
+  "success": "boolean",
+  "data": {
+    "id": "string (UUID)",
+    "dataProcessing": "boolean",
+    "marketing": "boolean",
+    "analytics": "boolean", 
+    "consentedAt": "ISO date string",
+    "isActive": "boolean",
+    "createdAt": "ISO date string"
+  }
+}
+```
+
+### GET /users/me/export
+**Description**: Exporter toutes les données utilisateur pour portabilité RGPD  
+**Authentification**: Bearer Token  
+**Query Parameters**:
+- `format?`: string (json|pdf, défaut: json)
+**Réponse**:
+```json
+{
+  "success": "boolean", 
+  "message": "string",
+  "data": {
+    "exportedAt": "ISO date string",
+    "userId": "string (UUID)",
+    "data": {
+      "user": "User data object",
+      "profile": "Profile data object",
+      "matches": "Array of match objects",
+      "messages": "Array of message objects",
+      "subscriptions": "Array of subscription objects",
+      "consents": "Array of consent objects",
+      "notifications": "Array of notification objects",
+      "reports": "Array of report objects"
+    }
+  }
+}
+```
 
 ### PUT /users/me/privacy-settings
 **Description**: Gérer les paramètres de confidentialité et cookies  

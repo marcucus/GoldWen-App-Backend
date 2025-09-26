@@ -260,11 +260,14 @@ export class UsersService {
     });
   }
 
-  async recordConsent(userId: string, consentDto: ConsentDto): Promise<UserConsent> {
+  async recordConsent(
+    userId: string,
+    consentDto: ConsentDto,
+  ): Promise<UserConsent> {
     // Deactivate previous consents
     await this.userConsentRepository.update(
       { userId, isActive: true },
-      { isActive: false, revokedAt: new Date() }
+      { isActive: false, revokedAt: new Date() },
     );
 
     // Create new consent record
