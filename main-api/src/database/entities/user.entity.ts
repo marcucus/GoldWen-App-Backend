@@ -20,6 +20,7 @@ import { NotificationPreferences } from './notification-preferences.entity';
 import { Report } from './report.entity';
 import { SupportTicket } from './support-ticket.entity';
 import { PushToken } from './push-token.entity';
+import { UserConsent } from './user-consent.entity';
 
 @Entity('users')
 @Index(['email'], { unique: true })
@@ -127,4 +128,7 @@ export class User {
 
   @OneToMany(() => PushToken, (pushToken) => pushToken.user, { cascade: true })
   pushTokens?: PushToken[];
+
+  @OneToMany(() => UserConsent, (consent) => consent.user, { cascade: true })
+  consents?: UserConsent[];
 }
