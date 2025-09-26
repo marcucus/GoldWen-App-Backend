@@ -42,6 +42,7 @@ import { ConversationsModule } from './modules/conversations/conversations.modul
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -127,6 +128,7 @@ import { AdminModule } from './modules/admin/admin.module';
     SubscriptionsModule,
     NotificationsModule,
     AdminModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

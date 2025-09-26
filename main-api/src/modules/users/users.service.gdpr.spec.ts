@@ -89,7 +89,7 @@ describe('UsersService GDPR Features', () => {
 
       expect(mockRepository.update).toHaveBeenCalledWith(
         { userId, isActive: true },
-        { isActive: false, revokedAt: expect.any(Date) }
+        { isActive: false, revokedAt: expect.any(Date) },
       );
       expect(mockRepository.create).toHaveBeenCalledWith({
         userId,
