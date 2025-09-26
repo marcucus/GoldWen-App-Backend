@@ -191,6 +191,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   private generateRequestId(): string {
     return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
   private filterSensitiveHeaders(headers: any): any {
     const sensitiveHeaders = ['authorization', 'cookie', 'x-api-key'];
     const filtered = { ...headers };

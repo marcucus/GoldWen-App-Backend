@@ -7,7 +7,6 @@ import { AppModule } from './app.module';
 import { CustomLoggerService } from './common/logger';
 import { HttpExceptionFilter } from './common/filters';
 import { ResponseInterceptor, CacheInterceptor } from './common/interceptors';
-import { ResponseInterceptor } from './common/interceptors';
 import { SentryService } from './common/monitoring';
 
 
@@ -73,6 +72,7 @@ async function bootstrap() {
       .addTag('Chat', 'Real-time messaging and chat management')
       .addTag('Subscriptions', 'Premium subscriptions and payments')
       .addTag('Notifications', 'Push notifications and alerts')
+      .addTag('Preferences', 'User preferences management')
       .addTag('Admin', 'Administrative operations')
       .build();
 
