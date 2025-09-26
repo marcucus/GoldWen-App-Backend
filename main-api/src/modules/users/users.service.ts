@@ -9,6 +9,7 @@ import { Message } from '../../database/entities/message.entity';
 import { Subscription } from '../../database/entities/subscription.entity';
 import { DailySelection } from '../../database/entities/daily-selection.entity';
 import { PushToken } from '../../database/entities/push-token.entity';
+import { UserConsent } from '../../database/entities/user-consent.entity';
 import {
   UserStatus,
   MatchStatus,
@@ -16,6 +17,7 @@ import {
 } from '../../common/enums';
 import { UpdateUserDto, UpdateUserSettingsDto } from './dto/update-user.dto';
 import { RegisterPushTokenDto } from './dto/push-token.dto';
+import { ConsentDto } from './dto/consent.dto';
 
 @Injectable()
 export class UsersService {
@@ -34,6 +36,8 @@ export class UsersService {
     private dailySelectionRepository: Repository<DailySelection>,
     @InjectRepository(PushToken)
     private pushTokenRepository: Repository<PushToken>,
+    @InjectRepository(UserConsent)
+    private userConsentRepository: Repository<UserConsent>,
   ) {}
 
   async findById(id: string): Promise<User> {
@@ -251,6 +255,33 @@ export class UsersService {
 
   async getUserPushTokens(userId: string): Promise<PushToken[]> {
     return this.pushTokenRepository.find({
+      where: { userId, isActive: true },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async recordConsent(userId: string, consentDto: ConsentDto): Promise<UserConsent> {
+    // Deactivate previous consents
+    await this.userConsentRepository.update(
+      { userId, isActive: true },
+      { isActive: false, revokedAt: new Date() }
+    );
+
+    // Create new consent record
+    const consent = this.userConsentRepository.create({
+      userId,
+      dataProcessing: consentDto.dataProcessing,
+      marketing: consentDto.marketing ?? false,
+      analytics: consentDto.analytics ?? false,
+      consentedAt: new Date(consentDto.consentedAt),
+      isActive: true,
+    });
+
+    return this.userConsentRepository.save(consent);
+  }
+
+  async getCurrentConsent(userId: string): Promise<UserConsent | null> {
+    return this.userConsentRepository.findOne({
       where: { userId, isActive: true },
       order: { createdAt: 'DESC' },
     });

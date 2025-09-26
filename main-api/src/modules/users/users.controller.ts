@@ -7,6 +7,7 @@ import {
   UseGuards,
   Req,
   Delete,
+  Query,
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
@@ -25,7 +26,9 @@ import { UsersService } from './users.service';
 import { ProfilesService } from '../profiles/profiles.service';
 import { UpdateUserDto, UpdateUserSettingsDto } from './dto/update-user.dto';
 import { RegisterPushTokenDto, DeletePushTokenDto } from './dto/push-token.dto';
+import { ConsentDto, ExportDataDto } from './dto/consent.dto';
 import { SuccessResponseDto } from '../../common/dto/response.dto';
+import { GdprService } from './gdpr.service';
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
 import { PromptAnswer } from '../../database/entities/prompt-answer.entity';
@@ -39,6 +42,7 @@ export class UsersController {
   constructor(
     private usersService: UsersService,
     private profilesService: ProfilesService,
+    private gdprService: GdprService,
     @InjectRepository(Profile)
     private profileRepository: Repository<Profile>,
     @InjectRepository(PromptAnswer)
@@ -205,9 +209,11 @@ export class UsersController {
   @Delete('me')
   async deleteAccount(@Req() req: Request) {
     const user = req.user as User;
-    await this.usersService.deleteUser(user.id);
+    
+    // Use GDPR service for complete deletion with anonymization
+    await this.gdprService.deleteUserCompletely(user.id);
 
-    return new SuccessResponseDto('Account deleted successfully');
+    return new SuccessResponseDto('Account deleted successfully with complete anonymization');
   }
 
   @ApiOperation({ summary: 'Register device push token' })
@@ -250,6 +256,68 @@ export class UsersController {
     return {
       success: true,
       message: 'Push token deleted successfully',
+    };
+  }
+
+  @ApiOperation({ summary: 'Record user consent for GDPR compliance' })
+  @ApiResponse({ status: 201, description: 'Consent recorded successfully' })
+  @Post('consent')
+  async recordConsent(
+    @Req() req: Request,
+    @Body() consentDto: ConsentDto,
+  ) {
+    const user = req.user as User;
+    const consent = await this.usersService.recordConsent(user.id, consentDto);
+
+    return {
+      success: true,
+      message: 'Consent recorded successfully',
+      data: {
+        id: consent.id,
+        dataProcessing: consent.dataProcessing,
+        marketing: consent.marketing,
+        analytics: consent.analytics,
+        consentedAt: consent.consentedAt,
+        createdAt: consent.createdAt,
+      },
+    };
+  }
+
+  @ApiOperation({ summary: 'Export user data for GDPR compliance (data portability)' })
+  @ApiResponse({ status: 200, description: 'User data export generated' })
+  @Get('me/export')
+  async exportUserData(
+    @Req() req: Request,
+    @Query() exportDto: ExportDataDto,
+  ) {
+    const user = req.user as User;
+    const exportData = await this.gdprService.exportUserData(user.id, exportDto.format);
+
+    return {
+      success: true,
+      message: `User data exported successfully in ${exportDto.format || 'json'} format`,
+      data: exportData,
+    };
+  }
+
+  @ApiOperation({ summary: 'Get current user consent status' })
+  @ApiResponse({ status: 200, description: 'Current consent status retrieved' })
+  @Get('consent')
+  async getCurrentConsent(@Req() req: Request) {
+    const user = req.user as User;
+    const consent = await this.usersService.getCurrentConsent(user.id);
+
+    return {
+      success: true,
+      data: consent ? {
+        id: consent.id,
+        dataProcessing: consent.dataProcessing,
+        marketing: consent.marketing,
+        analytics: consent.analytics,
+        consentedAt: consent.consentedAt,
+        isActive: consent.isActive,
+        createdAt: consent.createdAt,
+      } : null,
     };
   }
 }
