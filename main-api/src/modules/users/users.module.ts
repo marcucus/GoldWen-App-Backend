@@ -13,6 +13,10 @@ import { DailySelection } from '../../database/entities/daily-selection.entity';
 import { PromptAnswer } from '../../database/entities/prompt-answer.entity';
 import { Prompt } from '../../database/entities/prompt.entity';
 import { PushToken } from '../../database/entities/push-token.entity';
+import { UserConsent } from '../../database/entities/user-consent.entity';
+import { Notification } from '../../database/entities/notification.entity';
+import { Report } from '../../database/entities/report.entity';
+import { GdprService } from './gdpr.service';
 
 @Module({
   imports: [
@@ -26,10 +30,13 @@ import { PushToken } from '../../database/entities/push-token.entity';
       PromptAnswer,
       Prompt,
       PushToken,
+      UserConsent,
+      Notification,
+      Report,
     ]),
     ProfilesModule,
   ],
-  providers: [UsersService],
+  providers: [UsersService, GdprService],
   controllers: [UsersController],
   exports: [UsersService],
 })
