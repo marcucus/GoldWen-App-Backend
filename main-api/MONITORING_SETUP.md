@@ -10,10 +10,11 @@ This document describes the comprehensive monitoring, logging, and alerting syst
 
 1. **Structured Logging** - Winston-based logging with correlation IDs
 2. **Error Tracking** - Sentry integration for error monitoring and performance tracking
-3. **Health Monitoring** - Real-time health checks for database and Redis
-4. **Security Logging** - Comprehensive security event tracking
-5. **Alerting System** - Multi-channel alerting (Slack, webhooks, email)
-6. **Admin Dashboard** - Web-based monitoring dashboard
+3. **Metrics & Analytics** - DataDog integration for system and business metrics
+4. **Health Monitoring** - Real-time health checks for database and Redis
+5. **Security Logging** - Comprehensive security event tracking
+6. **Alerting System** - Multi-channel alerting (Slack, webhooks, email)
+7. **Admin Dashboard** - Web-based monitoring dashboard
 
 ## Configuration
 
@@ -24,6 +25,10 @@ This document describes the comprehensive monitoring, logging, and alerting syst
 SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
 SENTRY_TRACES_SAMPLE_RATE=0.1      # 10% of transactions
 SENTRY_PROFILES_SAMPLE_RATE=0.01   # 1% profiling
+
+# DataDog Configuration (optional)
+DATADOG_API_KEY=your-datadog-api-key
+DATADOG_APP_KEY=your-datadog-app-key
 
 # Alerting Channels
 ALERTS_WEBHOOK_URL=https://your-webhook-url.com/alerts
@@ -125,6 +130,47 @@ sentry.captureException(error, {
 // Add breadcrumbs
 sentry.addBreadcrumb('User clicked payment button', 'user_action');
 ```
+
+## Metrics & Analytics (DataDog)
+
+### Features
+- System metrics collection (CPU, memory, disk)
+- Business metrics tracking (user signups, matches, etc.)
+- API performance monitoring
+- Custom dashboards and alerting
+- Real-time monitoring
+
+### Configuration
+DataDog integration is optional and can be enabled by setting:
+- `DATADOG_API_KEY`: Your DataDog API key
+- `DATADOG_APP_KEY`: Your DataDog application key
+
+### Custom Metrics
+```typescript
+// Send gauge metrics
+await datadog.sendGaugeMetric('goldwen.users.active', activeUserCount);
+
+// Track business events
+await datadog.trackBusinessMetrics('user_signup', 1, ['source:mobile']);
+
+// Monitor API performance
+await datadog.trackApiMetrics('/api/profiles', 'GET', responseTime, 200);
+```
+
+### Available Metrics
+1. **System Metrics**
+   - `goldwen.system.memory.heap_used`
+   - `goldwen.system.memory.heap_total`
+   - `goldwen.system.uptime`
+
+2. **API Metrics**
+   - `goldwen.api.response_time`
+   - `goldwen.api.requests`
+
+3. **Business Metrics**
+   - `goldwen.business.user_signup`
+   - `goldwen.business.matches_created`
+   - `goldwen.business.messages_sent`
 
 ## Health Monitoring
 
