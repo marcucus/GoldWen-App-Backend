@@ -8,6 +8,7 @@ import {
   Req,
   Delete,
   Query,
+  Param,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import {
@@ -29,12 +30,15 @@ import {
 } from './dto/accessibility-settings.dto';
 import { RegisterPushTokenDto, DeletePushTokenDto } from './dto/push-token.dto';
 import { ConsentDto, ExportDataDto } from './dto/consent.dto';
+import { UpdateUserRoleDto, UserRolesListResponseDto } from './dto/role-management.dto';
 import { SuccessResponseDto } from '../../common/dto/response.dto';
 import { GdprService } from './gdpr.service';
+import { Roles, RoleGuard } from '../auth/guards/role.guard';
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
 import { PromptAnswer } from '../../database/entities/prompt-answer.entity';
 import { SubmitPromptAnswersDto } from '../profiles/dto/profiles.dto';
+import { UserRole } from '../../common/enums';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -358,6 +362,51 @@ export class UsersController {
             createdAt: consent.createdAt,
           }
         : null,
+    };
+  }
+
+  // Role Management Routes
+  @ApiOperation({ summary: 'Get list of users with their roles (Admin/Moderator only)' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'List of users with roles retrieved',
+    type: UserRolesListResponseDto
+  })
+  @UseGuards(RoleGuard)
+  @Roles([UserRole.ADMIN, UserRole.MODERATOR])
+  @Get('roles')
+  async getUsersRoles(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    const result = await this.usersService.getUsersWithRoles(page, limit);
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  @ApiOperation({ summary: 'Update user role (Admin only)' })
+  @ApiResponse({ status: 200, description: 'User role updated successfully' })
+  @UseGuards(RoleGuard)
+  @Roles([UserRole.ADMIN])
+  @Put(':userId/role')
+  async updateUserRole(
+    @Req() req: Request,
+    @Param('userId') userId: string,
+    @Body() updateRoleDto: UpdateUserRoleDto,
+  ) {
+    const admin = req.user as User;
+    const result = await this.usersService.updateUserRole(
+      userId,
+      updateRoleDto,
+      admin.id,
+    );
+
+    return {
+      success: true,
+      message: `User role updated to ${updateRoleDto.role} successfully`,
+      data: result,
     };
   }
 }

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { CustomLoggerService } from '../../common/logger/logger.service';
 
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
@@ -14,11 +15,13 @@ import {
   UserStatus,
   MatchStatus,
   SubscriptionStatus,
+  UserRole,
 } from '../../common/enums';
 import { UpdateUserDto, UpdateUserSettingsDto } from './dto/update-user.dto';
 import { UpdateAccessibilitySettingsDto } from './dto/accessibility-settings.dto';
 import { RegisterPushTokenDto } from './dto/push-token.dto';
 import { ConsentDto } from './dto/consent.dto';
+import { UpdateUserRoleDto, UserRoleResponseDto, UserRolesListResponseDto } from './dto/role-management.dto';
 
 @Injectable()
 export class UsersService {
@@ -39,6 +42,7 @@ export class UsersService {
     private pushTokenRepository: Repository<PushToken>,
     @InjectRepository(UserConsent)
     private userConsentRepository: Repository<UserConsent>,
+    private logger: CustomLoggerService,
   ) {}
 
   async findById(id: string): Promise<User> {
@@ -323,5 +327,73 @@ export class UsersService {
       where: { userId, isActive: true },
       order: { createdAt: 'DESC' },
     });
+  }
+
+  // Role management methods
+  async getUsersWithRoles(page: number = 1, limit: number = 10): Promise<UserRolesListResponseDto> {
+    const [users, total] = await this.userRepository.findAndCount({
+      select: ['id', 'email', 'role', 'updatedAt'],
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { updatedAt: 'DESC' },
+    });
+
+    return {
+      users: users.map(user => ({
+        id: user.id,
+        email: user.email,
+        role: user.role || UserRole.USER,
+        updatedAt: user.updatedAt || new Date(),
+      })),
+      total,
+      page,
+      limit,
+    };
+  }
+
+  async updateUserRole(userId: string, updateRoleDto: UpdateUserRoleDto, adminUserId: string): Promise<UserRoleResponseDto> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'email', 'role', 'updatedAt'],
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    const oldRole = user.role || UserRole.USER;
+    user.role = updateRoleDto.role;
+    
+    const updatedUser = await this.userRepository.save(user);
+
+    // Log role change for audit trail
+    this.logger.logAuditTrail('role_change', 'user', {
+      targetUserId: userId,
+      targetUserEmail: user.email,
+      oldRole,
+      newRole: updateRoleDto.role,
+      adminUserId,
+      timestamp: new Date().toISOString(),
+    });
+
+    return {
+      id: updatedUser.id,
+      email: updatedUser.email,
+      role: updatedUser.role || UserRole.USER,
+      updatedAt: updatedUser.updatedAt || new Date(),
+    };
+  }
+
+  async getUserRole(userId: string): Promise<UserRole> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['role'],
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    return user.role || UserRole.USER;
   }
 }
