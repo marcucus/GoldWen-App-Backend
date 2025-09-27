@@ -176,7 +176,7 @@ export class NotificationsService {
         type,
         reason: 'user_preferences',
       });
-      return null; // Or throw a specific exception if needed
+      throw new ForbiddenException('Notification creation skipped due to user preferences');
     }
 
     const notification = this.notificationRepository.create({
