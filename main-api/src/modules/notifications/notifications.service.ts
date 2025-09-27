@@ -166,7 +166,10 @@ export class NotificationsService {
     }
 
     // Check user notification preferences before creating notification
-    const shouldCreateNotification = await this.shouldSendNotification(userId, type);
+    const shouldCreateNotification = await this.shouldSendNotification(
+      userId,
+      type,
+    );
     if (!shouldCreateNotification) {
       this.logger.logBusinessEvent('notification_skipped_preferences', {
         userId,
@@ -262,13 +265,10 @@ export class NotificationsService {
 
     await this.notificationPreferencesRepository.save(preferences);
 
-    this.logger.logUserAction(
-      'update_notification_settings',
-      {
-        userId,
-        ...updateSettingsDto,
-      },
-    );
+    this.logger.logUserAction('update_notification_settings', {
+      userId,
+      ...updateSettingsDto,
+    });
 
     return {
       message: 'Notification settings updated successfully',
@@ -279,7 +279,10 @@ export class NotificationsService {
   /**
    * Check if a notification should be sent based on user preferences
    */
-  private async shouldSendNotification(userId: string, type: NotificationType): Promise<boolean> {
+  private async shouldSendNotification(
+    userId: string,
+    type: NotificationType,
+  ): Promise<boolean> {
     // Get user's notification preferences
     const preferences = await this.notificationPreferencesRepository.findOne({
       where: { userId },
@@ -316,7 +319,10 @@ export class NotificationsService {
    * Check if email notifications should be sent based on user preferences
    * Public method for external services to use
    */
-  async shouldSendEmailNotification(userId: string, type: NotificationType): Promise<boolean> {
+  async shouldSendEmailNotification(
+    userId: string,
+    type: NotificationType,
+  ): Promise<boolean> {
     const preferences = await this.notificationPreferencesRepository.findOne({
       where: { userId },
     });

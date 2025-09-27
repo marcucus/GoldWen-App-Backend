@@ -26,7 +26,7 @@ export class ResponseInterceptor implements NestInterceptor {
         // Add performance headers
         response.setHeader('X-Response-Time', `${processingTime}ms`);
         response.setHeader('X-Request-ID', this.generateRequestId());
-        
+
         // Optimize response time warning
         if (processingTime > 1000) {
           this.logger.warn(
@@ -57,7 +57,7 @@ export class ResponseInterceptor implements NestInterceptor {
               processingTime,
               loadingState: 'success',
             };
-            
+
             return {
               ...data,
               metadata,

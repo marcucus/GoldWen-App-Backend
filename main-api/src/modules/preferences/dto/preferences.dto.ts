@@ -15,7 +15,10 @@ export class NotificationPreferencesDto {
   @ApiProperty({ description: 'Chat expiring notifications', example: true })
   chatExpiring: boolean;
 
-  @ApiProperty({ description: 'Subscription update notifications', example: true })
+  @ApiProperty({
+    description: 'Subscription update notifications',
+    example: true,
+  })
   subscriptionUpdates: boolean;
 
   @ApiProperty({ description: 'Marketing email notifications', example: false })
@@ -32,7 +35,10 @@ export class PrivacyPreferencesDto {
   @ApiProperty({ description: 'Analytics tracking consent', example: false })
   analytics: boolean;
 
-  @ApiProperty({ description: 'Marketing communications consent', example: false })
+  @ApiProperty({
+    description: 'Marketing communications consent',
+    example: false,
+  })
   marketing: boolean;
 
   @ApiProperty({ description: 'Functional cookies consent', example: true })
@@ -43,7 +49,11 @@ export class PrivacyPreferencesDto {
 }
 
 export class AccessibilityPreferencesDto {
-  @ApiProperty({ enum: FontSize, description: 'Font size preference', example: FontSize.MEDIUM })
+  @ApiProperty({
+    enum: FontSize,
+    description: 'Font size preference',
+    example: FontSize.MEDIUM,
+  })
   fontSize: FontSize;
 
   @ApiProperty({ description: 'High contrast mode enabled', example: false })
@@ -63,14 +73,17 @@ export class MatchingFiltersDto {
   @ApiPropertyOptional({ description: 'Maximum age preference', example: 35 })
   ageMax?: number;
 
-  @ApiPropertyOptional({ description: 'Maximum distance in kilometers', example: 50 })
+  @ApiPropertyOptional({
+    description: 'Maximum distance in kilometers',
+    example: 50,
+  })
   maxDistance?: number;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     enum: Gender,
     isArray: true,
     description: 'Preferred genders',
-    example: [Gender.WOMAN]
+    example: [Gender.WOMAN],
   })
   preferredGenders?: Gender[];
 
@@ -194,10 +207,10 @@ export class UpdateMatchingFiltersDto {
   @IsNumber()
   maxDistance?: number;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     enum: Gender,
     isArray: true,
-    description: 'Preferred genders'
+    description: 'Preferred genders',
   })
   @IsOptional()
   @IsEnum(Gender, { each: true })

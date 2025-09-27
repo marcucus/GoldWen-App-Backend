@@ -8,7 +8,10 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { CustomLoggerService } from '../logger';
-import { StandardErrorCode, ErrorRecoveryActions } from '../enums/error-codes.enum';
+import {
+  StandardErrorCode,
+  ErrorRecoveryActions,
+} from '../enums/error-codes.enum';
 import { ErrorResponseDto } from '../dto/response.dto';
 import { SentryService } from '../monitoring';
 
@@ -38,7 +41,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
         const responseObj = exceptionResponse as any;
         message = responseObj.message || exception.message;
-        code = this.mapToStandardErrorCode(status, responseObj.error || exception.name);
+        code = this.mapToStandardErrorCode(
+          status,
+          responseObj.error || exception.name,
+        );
         errors = Array.isArray(responseObj.message) ? responseObj.message : [];
 
         // Handle validation errors
@@ -47,7 +53,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
           code = StandardErrorCode.VALIDATION_ERROR;
         }
       } else {
-        message = exceptionResponse as string;
+        message = exceptionResponse;
         code = this.mapToStandardErrorCode(status, exception.name);
       }
     } else {
@@ -87,9 +93,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
         undefined,
         'HttpExceptionFilter',
       );
-      
+
       // Also send 5xx errors to Sentry if it's an unexpected error
-      if (exception instanceof Error && status === HttpStatus.INTERNAL_SERVER_ERROR) {
+      if (
+        exception instanceof Error &&
+        status === HttpStatus.INTERNAL_SERVER_ERROR
+      ) {
         this.sentry.captureException(exception, {
           request: {
             method: request.method,
@@ -124,20 +133,29 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   private mapToStandardErrorCode(status: number, originalCode: string): string {
     const lowerOriginalCode = originalCode.toLowerCase();
-    
+
     // Map common HTTP status codes to standardized error codes
     switch (status) {
       case HttpStatus.UNAUTHORIZED:
-        if (lowerOriginalCode.includes('token_expired') || lowerOriginalCode.includes('tokenexpired')) {
+        if (
+          lowerOriginalCode.includes('token_expired') ||
+          lowerOriginalCode.includes('tokenexpired')
+        ) {
           return StandardErrorCode.TOKEN_EXPIRED;
         }
-        if (lowerOriginalCode.includes('invalid_credentials') || lowerOriginalCode.includes('invalidcredentials')) {
+        if (
+          lowerOriginalCode.includes('invalid_credentials') ||
+          lowerOriginalCode.includes('invalidcredentials')
+        ) {
           return StandardErrorCode.INVALID_CREDENTIALS;
         }
         return StandardErrorCode.UNAUTHORIZED;
 
       case HttpStatus.FORBIDDEN:
-        if (lowerOriginalCode.includes('subscription') || lowerOriginalCode.includes('premium')) {
+        if (
+          lowerOriginalCode.includes('subscription') ||
+          lowerOriginalCode.includes('premium')
+        ) {
           return StandardErrorCode.SUBSCRIPTION_REQUIRED;
         }
         return StandardErrorCode.FORBIDDEN;
@@ -164,10 +182,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
         return StandardErrorCode.RESOURCE_ALREADY_EXISTS;
 
       case HttpStatus.BAD_REQUEST:
-        if (lowerOriginalCode.includes('validation') || lowerOriginalCode.includes('validationerror')) {
+        if (
+          lowerOriginalCode.includes('validation') ||
+          lowerOriginalCode.includes('validationerror')
+        ) {
           return StandardErrorCode.VALIDATION_ERROR;
         }
-        if (lowerOriginalCode.includes('file_too_large') || lowerOriginalCode.includes('payloadtoolarge')) {
+        if (
+          lowerOriginalCode.includes('file_too_large') ||
+          lowerOriginalCode.includes('payloadtoolarge')
+        ) {
           return StandardErrorCode.FILE_TOO_LARGE;
         }
         return StandardErrorCode.INVALID_INPUT;
@@ -196,13 +220,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
   private filterSensitiveHeaders(headers: any): any {
     const sensitiveHeaders = ['authorization', 'cookie', 'x-api-key'];
     const filtered = { ...headers };
-    
-    sensitiveHeaders.forEach(header => {
+
+    sensitiveHeaders.forEach((header) => {
       if (filtered[header]) {
         filtered[header] = '[FILTERED]';
       }
     });
-    
+
     return filtered;
   }
 }

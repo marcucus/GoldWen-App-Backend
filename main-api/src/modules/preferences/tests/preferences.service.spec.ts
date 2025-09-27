@@ -105,26 +105,32 @@ describe('PreferencesService', () => {
 
     service = module.get<PreferencesService>(PreferencesService);
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
-    notificationPreferencesRepository = module.get<Repository<NotificationPreferences>>(
-      getRepositoryToken(NotificationPreferences),
-    );
+    notificationPreferencesRepository = module.get<
+      Repository<NotificationPreferences>
+    >(getRepositoryToken(NotificationPreferences));
     userConsentRepository = module.get<Repository<UserConsent>>(
       getRepositoryToken(UserConsent),
     );
-    profileRepository = module.get<Repository<Profile>>(getRepositoryToken(Profile));
+    profileRepository = module.get<Repository<Profile>>(
+      getRepositoryToken(Profile),
+    );
     logger = module.get<CustomLoggerService>(CustomLoggerService);
   });
 
   describe('getUserPreferences', () => {
     it('should return user preferences when user exists', async () => {
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as User);
-      jest.spyOn(notificationPreferencesRepository, 'findOne').mockResolvedValue(
-        mockNotificationPreferences as NotificationPreferences,
-      );
-      jest.spyOn(userConsentRepository, 'findOne').mockResolvedValue(
-        mockUserConsent as UserConsent,
-      );
-      jest.spyOn(profileRepository, 'findOne').mockResolvedValue(mockProfile as Profile);
+      jest
+        .spyOn(notificationPreferencesRepository, 'findOne')
+        .mockResolvedValue(
+          mockNotificationPreferences as NotificationPreferences,
+        );
+      jest
+        .spyOn(userConsentRepository, 'findOne')
+        .mockResolvedValue(mockUserConsent as UserConsent);
+      jest
+        .spyOn(profileRepository, 'findOne')
+        .mockResolvedValue(mockProfile as Profile);
 
       const result = await service.getUserPreferences('user-123');
 
@@ -160,32 +166,47 @@ describe('PreferencesService', () => {
         },
       });
 
-      expect(logger.logUserAction).toHaveBeenCalledWith('get_user_preferences', {
-        userId: 'user-123',
-      });
+      expect(logger.logUserAction).toHaveBeenCalledWith(
+        'get_user_preferences',
+        {
+          userId: 'user-123',
+        },
+      );
     });
 
     it('should throw NotFoundException when user does not exist', async () => {
       jest.spyN(userRepository, 'findOne').mockResolvedValue(null);
 
-      await expect(service.getUserPreferences('nonexistent-user')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.getUserPreferences('nonexistent-user'),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should create default preferences when they do not exist', async () => {
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as User);
-      jest.spyOn(notificationPreferencesRepository, 'findOne').mockResolvedValue(null);
-      jest.spyOn(notificationPreferencesRepository, 'create').mockReturnValue(
-        mockNotificationPreferences as NotificationPreferences,
-      );
-      jest.spyOn(notificationPreferencesRepository, 'save').mockResolvedValue(
-        mockNotificationPreferences as NotificationPreferences,
-      );
+      jest
+        .spyOn(notificationPreferencesRepository, 'findOne')
+        .mockResolvedValue(null);
+      jest
+        .spyOn(notificationPreferencesRepository, 'create')
+        .mockReturnValue(
+          mockNotificationPreferences as NotificationPreferences,
+        );
+      jest
+        .spyOn(notificationPreferencesRepository, 'save')
+        .mockResolvedValue(
+          mockNotificationPreferences as NotificationPreferences,
+        );
       jest.spyOn(userConsentRepository, 'findOne').mockResolvedValue(null);
-      jest.spyOn(userConsentRepository, 'create').mockReturnValue(mockUserConsent as UserConsent);
-      jest.spyOn(userConsentRepository, 'save').mockResolvedValue(mockUserConsent as UserConsent);
-      jest.spyOn(profileRepository, 'findOne').mockResolvedValue(mockProfile as Profile);
+      jest
+        .spyOn(userConsentRepository, 'create')
+        .mockReturnValue(mockUserConsent as UserConsent);
+      jest
+        .spyOn(userConsentRepository, 'save')
+        .mockResolvedValue(mockUserConsent as UserConsent);
+      jest
+        .spyOn(profileRepository, 'findOne')
+        .mockResolvedValue(mockProfile as Profile);
 
       const result = await service.getUserPreferences('user-123');
 
@@ -231,9 +252,12 @@ describe('PreferencesService', () => {
       const result = await service.updateUserPreferences('user-123', updateDto);
 
       expect(result.message).toBe('User preferences updated successfully');
-      expect(logger.logUserAction).toHaveBeenCalledWith('update_user_preferences', {
-        userId: 'user-123',
-      });
+      expect(logger.logUserAction).toHaveBeenCalledWith(
+        'update_user_preferences',
+        {
+          userId: 'user-123',
+        },
+      );
     });
 
     it('should throw NotFoundException when user does not exist', async () => {
@@ -245,9 +269,9 @@ describe('PreferencesService', () => {
         },
       };
 
-      await expect(service.updateUserPreferences('nonexistent-user', updateDto)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.updateUserPreferences('nonexistent-user', updateDto),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

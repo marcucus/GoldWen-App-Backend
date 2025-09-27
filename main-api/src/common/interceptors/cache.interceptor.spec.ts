@@ -50,55 +50,72 @@ describe('CacheInterceptor', () => {
     it('should apply short cache headers when strategy is SHORT_CACHE', (done) => {
       reflector.get.mockReturnValue(CacheStrategy.SHORT_CACHE);
 
-      interceptor.intercept(mockContext, mockCallHandler).subscribe((result) => {
-        expect(mockResponse.setHeader).toHaveBeenCalledWith(
-          'Cache-Control',
-          CacheHeaders[CacheStrategy.SHORT_CACHE]['Cache-Control'],
-        );
-        expect(mockResponse.setHeader).toHaveBeenCalledWith('ETag', expect.any(String));
-        expect(result.metadata).toEqual(
-          expect.objectContaining({
-            cacheExpiry: expect.any(String),
-          }),
-        );
-        done();
-      });
+      interceptor
+        .intercept(mockContext, mockCallHandler)
+        .subscribe((result) => {
+          expect(mockResponse.setHeader).toHaveBeenCalledWith(
+            'Cache-Control',
+            CacheHeaders[CacheStrategy.SHORT_CACHE]['Cache-Control'],
+          );
+          expect(mockResponse.setHeader).toHaveBeenCalledWith(
+            'ETag',
+            expect.any(String),
+          );
+          expect(result.metadata).toEqual(
+            expect.objectContaining({
+              cacheExpiry: expect.any(String),
+            }),
+          );
+          done();
+        });
     });
 
     it('should apply medium cache headers when strategy is MEDIUM_CACHE', (done) => {
       reflector.get.mockReturnValue(CacheStrategy.MEDIUM_CACHE);
 
-      interceptor.intercept(mockContext, mockCallHandler).subscribe((result) => {
-        expect(mockResponse.setHeader).toHaveBeenCalledWith(
-          'Cache-Control',
-          CacheHeaders[CacheStrategy.MEDIUM_CACHE]['Cache-Control'],
-        );
-        expect(mockResponse.setHeader).toHaveBeenCalledWith('ETag', expect.any(String));
-        done();
-      });
+      interceptor
+        .intercept(mockContext, mockCallHandler)
+        .subscribe((result) => {
+          expect(mockResponse.setHeader).toHaveBeenCalledWith(
+            'Cache-Control',
+            CacheHeaders[CacheStrategy.MEDIUM_CACHE]['Cache-Control'],
+          );
+          expect(mockResponse.setHeader).toHaveBeenCalledWith(
+            'ETag',
+            expect.any(String),
+          );
+          done();
+        });
     });
 
     it('should apply no-cache headers when strategy is NO_CACHE', (done) => {
       reflector.get.mockReturnValue(CacheStrategy.NO_CACHE);
 
-      interceptor.intercept(mockContext, mockCallHandler).subscribe((result) => {
-        const noCacheHeaders = CacheHeaders[CacheStrategy.NO_CACHE];
-        Object.entries(noCacheHeaders).forEach(([key, value]) => {
-          expect(mockResponse.setHeader).toHaveBeenCalledWith(key, value);
+      interceptor
+        .intercept(mockContext, mockCallHandler)
+        .subscribe((result) => {
+          const noCacheHeaders = CacheHeaders[CacheStrategy.NO_CACHE];
+          Object.entries(noCacheHeaders).forEach(([key, value]) => {
+            expect(mockResponse.setHeader).toHaveBeenCalledWith(key, value);
+          });
+          expect(mockResponse.setHeader).not.toHaveBeenCalledWith(
+            'ETag',
+            expect.any(String),
+          );
+          done();
         });
-        expect(mockResponse.setHeader).not.toHaveBeenCalledWith('ETag', expect.any(String));
-        done();
-      });
     });
 
     it('should not apply cache headers when no strategy is defined', (done) => {
       reflector.get.mockReturnValue(undefined);
 
-      interceptor.intercept(mockContext, mockCallHandler).subscribe((result) => {
-        expect(mockResponse.setHeader).not.toHaveBeenCalled();
-        expect(result).toEqual({ test: 'data' });
-        done();
-      });
+      interceptor
+        .intercept(mockContext, mockCallHandler)
+        .subscribe((result) => {
+          expect(mockResponse.setHeader).not.toHaveBeenCalled();
+          expect(result).toEqual({ test: 'data' });
+          done();
+        });
     });
   });
 
@@ -164,36 +181,44 @@ describe('CacheInterceptor', () => {
     it('should add cache expiry to response metadata for SHORT_CACHE', (done) => {
       reflector.get.mockReturnValue(CacheStrategy.SHORT_CACHE);
 
-      interceptor.intercept(mockContext, mockCallHandler).subscribe((result) => {
-        expect(result.metadata.cacheExpiry).toBeDefined();
-        const expiry = new Date(result.metadata.cacheExpiry);
-        const now = new Date();
-        const diffInMinutes = (expiry.getTime() - now.getTime()) / (1000 * 60);
-        expect(diffInMinutes).toBeCloseTo(5, 0); // 5 minutes ±1
-        done();
-      });
+      interceptor
+        .intercept(mockContext, mockCallHandler)
+        .subscribe((result) => {
+          expect(result.metadata.cacheExpiry).toBeDefined();
+          const expiry = new Date(result.metadata.cacheExpiry);
+          const now = new Date();
+          const diffInMinutes =
+            (expiry.getTime() - now.getTime()) / (1000 * 60);
+          expect(diffInMinutes).toBeCloseTo(5, 0); // 5 minutes ±1
+          done();
+        });
     });
 
     it('should add cache expiry to response metadata for LONG_CACHE', (done) => {
       reflector.get.mockReturnValue(CacheStrategy.LONG_CACHE);
 
-      interceptor.intercept(mockContext, mockCallHandler).subscribe((result) => {
-        expect(result.metadata.cacheExpiry).toBeDefined();
-        const expiry = new Date(result.metadata.cacheExpiry);
-        const now = new Date();
-        const diffInHours = (expiry.getTime() - now.getTime()) / (1000 * 60 * 60);
-        expect(diffInHours).toBeCloseTo(24, 0); // 24 hours ±1
-        done();
-      });
+      interceptor
+        .intercept(mockContext, mockCallHandler)
+        .subscribe((result) => {
+          expect(result.metadata.cacheExpiry).toBeDefined();
+          const expiry = new Date(result.metadata.cacheExpiry);
+          const now = new Date();
+          const diffInHours =
+            (expiry.getTime() - now.getTime()) / (1000 * 60 * 60);
+          expect(diffInHours).toBeCloseTo(24, 0); // 24 hours ±1
+          done();
+        });
     });
 
     it('should not add cache expiry for NO_CACHE strategy', (done) => {
       reflector.get.mockReturnValue(CacheStrategy.NO_CACHE);
 
-      interceptor.intercept(mockContext, mockCallHandler).subscribe((result) => {
-        expect(result.metadata?.cacheExpiry).toBeUndefined();
-        done();
-      });
+      interceptor
+        .intercept(mockContext, mockCallHandler)
+        .subscribe((result) => {
+          expect(result.metadata?.cacheExpiry).toBeUndefined();
+          done();
+        });
     });
   });
 });

@@ -36,7 +36,13 @@ export class PreferencesService {
     // Get user with all related data
     const user = await this.userRepository.findOne({
       where: { id: userId },
-      select: ['id', 'fontSize', 'highContrast', 'reducedMotion', 'screenReader'],
+      select: [
+        'id',
+        'fontSize',
+        'highContrast',
+        'reducedMotion',
+        'screenReader',
+      ],
     });
 
     if (!user) {
@@ -44,9 +50,10 @@ export class PreferencesService {
     }
 
     // Get notification preferences
-    let notificationPreferences = await this.notificationPreferencesRepository.findOne({
-      where: { userId },
-    });
+    let notificationPreferences =
+      await this.notificationPreferencesRepository.findOne({
+        where: { userId },
+      });
 
     // Create default notification preferences if they don't exist
     if (!notificationPreferences) {
@@ -61,7 +68,9 @@ export class PreferencesService {
         pushNotifications: true,
         emailNotifications: true,
       });
-      await this.notificationPreferencesRepository.save(notificationPreferences);
+      await this.notificationPreferencesRepository.save(
+        notificationPreferences,
+      );
     }
 
     // Get current user consent (privacy preferences)
@@ -85,7 +94,13 @@ export class PreferencesService {
     // Get profile for matching filters
     const profile = await this.profileRepository.findOne({
       where: { userId },
-      select: ['minAge', 'maxAge', 'maxDistance', 'interestedInGenders', 'showMeInDiscovery'],
+      select: [
+        'minAge',
+        'maxAge',
+        'maxDistance',
+        'interestedInGenders',
+        'showMeInDiscovery',
+      ],
     });
 
     // Build response
@@ -148,7 +163,10 @@ export class PreferencesService {
 
     // Update accessibility preferences
     if (updateDto.accessibility) {
-      await this.updateAccessibilityPreferences(userId, updateDto.accessibility);
+      await this.updateAccessibilityPreferences(
+        userId,
+        updateDto.accessibility,
+      );
     }
 
     // Update matching filters
@@ -232,7 +250,7 @@ export class PreferencesService {
 
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) return;
-    
+
     if (updates.fontSize !== undefined) {
       user.fontSize = updates.fontSize;
     }
@@ -255,7 +273,7 @@ export class PreferencesService {
   ): Promise<void> {
     if (!updates) return;
 
-    let profile = await this.profileRepository.findOne({
+    const profile = await this.profileRepository.findOne({
       where: { userId },
     });
 

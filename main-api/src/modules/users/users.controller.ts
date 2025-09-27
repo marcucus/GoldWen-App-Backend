@@ -30,7 +30,10 @@ import {
 } from './dto/accessibility-settings.dto';
 import { RegisterPushTokenDto, DeletePushTokenDto } from './dto/push-token.dto';
 import { ConsentDto, ExportDataDto } from './dto/consent.dto';
-import { UpdateUserRoleDto, UserRolesListResponseDto } from './dto/role-management.dto';
+import {
+  UpdateUserRoleDto,
+  UserRolesListResponseDto,
+} from './dto/role-management.dto';
 import { SuccessResponseDto } from '../../common/dto/response.dto';
 import { GdprService } from './gdpr.service';
 import { Roles, RoleGuard } from '../auth/guards/role.guard';
@@ -366,11 +369,13 @@ export class UsersController {
   }
 
   // Role Management Routes
-  @ApiOperation({ summary: 'Get list of users with their roles (Admin/Moderator only)' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiOperation({
+    summary: 'Get list of users with their roles (Admin/Moderator only)',
+  })
+  @ApiResponse({
+    status: 200,
     description: 'List of users with roles retrieved',
-    type: UserRolesListResponseDto
+    type: UserRolesListResponseDto,
   })
   @UseGuards(RoleGuard)
   @Roles([UserRole.ADMIN, UserRole.MODERATOR])

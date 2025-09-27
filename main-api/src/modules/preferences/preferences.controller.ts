@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Put,
-  Body,
-  UseGuards,
-  Req,
-} from '@nestjs/common';
+import { Controller, Get, Put, Body, UseGuards, Req } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import {
   ApiTags,
@@ -17,7 +10,10 @@ import type { Request } from 'express';
 
 import { User } from '../../database/entities/user.entity';
 import { PreferencesService } from './preferences.service';
-import { UserPreferencesDto, UpdateUserPreferencesDto } from './dto/preferences.dto';
+import {
+  UserPreferencesDto,
+  UpdateUserPreferencesDto,
+} from './dto/preferences.dto';
 
 @ApiTags('Preferences')
 @ApiBearerAuth()
@@ -35,7 +31,9 @@ export class PreferencesController {
   @Get('me')
   async getMyPreferences(@Req() req: Request) {
     const user = req.user as User;
-    const preferences = await this.preferencesService.getUserPreferences(user.id);
+    const preferences = await this.preferencesService.getUserPreferences(
+      user.id,
+    );
 
     return {
       success: true,
@@ -55,7 +53,10 @@ export class PreferencesController {
     @Body() updateDto: UpdateUserPreferencesDto,
   ) {
     const user = req.user as User;
-    const result = await this.preferencesService.updateUserPreferences(user.id, updateDto);
+    const result = await this.preferencesService.updateUserPreferences(
+      user.id,
+      updateDto,
+    );
 
     return {
       success: true,

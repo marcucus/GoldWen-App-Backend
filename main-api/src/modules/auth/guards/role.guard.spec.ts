@@ -59,25 +59,31 @@ describe('RoleGuard', () => {
     });
 
     it('should throw ForbiddenException when user is not authenticated', () => {
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([UserRole.ADMIN]);
+      jest
+        .spyOn(reflector, 'getAllAndOverride')
+        .mockReturnValue([UserRole.ADMIN]);
 
       expect(() => guard.canActivate(mockContext)).toThrow(ForbiddenException);
     });
 
     it('should throw ForbiddenException when user has no role defined', () => {
       mockRequest.user = { id: '1', email: 'test@test.com' } as User;
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([UserRole.ADMIN]);
+      jest
+        .spyOn(reflector, 'getAllAndOverride')
+        .mockReturnValue([UserRole.ADMIN]);
 
       expect(() => guard.canActivate(mockContext)).toThrow(ForbiddenException);
     });
 
     it('should return true when user has required role', () => {
-      mockRequest.user = { 
-        id: '1', 
-        email: 'test@test.com', 
-        role: UserRole.ADMIN 
+      mockRequest.user = {
+        id: '1',
+        email: 'test@test.com',
+        role: UserRole.ADMIN,
       } as User;
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([UserRole.ADMIN]);
+      jest
+        .spyOn(reflector, 'getAllAndOverride')
+        .mockReturnValue([UserRole.ADMIN]);
 
       const result = guard.canActivate(mockContext);
 
@@ -85,12 +91,14 @@ describe('RoleGuard', () => {
     });
 
     it('should allow admin to access moderator endpoints', () => {
-      mockRequest.user = { 
-        id: '1', 
-        email: 'test@test.com', 
-        role: UserRole.ADMIN 
+      mockRequest.user = {
+        id: '1',
+        email: 'test@test.com',
+        role: UserRole.ADMIN,
       } as User;
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([UserRole.MODERATOR]);
+      jest
+        .spyOn(reflector, 'getAllAndOverride')
+        .mockReturnValue([UserRole.MODERATOR]);
 
       const result = guard.canActivate(mockContext);
 
@@ -98,23 +106,27 @@ describe('RoleGuard', () => {
     });
 
     it('should throw ForbiddenException when user lacks required role', () => {
-      mockRequest.user = { 
-        id: '1', 
-        email: 'test@test.com', 
-        role: UserRole.USER 
+      mockRequest.user = {
+        id: '1',
+        email: 'test@test.com',
+        role: UserRole.USER,
       } as User;
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([UserRole.ADMIN]);
+      jest
+        .spyOn(reflector, 'getAllAndOverride')
+        .mockReturnValue([UserRole.ADMIN]);
 
       expect(() => guard.canActivate(mockContext)).toThrow(ForbiddenException);
     });
 
     it('should return true when user has one of multiple required roles', () => {
-      mockRequest.user = { 
-        id: '1', 
-        email: 'test@test.com', 
-        role: UserRole.MODERATOR 
+      mockRequest.user = {
+        id: '1',
+        email: 'test@test.com',
+        role: UserRole.MODERATOR,
       } as User;
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([UserRole.ADMIN, UserRole.MODERATOR]);
+      jest
+        .spyOn(reflector, 'getAllAndOverride')
+        .mockReturnValue([UserRole.ADMIN, UserRole.MODERATOR]);
 
       const result = guard.canActivate(mockContext);
 

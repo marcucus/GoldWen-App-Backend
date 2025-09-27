@@ -41,41 +41,53 @@ export class SecurityLoggingMiddleware implements NestMiddleware {
     // Monitor response for security events
     res.on('finish', () => {
       const duration = Date.now() - startTime;
-      
+
       // Log failed authentication
       if (req.path.includes('/auth/') && res.statusCode === 401) {
-        this.logger.logSecurityEvent('auth_failed', {
-          path: req.path,
-          ip,
-          userAgent,
-          duration,
-        }, 'warn');
+        this.logger.logSecurityEvent(
+          'auth_failed',
+          {
+            path: req.path,
+            ip,
+            userAgent,
+            duration,
+          },
+          'warn',
+        );
       }
 
       // Log unauthorized admin access
       if (req.path.includes('/admin/') && res.statusCode === 403) {
-        this.logger.logSecurityEvent('admin_access_denied', {
-          path: req.path,
-          ip,
-          userAgent,
-          duration,
-        }, 'warn');
+        this.logger.logSecurityEvent(
+          'admin_access_denied',
+          {
+            path: req.path,
+            ip,
+            userAgent,
+            duration,
+          },
+          'warn',
+        );
 
         // Send alert for critical admin access attempts
         this.alerting.sendWarningAlert(
           'Unauthorized Admin Access Attempt',
           `Attempt to access admin endpoint ${req.path} from IP ${ip}`,
-          { path: req.path, ip, userAgent }
+          { path: req.path, ip, userAgent },
         );
       }
 
       // Log rate limiting hits
       if (res.statusCode === 429) {
-        this.logger.logSecurityEvent('rate_limit_exceeded', {
-          path: req.path,
-          ip,
-          userAgent,
-        }, 'warn');
+        this.logger.logSecurityEvent(
+          'rate_limit_exceeded',
+          {
+            path: req.path,
+            ip,
+            userAgent,
+          },
+          'warn',
+        );
       }
     });
 
@@ -94,18 +106,26 @@ export class SecurityLoggingMiddleware implements NestMiddleware {
       /[;&|`$(){}[\]]/g,
     ];
 
-    const userInput = JSON.stringify(req.body) + req.url + JSON.stringify(req.query);
+    const userInput =
+      JSON.stringify(req.body) + req.url + JSON.stringify(req.query);
 
     for (const pattern of suspiciousPatterns) {
       if (pattern.test(userInput)) {
-        this.logger.logSecurityEvent('suspicious_input_detected', {
-          pattern: pattern.source,
-          path: req.path,
-          method: req.method,
-          ip: req.ip,
-          userAgent: req.headers['user-agent'],
-          input: userInput.length > 1000 ? userInput.substring(0, 1000) + '...' : userInput,
-        }, 'error');
+        this.logger.logSecurityEvent(
+          'suspicious_input_detected',
+          {
+            pattern: pattern.source,
+            path: req.path,
+            method: req.method,
+            ip: req.ip,
+            userAgent: req.headers['user-agent'],
+            input:
+              userInput.length > 1000
+                ? userInput.substring(0, 1000) + '...'
+                : userInput,
+          },
+          'error',
+        );
 
         // Send critical alert
         this.alerting.sendCriticalAlert(
@@ -115,19 +135,26 @@ export class SecurityLoggingMiddleware implements NestMiddleware {
             pattern: pattern.source,
             path: req.path,
             ip: req.ip,
-          }
+          },
         );
         break;
       }
     }
 
     // Check for unusual request patterns
-    if (req.headers['content-length'] && parseInt(req.headers['content-length']) > 10 * 1024 * 1024) {
-      this.logger.logSecurityEvent('large_request_detected', {
-        path: req.path,
-        contentLength: req.headers['content-length'],
-        ip: req.ip,
-      }, 'warn');
+    if (
+      req.headers['content-length'] &&
+      parseInt(req.headers['content-length']) > 10 * 1024 * 1024
+    ) {
+      this.logger.logSecurityEvent(
+        'large_request_detected',
+        {
+          path: req.path,
+          contentLength: req.headers['content-length'],
+          ip: req.ip,
+        },
+        'warn',
+      );
     }
   }
 }

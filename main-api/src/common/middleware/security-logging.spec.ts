@@ -25,19 +25,19 @@ describe('SecurityLoggingMiddleware', () => {
       method: 'GET',
       ip: '192.168.1.1',
       headers: {
-        'user-agent': 'Test Agent'
+        'user-agent': 'Test Agent',
       },
       body: {},
       url: '/api/v1/test',
       query: {},
       connection: {
-        remoteAddress: '192.168.1.1'
-      }
+        remoteAddress: '192.168.1.1',
+      },
     };
 
     mockResponse = {
       on: jest.fn(),
-      statusCode: 200
+      statusCode: 200,
     };
 
     mockNext = jest.fn();
@@ -51,24 +51,21 @@ describe('SecurityLoggingMiddleware', () => {
 
   it('should log authentication attempts', () => {
     mockRequest.path = '/auth/login';
-    
+
     middleware.use(mockRequest, mockResponse, mockNext);
 
-    expect(mockLogger.logSecurityEvent).toHaveBeenCalledWith(
-      'auth_attempt',
-      {
-        path: '/auth/login',
-        method: 'GET',
-        ip: '192.168.1.1',
-        userAgent: 'Test Agent'
-      }
-    );
+    expect(mockLogger.logSecurityEvent).toHaveBeenCalledWith('auth_attempt', {
+      path: '/auth/login',
+      method: 'GET',
+      ip: '192.168.1.1',
+      userAgent: 'Test Agent',
+    });
     expect(mockNext).toHaveBeenCalled();
   });
 
   it('should log admin access attempts', () => {
     mockRequest.path = '/admin/users';
-    
+
     middleware.use(mockRequest, mockResponse, mockNext);
 
     expect(mockLogger.logSecurityEvent).toHaveBeenCalledWith(
@@ -77,8 +74,8 @@ describe('SecurityLoggingMiddleware', () => {
         path: '/admin/users',
         method: 'GET',
         ip: '192.168.1.1',
-        userAgent: 'Test Agent'
-      }
+        userAgent: 'Test Agent',
+      },
     );
     expect(mockNext).toHaveBeenCalled();
   });
@@ -87,7 +84,7 @@ describe('SecurityLoggingMiddleware', () => {
     mockRequest.body = { username: "'; DROP TABLE users; --" };
     mockRequest.url = '/api/v1/login';
     mockRequest.path = '/api/v1/login';
-    
+
     middleware.use(mockRequest, mockResponse, mockNext);
 
     expect(mockLogger.logSecurityEvent).toHaveBeenCalledWith(
@@ -96,9 +93,9 @@ describe('SecurityLoggingMiddleware', () => {
         path: '/api/v1/login',
         method: 'GET',
         ip: '192.168.1.1',
-        pattern: expect.stringContaining("'|(\\\\x27)")
+        pattern: expect.stringContaining("'|(\\\\x27)"),
       }),
-      'error'
+      'error',
     );
 
     expect(mockAlerting.sendCriticalAlert).toHaveBeenCalledWith(
@@ -106,36 +103,36 @@ describe('SecurityLoggingMiddleware', () => {
       'Potential security threat detected from IP 192.168.1.1',
       expect.objectContaining({
         path: '/api/v1/login',
-        ip: '192.168.1.1'
-      })
+        ip: '192.168.1.1',
+      }),
     );
   });
 
   it('should detect XSS patterns', () => {
     mockRequest.body = { message: '<script>alert("xss")</script>' };
-    
+
     middleware.use(mockRequest, mockResponse, mockNext);
 
     expect(mockLogger.logSecurityEvent).toHaveBeenCalledWith(
       'suspicious_input_detected',
       expect.objectContaining({
-        ip: '192.168.1.1'
+        ip: '192.168.1.1',
       }),
-      'error'
+      'error',
     );
   });
 
   it('should log failed authentication on response', () => {
     mockRequest.path = '/auth/login';
     mockResponse.statusCode = 401;
-    
+
     const mockResponseOn = jest.fn((event, callback) => {
       if (event === 'finish') {
         callback(); // Simulate response finish
       }
     });
     mockResponse.on = mockResponseOn;
-    
+
     middleware.use(mockRequest, mockResponse, mockNext);
 
     expect(mockResponseOn).toHaveBeenCalledWith('finish', expect.any(Function));
@@ -144,14 +141,14 @@ describe('SecurityLoggingMiddleware', () => {
   it('should send alert for unauthorized admin access', () => {
     mockRequest.path = '/admin/dashboard';
     mockResponse.statusCode = 403;
-    
+
     const mockResponseOn = jest.fn((event, callback) => {
       if (event === 'finish') {
         callback(); // Simulate response finish
       }
     });
     mockResponse.on = mockResponseOn;
-    
+
     middleware.use(mockRequest, mockResponse, mockNext);
 
     // The alert would be sent in the response finish callback
