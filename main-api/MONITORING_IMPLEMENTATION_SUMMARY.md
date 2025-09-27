@@ -6,15 +6,19 @@ This document summarizes the comprehensive logging, monitoring, and alerting sys
 
 ## ✅ Requirements Met
 
-### ✅ Intégration de Sentry pour erreurs et performance
+### ✅ Intégration avec outils externes (Sentry, Datadog, etc.)
 - **Sentry Service**: Full integration with error tracking and performance monitoring
+- **DataDog Service**: Complete metrics and analytics integration for system and business monitoring
 - **Automatic Error Capture**: All exceptions are automatically sent to Sentry
 - **Performance Tracing**: APM with configurable sample rates
+- **System Metrics**: Automated collection of system performance metrics
+- **Business Analytics**: Track user actions, matches, and key business events
 - **Sensitive Data Filtering**: Automatic filtering of passwords, tokens, and PII
 - **Release Tracking**: Ready for deployment tracking
 
 **Files Implemented:**
 - `src/common/monitoring/sentry.service.ts`
+- `src/common/monitoring/datadog.service.ts`
 - Configuration in `src/config/configuration.ts`
 
 ### ✅ Logs structurés et accès restreint
@@ -101,6 +105,10 @@ This document summarizes the comprehensive logging, monitoring, and alerting sys
 SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
 SENTRY_TRACES_SAMPLE_RATE=0.1
 SENTRY_PROFILES_SAMPLE_RATE=0.01
+
+# DataDog Configuration (optional)
+DATADOG_API_KEY=your-datadog-api-key
+DATADOG_APP_KEY=your-datadog-app-key
 
 # Alerting Channels
 ALERTS_WEBHOOK_URL=https://your-webhook-url.com/alerts

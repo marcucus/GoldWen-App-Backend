@@ -73,6 +73,10 @@ export interface MonitoringConfig {
     tracesSampleRate: number;
     profilesSampleRate: number;
   };
+  datadog?: {
+    apiKey: string;
+    appKey: string;
+  };
   alerts: {
     webhookUrl?: string;
     slackWebhookUrl?: string;

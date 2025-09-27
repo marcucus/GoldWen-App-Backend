@@ -173,7 +173,7 @@ export class NotificationsService {
         type,
         reason: 'user_preferences',
       });
-      return null; // Or throw a specific exception if needed
+      throw new Error('Notification blocked by user preferences');
     }
 
     const notification = this.notificationRepository.create({

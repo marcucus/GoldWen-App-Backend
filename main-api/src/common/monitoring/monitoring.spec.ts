@@ -2,11 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { SentryService } from './sentry.service';
 import { AlertingService } from './alerting.service';
+import { DatadogService } from './datadog.service';
 import { CustomLoggerService } from '../logger';
 
 describe('Monitoring Services', () => {
   let sentryService: SentryService;
   let alertingService: AlertingService;
+  let datadogService: DatadogService;
   let configService: ConfigService;
   let loggerService: CustomLoggerService;
 
@@ -17,6 +19,8 @@ describe('Monitoring Services', () => {
         'monitoring.sentry.environment': 'test',
         'monitoring.sentry.tracesSampleRate': 0.1,
         'monitoring.sentry.profilesSampleRate': 0.01,
+        'monitoring.datadog.apiKey': '',
+        'monitoring.datadog.appKey': '',
         'monitoring.alerts.webhookUrl': 'http://test.webhook.com',
         'monitoring.alerts.slackWebhookUrl': '',
         'monitoring.alerts.emailRecipients': ['test@example.com'],
@@ -38,6 +42,7 @@ describe('Monitoring Services', () => {
       providers: [
         SentryService,
         AlertingService,
+        DatadogService,
         {
           provide: ConfigService,
           useValue: mockConfigService,
@@ -51,6 +56,7 @@ describe('Monitoring Services', () => {
 
     sentryService = module.get<SentryService>(SentryService);
     alertingService = module.get<AlertingService>(AlertingService);
+    datadogService = module.get<DatadogService>(DatadogService);
     configService = module.get<ConfigService>(ConfigService);
     loggerService = module.get<CustomLoggerService>(CustomLoggerService);
   });
@@ -140,6 +146,39 @@ describe('Monitoring Services', () => {
         undefined,
         'AlertingService'
       );
+    });
+  });
+
+  describe('DatadogService', () => {
+    it('should be defined', () => {
+      expect(datadogService).toBeDefined();
+    });
+
+    it('should handle missing configuration gracefully', async () => {
+      // DatadogService should be initialized without keys
+      const result = await datadogService.sendGaugeMetric('test.metric', 1.0);
+      
+      expect(result).toBe(false);
+      expect(mockLoggerService.debug).toHaveBeenCalledWith(
+        'DataDog not enabled, skipping metric: test.metric',
+        'DatadogService'
+      );
+    });
+
+    it('should track system metrics without errors', async () => {
+      await expect(datadogService.trackSystemMetrics()).resolves.not.toThrow();
+    });
+
+    it('should track API metrics without errors', async () => {
+      await expect(
+        datadogService.trackApiMetrics('/test', 'GET', 150, 200)
+      ).resolves.not.toThrow();
+    });
+
+    it('should track business metrics without errors', async () => {
+      await expect(
+        datadogService.trackBusinessMetrics('user_login', 1, ['source:mobile'])
+      ).resolves.not.toThrow();
     });
   });
 });
