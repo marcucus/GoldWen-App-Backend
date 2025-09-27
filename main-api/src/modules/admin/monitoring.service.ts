@@ -4,6 +4,7 @@ import { DataSource } from 'typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { CustomLoggerService } from '../../common/logger';
+import { ConfigService } from '@nestjs/config';
 
 export interface LogEntry {
   timestamp: string;
@@ -46,6 +47,7 @@ export class MonitoringService {
     @InjectDataSource() private dataSource: DataSource,
     @InjectRedis() private redis: Redis,
     private logger: CustomLoggerService,
+    private configService: ConfigService,
   ) {
     // Initialize log capture
     this.setupLogCapture();
@@ -57,10 +59,11 @@ export class MonitoringService {
   }
 
   async getDashboardData() {
-    const [systemMetrics, dbStats, redisStats] = await Promise.all([
+    const [systemMetrics, dbStats, redisStats, monitoringStatus] = await Promise.all([
       this.getSystemMetrics(),
       this.getDatabaseStats(),
       this.getRedisStats(),
+      this.getMonitoringStatus(),
     ]);
 
     return {
@@ -72,6 +75,7 @@ export class MonitoringService {
       system: systemMetrics,
       database: dbStats,
       redis: redisStats,
+      monitoring: monitoringStatus,
       recentAlerts: this.alerts.slice(-10),
       recentErrors: this.logs.filter(log => log.level === 'error').slice(-10),
     };
@@ -328,5 +332,35 @@ export class MonitoringService {
     if (this.alerts.length > this.maxAlertsToKeep) {
       this.alerts = this.alerts.slice(-this.maxAlertsToKeep);
     }
+  }
+
+  private async getMonitoringStatus() {
+    const monitoringConfig = this.configService.get('monitoring');
+    
+    return {
+      sentry: {
+        enabled: !!(monitoringConfig?.sentry?.dsn),
+        environment: monitoringConfig?.sentry?.environment || 'development',
+        tracesSampleRate: monitoringConfig?.sentry?.tracesSampleRate || 0.1,
+      },
+      datadog: {
+        enabled: !!(monitoringConfig?.datadog?.apiKey && monitoringConfig?.datadog?.appKey),
+        configured: !!(monitoringConfig?.datadog),
+      },
+      alerts: {
+        webhookConfigured: !!(monitoringConfig?.alerts?.webhookUrl),
+        slackConfigured: !!(monitoringConfig?.alerts?.slackWebhookUrl),
+        emailConfigured: !!(monitoringConfig?.alerts?.emailRecipients?.length > 0),
+        totalChannels: [
+          monitoringConfig?.alerts?.webhookUrl,
+          monitoringConfig?.alerts?.slackWebhookUrl,
+          monitoringConfig?.alerts?.emailRecipients?.length > 0 && 'email',
+        ].filter(Boolean).length,
+      },
+      logging: {
+        level: this.configService.get('app.logLevel') || 'info',
+        environment: this.configService.get('app.environment') || 'development',
+      },
+    };
   }
 }
