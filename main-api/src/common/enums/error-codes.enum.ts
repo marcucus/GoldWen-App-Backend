@@ -36,7 +36,7 @@ export enum StandardErrorCode {
   INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
   DATABASE_ERROR = 'DATABASE_ERROR',
   EXTERNAL_SERVICE_ERROR = 'EXTERNAL_SERVICE_ERROR',
-  
+
   // Service unavailable (503)
   SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
   MAINTENANCE_MODE = 'MAINTENANCE_MODE',
@@ -44,36 +44,52 @@ export enum StandardErrorCode {
 
 export const ErrorRecoveryActions = {
   [StandardErrorCode.UNAUTHORIZED]: 'Please log in again',
-  [StandardErrorCode.TOKEN_EXPIRED]: 'Your session has expired. Please log in again.',
-  [StandardErrorCode.INVALID_CREDENTIALS]: 'Please check your email and password',
-  [StandardErrorCode.ACCOUNT_LOCKED]: 'Your account has been locked. Please contact support.',
-  
-  [StandardErrorCode.FORBIDDEN]: 'You do not have permission to access this resource',
-  [StandardErrorCode.INSUFFICIENT_PERMISSIONS]: 'Please upgrade your account or contact support',
-  [StandardErrorCode.SUBSCRIPTION_REQUIRED]: 'This feature requires a premium subscription',
-  
+  [StandardErrorCode.TOKEN_EXPIRED]:
+    'Your session has expired. Please log in again.',
+  [StandardErrorCode.INVALID_CREDENTIALS]:
+    'Please check your email and password',
+  [StandardErrorCode.ACCOUNT_LOCKED]:
+    'Your account has been locked. Please contact support.',
+
+  [StandardErrorCode.FORBIDDEN]:
+    'You do not have permission to access this resource',
+  [StandardErrorCode.INSUFFICIENT_PERMISSIONS]:
+    'Please upgrade your account or contact support',
+  [StandardErrorCode.SUBSCRIPTION_REQUIRED]:
+    'This feature requires a premium subscription',
+
   [StandardErrorCode.VALIDATION_ERROR]: 'Please check your input and try again',
   [StandardErrorCode.INVALID_INPUT]: 'Please correct the highlighted fields',
-  [StandardErrorCode.MISSING_REQUIRED_FIELD]: 'Please fill in all required fields',
-  [StandardErrorCode.INVALID_FILE_FORMAT]: 'Please upload a valid file format (JPG, PNG)',
+  [StandardErrorCode.MISSING_REQUIRED_FIELD]:
+    'Please fill in all required fields',
+  [StandardErrorCode.INVALID_FILE_FORMAT]:
+    'Please upload a valid file format (JPG, PNG)',
   [StandardErrorCode.FILE_TOO_LARGE]: 'Please upload a smaller file (max 5MB)',
-  
-  [StandardErrorCode.RESOURCE_NOT_FOUND]: 'The requested resource was not found',
+
+  [StandardErrorCode.RESOURCE_NOT_FOUND]:
+    'The requested resource was not found',
   [StandardErrorCode.USER_NOT_FOUND]: 'User account not found',
   [StandardErrorCode.PROFILE_NOT_FOUND]: 'Profile not found',
   [StandardErrorCode.CONVERSATION_NOT_FOUND]: 'Conversation not found',
-  
+
   [StandardErrorCode.RESOURCE_ALREADY_EXISTS]: 'This resource already exists',
-  [StandardErrorCode.EMAIL_ALREADY_EXISTS]: 'An account with this email already exists',
-  [StandardErrorCode.PHONE_ALREADY_EXISTS]: 'An account with this phone number already exists',
-  
-  [StandardErrorCode.RATE_LIMIT_EXCEEDED]: 'Too many requests. Please try again in a few minutes.',
+  [StandardErrorCode.EMAIL_ALREADY_EXISTS]:
+    'An account with this email already exists',
+  [StandardErrorCode.PHONE_ALREADY_EXISTS]:
+    'An account with this phone number already exists',
+
+  [StandardErrorCode.RATE_LIMIT_EXCEEDED]:
+    'Too many requests. Please try again in a few minutes.',
   [StandardErrorCode.TOO_MANY_REQUESTS]: 'Please slow down and try again later',
-  
-  [StandardErrorCode.INTERNAL_SERVER_ERROR]: 'Something went wrong. Please try again later.',
-  [StandardErrorCode.DATABASE_ERROR]: 'Database temporarily unavailable. Please try again.',
-  [StandardErrorCode.EXTERNAL_SERVICE_ERROR]: 'External service error. Please try again later.',
-  
+
+  [StandardErrorCode.INTERNAL_SERVER_ERROR]:
+    'Something went wrong. Please try again later.',
+  [StandardErrorCode.DATABASE_ERROR]:
+    'Database temporarily unavailable. Please try again.',
+  [StandardErrorCode.EXTERNAL_SERVICE_ERROR]:
+    'External service error. Please try again later.',
+
   [StandardErrorCode.SERVICE_UNAVAILABLE]: 'Service is temporarily unavailable',
-  [StandardErrorCode.MAINTENANCE_MODE]: 'We are currently performing maintenance. Please try again later.',
+  [StandardErrorCode.MAINTENANCE_MODE]:
+    'We are currently performing maintenance. Please try again later.',
 };

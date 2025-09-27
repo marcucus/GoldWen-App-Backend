@@ -2,7 +2,10 @@ import { Test } from '@nestjs/testing';
 import { ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import { HttpExceptionFilter } from './http-exception.filter';
 import { CustomLoggerService } from '../logger';
-import { StandardErrorCode, ErrorRecoveryActions } from '../enums/error-codes.enum';
+import {
+  StandardErrorCode,
+  ErrorRecoveryActions,
+} from '../enums/error-codes.enum';
 
 describe('HttpExceptionFilter', () => {
   let filter: HttpExceptionFilter;
@@ -72,7 +75,8 @@ describe('HttpExceptionFilter', () => {
           message: 'Validation failed',
           code: StandardErrorCode.VALIDATION_ERROR,
           errors: ['field1 is required', 'field2 must be valid'],
-          recoveryAction: ErrorRecoveryActions[StandardErrorCode.VALIDATION_ERROR],
+          recoveryAction:
+            ErrorRecoveryActions[StandardErrorCode.VALIDATION_ERROR],
           path: '/api/v1/test',
           metadata: expect.objectContaining({
             requestId: expect.any(String),
@@ -84,7 +88,10 @@ describe('HttpExceptionFilter', () => {
     });
 
     it('should handle unauthorized errors with proper error code mapping', () => {
-      const exception = new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
+      const exception = new HttpException(
+        'Unauthorized',
+        HttpStatus.UNAUTHORIZED,
+      );
 
       filter.catch(exception, mockHost);
 
@@ -120,12 +127,15 @@ describe('HttpExceptionFilter', () => {
 
       filter.catch(exception, mockHost);
 
-      expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.INTERNAL_SERVER_ERROR);
+      expect(mockResponse.status).toHaveBeenCalledWith(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           success: false,
           code: StandardErrorCode.INTERNAL_SERVER_ERROR,
-          recoveryAction: ErrorRecoveryActions[StandardErrorCode.INTERNAL_SERVER_ERROR],
+          recoveryAction:
+            ErrorRecoveryActions[StandardErrorCode.INTERNAL_SERVER_ERROR],
         }),
       );
       expect(mockLogger.error).toHaveBeenCalled();
@@ -133,12 +143,18 @@ describe('HttpExceptionFilter', () => {
 
     it('should log errors appropriately based on status code', () => {
       // Test 4xx error logging
-      const clientException = new HttpException('Bad request', HttpStatus.BAD_REQUEST);
+      const clientException = new HttpException(
+        'Bad request',
+        HttpStatus.BAD_REQUEST,
+      );
       filter.catch(clientException, mockHost);
       expect(mockLogger.debug).toHaveBeenCalled();
 
       // Test 5xx error logging
-      const serverException = new HttpException('Server error', HttpStatus.INTERNAL_SERVER_ERROR);
+      const serverException = new HttpException(
+        'Server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
       filter.catch(serverException, mockHost);
       expect(mockLogger.error).toHaveBeenCalled();
     });
@@ -162,7 +178,10 @@ describe('HttpExceptionFilter', () => {
 
     it('should map subscription required errors correctly', () => {
       const exception = new HttpException(
-        { message: 'Premium subscription required', error: 'SubscriptionRequired' },
+        {
+          message: 'Premium subscription required',
+          error: 'SubscriptionRequired',
+        },
         HttpStatus.FORBIDDEN,
       );
 

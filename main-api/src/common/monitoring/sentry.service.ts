@@ -12,7 +12,7 @@ export class SentryService {
 
   private init() {
     const sentryConfig = this.configService.get('monitoring.sentry');
-    
+
     if (!sentryConfig?.dsn) {
       console.log('Sentry DSN not configured, skipping initialization');
       return;
@@ -31,7 +31,9 @@ export class SentryService {
       beforeSend(event) {
         // Filter out sensitive data
         if (event.request?.data) {
-          event.request.data = SentryService.filterSensitiveData(event.request.data);
+          event.request.data = SentryService.filterSensitiveData(
+            event.request.data,
+          );
         }
         if (event.extra) {
           event.extra = SentryService.filterSensitiveData(event.extra);
@@ -40,19 +42,29 @@ export class SentryService {
       },
     });
 
-    console.log(`Sentry initialized for environment: ${sentryConfig.environment}`);
+    console.log(
+      `Sentry initialized for environment: ${sentryConfig.environment}`,
+    );
   }
 
   private static filterSensitiveData(data: any): any {
     if (!data || typeof data !== 'object') return data;
 
     const sensitiveFields = [
-      'password', 'token', 'secret', 'key', 'authorization',
-      'credit_card', 'ssn', 'phone', 'email', 'address',
+      'password',
+      'token',
+      'secret',
+      'key',
+      'authorization',
+      'credit_card',
+      'ssn',
+      'phone',
+      'email',
+      'address',
     ];
 
     const filtered = { ...data };
-    
+
     for (const field of sensitiveFields) {
       if (field in filtered) {
         filtered[field] = '[FILTERED]';
@@ -72,7 +84,7 @@ export class SentryService {
   captureException(error: Error, context?: Record<string, any>) {
     Sentry.withScope((scope) => {
       if (context) {
-        Object.keys(context).forEach(key => {
+        Object.keys(context).forEach((key) => {
           scope.setContext(key, context[key]);
         });
       }
@@ -80,10 +92,14 @@ export class SentryService {
     });
   }
 
-  captureMessage(message: string, level: Sentry.SeverityLevel = 'info', context?: Record<string, any>) {
+  captureMessage(
+    message: string,
+    level: Sentry.SeverityLevel = 'info',
+    context?: Record<string, any>,
+  ) {
     Sentry.withScope((scope) => {
       if (context) {
-        Object.keys(context).forEach(key => {
+        Object.keys(context).forEach((key) => {
           scope.setContext(key, context[key]);
         });
       }

@@ -48,10 +48,10 @@ export class ErrorResponseDto {
   @ApiProperty({ required: false })
   metadata?: ResponseMetadata;
 
-  @ApiProperty({ 
+  @ApiProperty({
     example: 'Please check your input and try again',
     description: 'Suggested action for error recovery',
-    required: false 
+    required: false,
   })
   recoveryAction?: string;
 

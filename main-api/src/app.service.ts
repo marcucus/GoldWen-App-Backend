@@ -17,7 +17,7 @@ export class AppService {
 
   async getHealth() {
     const startTime = Date.now();
-    
+
     // Check Database
     let dbStatus = 'healthy';
     let dbResponseTime = 0;
@@ -41,7 +41,10 @@ export class AppService {
     }
 
     const totalResponseTime = Date.now() - startTime;
-    const overallStatus = dbStatus === 'healthy' && redisStatus === 'healthy' ? 'healthy' : 'degraded';
+    const overallStatus =
+      dbStatus === 'healthy' && redisStatus === 'healthy'
+        ? 'healthy'
+        : 'degraded';
 
     return {
       status: overallStatus,

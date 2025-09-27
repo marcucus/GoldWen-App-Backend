@@ -207,7 +207,11 @@ export class CustomLoggerService implements LoggerService {
   }
 
   // Security event logging
-  logSecurityEvent(event: string, details: any, level: 'info' | 'warn' | 'error' = 'warn') {
+  logSecurityEvent(
+    event: string,
+    details: any,
+    level: 'info' | 'warn' | 'error' = 'warn',
+  ) {
     const logData = {
       action: 'security_event',
       event,
@@ -247,7 +251,12 @@ export class CustomLoggerService implements LoggerService {
   }
 
   // Performance monitoring
-  logPerformanceMetric(metric: string, value: number, unit: string, metadata?: any) {
+  logPerformanceMetric(
+    metric: string,
+    value: number,
+    unit: string,
+    metadata?: any,
+  ) {
     this.info(`Performance metric: ${metric}`, {
       action: 'performance_metric',
       metric,

@@ -86,18 +86,22 @@ describe('UsersService Role Management', () => {
     it('should return paginated list of users with roles', async () => {
       const mockUsers = [mockUser];
       const mockTotal = 1;
-      
-      jest.spyOn(userRepository, 'findAndCount').mockResolvedValue([mockUsers, mockTotal]);
+
+      jest
+        .spyOn(userRepository, 'findAndCount')
+        .mockResolvedValue([mockUsers, mockTotal]);
 
       const result = await service.getUsersWithRoles(1, 10);
 
       expect(result).toEqual({
-        users: [{
-          id: mockUser.id,
-          email: mockUser.email,
-          role: mockUser.role,
-          updatedAt: mockUser.updatedAt,
-        }],
+        users: [
+          {
+            id: mockUser.id,
+            email: mockUser.email,
+            role: mockUser.role,
+            updatedAt: mockUser.updatedAt,
+          },
+        ],
         total: mockTotal,
         page: 1,
         limit: 10,
@@ -117,14 +121,18 @@ describe('UsersService Role Management', () => {
       const updateRoleDto: UpdateUserRoleDto = { role: UserRole.MODERATOR };
       const adminUserId = 'admin-1';
       const userCopy = { ...mockUser };
-      
+
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(userCopy as User);
       jest.spyOn(userRepository, 'save').mockResolvedValue({
         ...userCopy,
         role: UserRole.MODERATOR,
       } as User);
 
-      const result = await service.updateUserRole(mockUser.id, updateRoleDto, adminUserId);
+      const result = await service.updateUserRole(
+        mockUser.id,
+        updateRoleDto,
+        adminUserId,
+      );
 
       expect(result).toEqual({
         id: mockUser.id,
@@ -146,7 +154,7 @@ describe('UsersService Role Management', () => {
     it('should throw NotFoundException when user not found', async () => {
       const updateRoleDto: UpdateUserRoleDto = { role: UserRole.MODERATOR };
       const adminUserId = 'admin-1';
-      
+
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
 
       await expect(
@@ -183,7 +191,9 @@ describe('UsersService Role Management', () => {
     it('should throw NotFoundException when user not found', async () => {
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
 
-      await expect(service.getUserRole('non-existent')).rejects.toThrow(NotFoundException);
+      await expect(service.getUserRole('non-existent')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

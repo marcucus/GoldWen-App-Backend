@@ -16,7 +16,9 @@ describe('AppController', () => {
     };
 
     const mockAppService = {
-      getHello: jest.fn().mockReturnValue('GoldWen API - Designed to be deleted ❤️'),
+      getHello: jest
+        .fn()
+        .mockReturnValue('GoldWen API - Designed to be deleted ❤️'),
       getHealth: jest.fn().mockResolvedValue({
         status: 'healthy',
         timestamp: '2025-01-01T00:00:00.000Z',
@@ -27,9 +29,9 @@ describe('AppController', () => {
         services: {
           api: 'healthy',
           database: { status: 'healthy', responseTime: 25 },
-          cache: { status: 'healthy', responseTime: 5 }
-        }
-      })
+          cache: { status: 'healthy', responseTime: 5 },
+        },
+      }),
     };
 
     const app: TestingModule = await Test.createTestingModule({
@@ -61,7 +63,7 @@ describe('AppController', () => {
   describe('health', () => {
     it('should return health status', async () => {
       const result = await appController.getHealth();
-      
+
       expect(result).toEqual({
         status: 'healthy',
         timestamp: '2025-01-01T00:00:00.000Z',
@@ -72,10 +74,10 @@ describe('AppController', () => {
         services: {
           api: 'healthy',
           database: { status: 'healthy', responseTime: 25 },
-          cache: { status: 'healthy', responseTime: 5 }
-        }
+          cache: { status: 'healthy', responseTime: 5 },
+        },
       });
-      
+
       expect(appService.getHealth).toHaveBeenCalled();
     });
   });

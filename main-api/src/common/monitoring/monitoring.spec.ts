@@ -77,7 +77,9 @@ describe('Monitoring Services', () => {
         safe_data: 'this is safe',
       };
 
-      const filtered = (sentryService as any).constructor.filterSensitiveData(testData);
+      const filtered = (sentryService as any).constructor.filterSensitiveData(
+        testData,
+      );
 
       expect(filtered.password).toBe('[FILTERED]');
       expect(filtered.token).toBe('[FILTERED]');
@@ -117,7 +119,7 @@ describe('Monitoring Services', () => {
       expect(mockLoggerService.error).toHaveBeenCalledWith(
         'ALERT [CRITICAL]: Test Alert',
         undefined,
-        'AlertingService'
+        'AlertingService',
       );
     });
 
@@ -134,20 +136,24 @@ describe('Monitoring Services', () => {
       await expect(alertingService.sendAlert(alert)).resolves.not.toThrow();
       expect(mockLoggerService.warn).toHaveBeenCalledWith(
         'No alerting channels configured',
-        'AlertingService'
+        'AlertingService',
       );
     });
 
     it('should send critical alerts with proper level', async () => {
-      await alertingService.sendCriticalAlert('Critical Test', 'Critical message');
+      await alertingService.sendCriticalAlert(
+        'Critical Test',
+        'Critical message',
+      );
 
       expect(mockLoggerService.error).toHaveBeenCalledWith(
         'ALERT [CRITICAL]: Critical Test',
         undefined,
-        'AlertingService'
+        'AlertingService',
       );
     });
   });
+});
 
   describe('DatadogService', () => {
     it('should be defined', () => {

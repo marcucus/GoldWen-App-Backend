@@ -17,7 +17,9 @@ export class AddUserRoleColumn1699999999999 implements MigrationInterface {
     );
 
     // Update existing users to have default role of 'user'
-    await queryRunner.query(`UPDATE users SET role = 'user' WHERE role IS NULL`);
+    await queryRunner.query(
+      `UPDATE users SET role = 'user' WHERE role IS NULL`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

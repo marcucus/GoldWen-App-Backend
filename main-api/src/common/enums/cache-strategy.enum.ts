@@ -9,8 +9,8 @@ export enum CacheStrategy {
 export const CacheHeaders = {
   [CacheStrategy.NO_CACHE]: {
     'Cache-Control': 'no-cache, no-store, must-revalidate',
-    'Pragma': 'no-cache',
-    'Expires': '0',
+    Pragma: 'no-cache',
+    Expires: '0',
   },
   [CacheStrategy.SHORT_CACHE]: {
     'Cache-Control': 'public, max-age=300', // 5 minutes
@@ -31,19 +31,19 @@ export const ResourceCacheStrategy = {
   USER_PROFILE: CacheStrategy.SHORT_CACHE,
   USER_PHOTOS: CacheStrategy.MEDIUM_CACHE,
   USER_PREFERENCES: CacheStrategy.SHORT_CACHE,
-  
+
   // Matching data - semi-static
   DAILY_SELECTION: CacheStrategy.MEDIUM_CACHE,
   MATCH_RESULTS: CacheStrategy.SHORT_CACHE,
-  
+
   // Static content
   LEGAL_DOCUMENTS: CacheStrategy.LONG_CACHE,
   APP_CONFIG: CacheStrategy.MEDIUM_CACHE,
-  
+
   // Real-time data - no cache
   CHAT_MESSAGES: CacheStrategy.NO_CACHE,
   NOTIFICATIONS: CacheStrategy.NO_CACHE,
-  
+
   // Images and media
   UPLOADED_IMAGES: CacheStrategy.STATIC_CACHE,
   PROFILE_IMAGES: CacheStrategy.LONG_CACHE,

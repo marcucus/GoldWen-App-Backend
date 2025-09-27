@@ -63,7 +63,9 @@ describe('PreferencesController', () => {
 
   describe('getMyPreferences', () => {
     it('should return user preferences', async () => {
-      jest.spyOn(service, 'getUserPreferences').mockResolvedValue(mockPreferences);
+      jest
+        .spyOn(service, 'getUserPreferences')
+        .mockResolvedValue(mockPreferences);
 
       const req = { user: mockUser } as any;
       const result = await controller.getMyPreferences(req);
@@ -90,7 +92,9 @@ describe('PreferencesController', () => {
         preferences: mockPreferences,
       };
 
-      jest.spyOn(service, 'updateUserPreferences').mockResolvedValue(mockResult);
+      jest
+        .spyOn(service, 'updateUserPreferences')
+        .mockResolvedValue(mockResult);
 
       const req = { user: mockUser } as any;
       const result = await controller.updateMyPreferences(req, updateDto);
@@ -101,7 +105,10 @@ describe('PreferencesController', () => {
         data: mockResult.preferences,
       });
 
-      expect(service.updateUserPreferences).toHaveBeenCalledWith('user-123', updateDto);
+      expect(service.updateUserPreferences).toHaveBeenCalledWith(
+        'user-123',
+        updateDto,
+      );
     });
   });
 });

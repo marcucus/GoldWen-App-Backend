@@ -12,7 +12,8 @@ import { CacheStrategy, CacheHeaders } from '../enums/cache-strategy.enum';
 
 export const CACHE_STRATEGY_KEY = 'cacheStrategy';
 
-export const CacheControl = (strategy: CacheStrategy) =>
+export const CacheControl =
+  (strategy: CacheStrategy) =>
   (target: any, key?: string, descriptor?: PropertyDescriptor) => {
     if (descriptor) {
       Reflect.defineMetadata(CACHE_STRATEGY_KEY, strategy, descriptor.value);
@@ -28,7 +29,7 @@ export class CacheInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const response = context.switchToHttp().getResponse<Response>();
-    
+
     // Get cache strategy from decorator
     const cacheStrategy = this.reflector.get<CacheStrategy>(
       CACHE_STRATEGY_KEY,

@@ -30,7 +30,11 @@ export class AlertingService {
     };
 
     // Log the alert
-    this.logger.error(`ALERT [${alert.level.toUpperCase()}]: ${alert.title}`, undefined, 'AlertingService');
+    this.logger.error(
+      `ALERT [${alert.level.toUpperCase()}]: ${alert.title}`,
+      undefined,
+      'AlertingService',
+    );
     this.logger.info('Alert details', {
       alert: alertData,
     });
@@ -58,7 +62,11 @@ export class AlertingService {
     try {
       await Promise.allSettled(promises);
     } catch (error) {
-      this.logger.error('Failed to send some alerts', error.stack, 'AlertingService');
+      this.logger.error(
+        'Failed to send some alerts',
+        error.stack,
+        'AlertingService',
+      );
     }
   }
 
@@ -76,14 +84,23 @@ export class AlertingService {
         throw new Error(`Webhook alert failed: ${response.status}`);
       }
     } catch (error) {
-      this.logger.error('Failed to send webhook alert', error.stack, 'AlertingService');
+      this.logger.error(
+        'Failed to send webhook alert',
+        error.stack,
+        'AlertingService',
+      );
     }
   }
 
   private async sendSlackAlert(alert: any) {
     try {
-      const color = alert.level === 'critical' ? 'danger' : alert.level === 'warning' ? 'warning' : 'good';
-      
+      const color =
+        alert.level === 'critical'
+          ? 'danger'
+          : alert.level === 'warning'
+            ? 'warning'
+            : 'good';
+
       const slackPayload = {
         attachments: [
           {
@@ -138,7 +155,11 @@ export class AlertingService {
         throw new Error(`Slack alert failed: ${response.status}`);
       }
     } catch (error) {
-      this.logger.error('Failed to send Slack alert', error.stack, 'AlertingService');
+      this.logger.error(
+        'Failed to send Slack alert',
+        error.stack,
+        'AlertingService',
+      );
     }
   }
 
@@ -170,13 +191,20 @@ export class AlertingService {
   private async sendEmailAlert(alert: any) {
     // Email alerting would be implemented here
     // For now, just log that it would be sent
-    this.logger.info(`Email alert would be sent to: ${this.alertsConfig.emailRecipients.join(', ')}`, {
-      alert,
-    });
+    this.logger.info(
+      `Email alert would be sent to: ${this.alertsConfig.emailRecipients.join(', ')}`,
+      {
+        alert,
+      },
+    );
   }
 
   // Helper methods for common alert scenarios
-  async sendCriticalAlert(title: string, message: string, metadata?: Record<string, any>) {
+  async sendCriticalAlert(
+    title: string,
+    message: string,
+    metadata?: Record<string, any>,
+  ) {
     await this.sendAlert({
       level: 'critical',
       title,
@@ -185,7 +213,11 @@ export class AlertingService {
     });
   }
 
-  async sendWarningAlert(title: string, message: string, metadata?: Record<string, any>) {
+  async sendWarningAlert(
+    title: string,
+    message: string,
+    metadata?: Record<string, any>,
+  ) {
     await this.sendAlert({
       level: 'warning',
       title,
@@ -194,7 +226,11 @@ export class AlertingService {
     });
   }
 
-  async sendInfoAlert(title: string, message: string, metadata?: Record<string, any>) {
+  async sendInfoAlert(
+    title: string,
+    message: string,
+    metadata?: Record<string, any>,
+  ) {
     await this.sendAlert({
       level: 'info',
       title,

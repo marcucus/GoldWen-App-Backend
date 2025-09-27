@@ -9,7 +9,6 @@ import { HttpExceptionFilter } from './common/filters';
 import { ResponseInterceptor, CacheInterceptor } from './common/interceptors';
 import { SentryService } from './common/monitoring';
 
-
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 

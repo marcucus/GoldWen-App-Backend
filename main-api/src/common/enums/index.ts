@@ -72,7 +72,7 @@ export enum AdminRole {
 
 export enum UserRole {
   USER = 'user',
-  MODERATOR = 'moderator', 
+  MODERATOR = 'moderator',
   ADMIN = 'admin',
 }
 

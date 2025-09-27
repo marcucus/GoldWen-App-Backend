@@ -21,7 +21,11 @@ import { UpdateUserDto, UpdateUserSettingsDto } from './dto/update-user.dto';
 import { UpdateAccessibilitySettingsDto } from './dto/accessibility-settings.dto';
 import { RegisterPushTokenDto } from './dto/push-token.dto';
 import { ConsentDto } from './dto/consent.dto';
-import { UpdateUserRoleDto, UserRoleResponseDto, UserRolesListResponseDto } from './dto/role-management.dto';
+import {
+  UpdateUserRoleDto,
+  UserRoleResponseDto,
+  UserRolesListResponseDto,
+} from './dto/role-management.dto';
 
 @Injectable()
 export class UsersService {
@@ -330,7 +334,10 @@ export class UsersService {
   }
 
   // Role management methods
-  async getUsersWithRoles(page: number = 1, limit: number = 10): Promise<UserRolesListResponseDto> {
+  async getUsersWithRoles(
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<UserRolesListResponseDto> {
     const [users, total] = await this.userRepository.findAndCount({
       select: ['id', 'email', 'role', 'updatedAt'],
       skip: (page - 1) * limit,
@@ -339,7 +346,7 @@ export class UsersService {
     });
 
     return {
-      users: users.map(user => ({
+      users: users.map((user) => ({
         id: user.id,
         email: user.email,
         role: user.role || UserRole.USER,
@@ -351,7 +358,11 @@ export class UsersService {
     };
   }
 
-  async updateUserRole(userId: string, updateRoleDto: UpdateUserRoleDto, adminUserId: string): Promise<UserRoleResponseDto> {
+  async updateUserRole(
+    userId: string,
+    updateRoleDto: UpdateUserRoleDto,
+    adminUserId: string,
+  ): Promise<UserRoleResponseDto> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
       select: ['id', 'email', 'role', 'updatedAt'],
@@ -363,7 +374,7 @@ export class UsersService {
 
     const oldRole = user.role || UserRole.USER;
     user.role = updateRoleDto.role;
-    
+
     const updatedUser = await this.userRepository.save(user);
 
     // Log role change for audit trail

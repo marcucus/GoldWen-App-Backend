@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Delete,
-  UseGuards,
-  Req,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Delete, UseGuards, Req, Query } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import {
   ApiTags,
@@ -29,26 +22,34 @@ export class UserGdprController {
 
   @ApiOperation({
     summary: 'Export user data for GDPR compliance (data portability)',
-    description: 'Download complete user data in JSON format for GDPR compliance'
+    description:
+      'Download complete user data in JSON format for GDPR compliance',
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'User data exported successfully',
     schema: {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: 'User data exported successfully in json format' },
+        message: {
+          type: 'string',
+          example: 'User data exported successfully in json format',
+        },
         data: {
           type: 'object',
           properties: {
             exportedAt: { type: 'string', format: 'date-time' },
             userId: { type: 'string' },
-            data: { type: 'object', description: 'Complete user data including profile, messages, matches, etc.' }
-          }
-        }
-      }
-    }
+            data: {
+              type: 'object',
+              description:
+                'Complete user data including profile, messages, matches, etc.',
+            },
+          },
+        },
+      },
+    },
   })
   @Get('export')
   async exportUserData(@Req() req: Request, @Query() exportDto: ExportDataDto) {
@@ -65,14 +66,15 @@ export class UserGdprController {
     };
   }
 
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Delete user account (Right to be forgotten)',
-    description: 'Permanently delete user account and all associated data with complete anonymization for GDPR compliance'
+    description:
+      'Permanently delete user account and all associated data with complete anonymization for GDPR compliance',
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Account deleted successfully with complete anonymization',
-    type: SuccessResponseDto
+    type: SuccessResponseDto,
   })
   @Delete('me')
   async deleteAccount(@Req() req: Request) {

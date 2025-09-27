@@ -44,6 +44,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { PreferencesModule } from './modules/preferences/preferences.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { StatsModule } from './modules/stats/stats.module';
 
 @Module({
   imports: [
@@ -131,6 +132,7 @@ import { ReportsModule } from './modules/reports/reports.module';
     PreferencesModule,
     AdminModule,
     ReportsModule,
+    StatsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -77,19 +77,21 @@ export class MonitoringService {
       redis: redisStats,
       monitoring: monitoringStatus,
       recentAlerts: this.alerts.slice(-10),
-      recentErrors: this.logs.filter(log => log.level === 'error').slice(-10),
+      recentErrors: this.logs.filter((log) => log.level === 'error').slice(-10),
     };
   }
 
   async getSystemMetrics(): Promise<SystemMetrics> {
     const memoryUsage = process.memoryUsage();
-    
+
     return {
       uptime: process.uptime(),
       memory: {
         used: Math.round(memoryUsage.heapUsed / 1024 / 1024),
         total: Math.round(memoryUsage.heapTotal / 1024 / 1024),
-        percentage: Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100),
+        percentage: Math.round(
+          (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100,
+        ),
       },
       cpu: {
         usage: await this.getCpuUsage(),
@@ -99,11 +101,15 @@ export class MonitoringService {
     };
   }
 
-  async getRecentLogs(options: { level?: string; limit: number; offset: number }) {
+  async getRecentLogs(options: {
+    level?: string;
+    limit: number;
+    offset: number;
+  }) {
     let filteredLogs = this.logs;
-    
+
     if (options.level) {
-      filteredLogs = this.logs.filter(log => log.level === options.level);
+      filteredLogs = this.logs.filter((log) => log.level === options.level);
     }
 
     return {
@@ -137,13 +143,13 @@ export class MonitoringService {
   private async getCpuUsage(): Promise<number> {
     // Simple CPU usage calculation
     const start = process.cpuUsage();
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     const end = process.cpuUsage(start);
-    
+
     const userCpuTime = end.user / 1000; // Convert to milliseconds
     const systemCpuTime = end.system / 1000;
     const totalCpuTime = userCpuTime + systemCpuTime;
-    
+
     return Math.round((totalCpuTime / 100) * 100) / 100; // As percentage of 100ms
   }
 
@@ -163,7 +169,11 @@ export class MonitoringService {
         activeConnections: parseInt(result[0]?.active_connections || '0'),
       };
     } catch (error) {
-      this.logger.error('Failed to get database stats', error.stack, 'MonitoringService');
+      this.logger.error(
+        'Failed to get database stats',
+        error.stack,
+        'MonitoringService',
+      );
       return {
         status: 'error',
         error: error.message,
@@ -183,7 +193,11 @@ export class MonitoringService {
         connectedClients: 1, // Simplified for now - would need different Redis command
       };
     } catch (error) {
-      this.logger.error('Failed to get Redis stats', error.stack, 'MonitoringService');
+      this.logger.error(
+        'Failed to get Redis stats',
+        error.stack,
+        'MonitoringService',
+      );
       return {
         status: 'error',
         error: error.message,
@@ -263,10 +277,13 @@ export class MonitoringService {
   private async measureRedisPerformance() {
     const operations = [
       { name: 'PING', operation: () => this.redis.ping() },
-      { name: 'SET/GET', operation: async () => {
-        await this.redis.set('test_key', 'test_value');
-        return this.redis.get('test_key');
-      }},
+      {
+        name: 'SET/GET',
+        operation: async () => {
+          await this.redis.set('test_key', 'test_value');
+          return this.redis.get('test_key');
+        },
+      },
     ];
 
     const results = [];
@@ -305,14 +322,14 @@ export class MonitoringService {
   private parseRedisInfo(info: string): Record<string, string> {
     const lines = info.split('\r\n');
     const result: Record<string, string> = {};
-    
+
     for (const line of lines) {
       if (line.includes(':')) {
         const [key, value] = line.split(':');
         result[key] = value;
       }
     }
-    
+
     return result;
   }
 
@@ -333,6 +350,7 @@ export class MonitoringService {
       this.alerts = this.alerts.slice(-this.maxAlertsToKeep);
     }
   }
+}
 
   private async getMonitoringStatus() {
     const monitoringConfig = this.configService.get('monitoring');
