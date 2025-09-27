@@ -19,6 +19,7 @@ Cette documentation complète liste toutes les routes API disponibles dans le ba
 - [Routes Signalements](#routes-signalements)
 - [Routes Légales](#routes-légales)
 - [Routes Feedback](#routes-feedback)
+- [Routes Statistiques](#routes-statistiques)
 - [Routes Admin](#routes-admin)
 - [Types et Enums](#types-et-enums)
 
@@ -1339,6 +1340,136 @@ Cette documentation complète liste toutes les routes API disponibles dans le ba
   }
 }
 ```
+
+---
+
+## Routes Statistiques
+
+**Préfixe**: `/stats`  
+**Authentification**: Bearer Token + Rôle Admin requis (toutes les routes)
+
+### GET /stats/global
+**Description**: Obtenir les statistiques globales de la plateforme  
+**Authentification**: Bearer Token (JWT) + Admin  
+**Réponse**:
+```json
+{
+  "success": true,
+  "data": {
+    "totalUsers": 1000,
+    "activeUsers": 950,
+    "suspendedUsers": 50,
+    "totalMatches": 500,
+    "activeChats": 300,
+    "pendingReports": 10,
+    "totalRevenue": 15000.50,
+    "activeSubscriptions": 200,
+    "newRegistrationsToday": 25,
+    "newMatchesToday": 15,
+    "messagesSentToday": 1200,
+    "avgMatchesPerUser": 0.5,
+    "dailyActiveUsers": 600,
+    "monthlyActiveUsers": 800
+  }
+}
+```
+
+### GET /stats/user/:userId
+**Description**: Obtenir les statistiques d'un utilisateur spécifique  
+**Authentification**: Bearer Token (JWT) + Admin  
+**Paramètres**: `userId` (string UUID)  
+**Réponse**:
+```json
+{
+  "success": true,
+  "data": {
+    "userId": "uuid",
+    "totalMatches": 5,
+    "activeChats": 3,
+    "profileViews": 50,
+    "loginStreak": 7,
+    "messagesSent": 20,
+    "messagesReceived": 15,
+    "dailySelectionsUsed": 10,
+    "totalChoicesUsed": 30,
+    "averageChoicesPerSelection": 3.0,
+    "matchRate": 0.5,
+    "createdAt": "2024-01-15T10:00:00Z",
+    "lastActiveAt": "2024-01-20T15:30:00Z",
+    "hasActiveSubscription": true,
+    "subscriptionPlan": "premium",
+    "profileCompletionPercent": 100
+  }
+}
+```
+
+### GET /stats/activity
+**Description**: Obtenir les statistiques d'activité temporelles  
+**Authentification**: Bearer Token (JWT) + Admin  
+**Query Parameters**:
+- `startDate?`: string (YYYY-MM-DD, optionnel - défaut: 30 jours)
+- `endDate?`: string (YYYY-MM-DD, optionnel - défaut: aujourd'hui)  
+- `period?`: enum ('daily', 'weekly', 'monthly', 'yearly' - défaut: 'daily')
+
+**Réponse**:
+```json
+{
+  "success": true,
+  "data": {
+    "dateRange": {
+      "startDate": "2024-01-01",
+      "endDate": "2024-01-31"
+    },
+    "userRegistrations": [
+      { "date": "2024-01-01", "count": 10 },
+      { "date": "2024-01-02", "count": 15 }
+    ],
+    "matchesCreated": [
+      { "date": "2024-01-01", "count": 5 },
+      { "date": "2024-01-02", "count": 8 }
+    ],
+    "messagesSent": [
+      { "date": "2024-01-01", "count": 100 },
+      { "date": "2024-01-02", "count": 120 }
+    ],
+    "dailyActiveUsers": [
+      { "date": "2024-01-01", "count": 200 },
+      { "date": "2024-01-02", "count": 220 }
+    ],
+    "subscriptionConversions": [
+      { "date": "2024-01-01", "count": 2 },
+      { "date": "2024-01-02", "count": 3 }
+    ],
+    "summary": {
+      "totalActivity": 483,
+      "averageDailyActivity": 241.5,
+      "peakActivityDate": "2024-01-02",
+      "peakActivityCount": 366
+    }
+  }
+}
+```
+
+### GET /stats/global/export
+**Description**: Exporter les statistiques globales  
+**Authentification**: Bearer Token (JWT) + Admin  
+**Query Parameters**:
+- `format?`: enum ('json', 'csv', 'pdf' - défaut: 'json')
+- `includeDetails?`: boolean (défaut: false)
+
+**Réponse**: Fichier téléchargeable dans le format demandé
+
+### GET /stats/activity/export
+**Description**: Exporter les statistiques d'activité  
+**Authentification**: Bearer Token (JWT) + Admin  
+**Query Parameters**:
+- `startDate?`: string (YYYY-MM-DD, optionnel)
+- `endDate?`: string (YYYY-MM-DD, optionnel)  
+- `period?`: enum ('daily', 'weekly', 'monthly', 'yearly')
+- `format?`: enum ('json', 'csv', 'pdf' - défaut: 'json')
+- `includeDetails?`: boolean (défaut: false)
+
+**Réponse**: Fichier téléchargeable dans le format demandé
 
 ---
 
