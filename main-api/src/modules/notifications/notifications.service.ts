@@ -75,7 +75,8 @@ export class NotificationsService {
       where: { userId, isRead: false },
     });
 
-    this.logger.logUserAction('get_notifications', userId, {
+    this.logger.logUserAction('get_notifications', {
+      userId,
       total,
       page,
       limit,
@@ -108,7 +109,8 @@ export class NotificationsService {
     const updatedNotification =
       await this.notificationRepository.save(notification);
 
-    this.logger.logUserAction('mark_notification_read', userId, {
+    this.logger.logUserAction('mark_notification_read', {
+      userId,
       notificationId,
       type: notification.type,
     });
@@ -122,7 +124,8 @@ export class NotificationsService {
       { isRead: true, readAt: new Date() },
     );
 
-    this.logger.logUserAction('mark_all_notifications_read', userId, {
+    this.logger.logUserAction('mark_all_notifications_read', {
+      userId,
       affected: result.affected,
     });
 
@@ -143,7 +146,8 @@ export class NotificationsService {
 
     await this.notificationRepository.delete(notificationId);
 
-    this.logger.logUserAction('delete_notification', userId, {
+    this.logger.logUserAction('delete_notification', {
+      userId,
       notificationId,
       type: notification.type,
     });
@@ -159,6 +163,17 @@ export class NotificationsService {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+
+    // Check user notification preferences before creating notification
+    const shouldCreateNotification = await this.shouldSendNotification(userId, type);
+    if (!shouldCreateNotification) {
+      this.logger.logBusinessEvent('notification_skipped_preferences', {
+        userId,
+        type,
+        reason: 'user_preferences',
+      });
+      return null; // Or throw a specific exception if needed
     }
 
     const notification = this.notificationRepository.create({
@@ -211,7 +226,8 @@ export class NotificationsService {
       data: { test: true, timestamp: new Date().toISOString() },
     });
 
-    this.logger.logUserAction('send_test_notification', userId, {
+    this.logger.logUserAction('send_test_notification', {
+      userId,
       notificationId: notification.id,
       type: notification.type,
     });
@@ -248,14 +264,100 @@ export class NotificationsService {
 
     this.logger.logUserAction(
       'update_notification_settings',
-      userId,
-      updateSettingsDto,
+      {
+        userId,
+        ...updateSettingsDto,
+      },
     );
 
     return {
       message: 'Notification settings updated successfully',
       settings: updateSettingsDto,
     };
+  }
+
+  /**
+   * Check if a notification should be sent based on user preferences
+   */
+  private async shouldSendNotification(userId: string, type: NotificationType): Promise<boolean> {
+    // Get user's notification preferences
+    const preferences = await this.notificationPreferencesRepository.findOne({
+      where: { userId },
+    });
+
+    // If no preferences exist, use defaults (allow all notifications)
+    if (!preferences) {
+      return true;
+    }
+
+    // Check specific preference based on notification type
+    switch (type) {
+      case NotificationType.DAILY_SELECTION:
+        return preferences.dailySelection && preferences.pushNotifications;
+      case NotificationType.NEW_MATCH:
+        return preferences.newMatches && preferences.pushNotifications;
+      case NotificationType.NEW_MESSAGE:
+        return preferences.newMessages && preferences.pushNotifications;
+      case NotificationType.CHAT_EXPIRING:
+        return preferences.chatExpiring && preferences.pushNotifications;
+      case NotificationType.SUBSCRIPTION_EXPIRED:
+      case NotificationType.SUBSCRIPTION_RENEWED:
+        return preferences.subscriptionUpdates && preferences.pushNotifications;
+      case NotificationType.SYSTEM:
+        // System notifications are always sent (important updates)
+        return true;
+      default:
+        // Default to checking general push notification preference
+        return preferences.pushNotifications;
+    }
+  }
+
+  /**
+   * Check if email notifications should be sent based on user preferences
+   * Public method for external services to use
+   */
+  async shouldSendEmailNotification(userId: string, type: NotificationType): Promise<boolean> {
+    const preferences = await this.notificationPreferencesRepository.findOne({
+      where: { userId },
+    });
+
+    if (!preferences) {
+      return true; // Default to allowing email notifications
+    }
+
+    // Check if email notifications are enabled and specific type is enabled
+    if (!preferences.emailNotifications) {
+      return false;
+    }
+
+    switch (type) {
+      case NotificationType.DAILY_SELECTION:
+        return preferences.dailySelection;
+      case NotificationType.NEW_MATCH:
+        return preferences.newMatches;
+      case NotificationType.NEW_MESSAGE:
+        return preferences.newMessages;
+      case NotificationType.CHAT_EXPIRING:
+        return preferences.chatExpiring;
+      case NotificationType.SUBSCRIPTION_EXPIRED:
+      case NotificationType.SUBSCRIPTION_RENEWED:
+        return preferences.subscriptionUpdates;
+      case NotificationType.SYSTEM:
+        return true; // System emails are always sent
+      default:
+        return preferences.emailNotifications;
+    }
+  }
+
+  /**
+   * Check marketing email preferences - public method for marketing services
+   */
+  async shouldSendMarketingEmail(userId: string): Promise<boolean> {
+    const preferences = await this.notificationPreferencesRepository.findOne({
+      where: { userId },
+    });
+
+    return preferences?.marketingEmails ?? false; // Default to false for marketing
   }
 
   // Helper method to send actual push notifications
