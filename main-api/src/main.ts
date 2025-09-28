@@ -53,8 +53,10 @@ async function bootstrap() {
 
   // CORS
   app.enableCors({
-    origin: process.env.FRONTEND_URL || true,
+    origin: '*', // Accepte toutes les origines temporairement
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
   });
 
   // Swagger documentation
@@ -81,9 +83,9 @@ async function bootstrap() {
 
   await app.listen(port, '0.0.0.0');
   logger.info('🚀 GoldWen API is running successfully', {
-    url: `http://localhost:${port}/${apiPrefix}`,
-    networkUrl: `http://192.168.1.171:${port}/${apiPrefix}`,
-    docs: `http://localhost:${port}/${apiPrefix}/docs`,
+    url: `http://192.168.1.183:${port}/${apiPrefix}`,
+    networkUrl: `http://192.168.1.183:${port}/${apiPrefix}`,
+    docs: `http://192.168.1.183:${port}/${apiPrefix}/docs`,
     environment: configService.get('app.environment'),
   });
 }
