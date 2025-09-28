@@ -345,16 +345,20 @@ export class ProfilesService {
     const requiredPrompts = await this.promptRepository.find({
       where: { isActive: true, isRequired: true },
     });
-    
-    console.log('submitPromptAnswers: Validating against required prompts, got answers for:', answers.map(a => a.promptId));
+    console.log('[submitPromptAnswers] Required prompts:', requiredPrompts.map(p => ({ id: p.id, text: p.text })));
+
+    console.log('[submitPromptAnswers] Answers received:', answers);
 
     // Validate that all required prompts are answered
     const answeredPromptIds = new Set(answers.map((a) => a.promptId));
+    console.log('[submitPromptAnswers] Answered prompt IDs:', Array.from(answeredPromptIds));
     const missingRequired = requiredPrompts.filter(
       (p) => !answeredPromptIds.has(p.id),
     );
+    console.log('[submitPromptAnswers] Missing required prompts:', missingRequired.map(p => ({ id: p.id, text: p.text })));
 
     if (missingRequired.length > 0) {
+      console.warn('[submitPromptAnswers] ERROR: Missing answers for required prompts:', missingRequired.map((p) => p.text));
       throw new BadRequestException({
         message: `Missing answers for required prompts: ${missingRequired.map((p) => p.text).join(', ')}`,
         missingPrompts: missingRequired.map((p) => p.id),
@@ -366,12 +370,15 @@ export class ProfilesService {
       where: { isActive: true },
     });
     const activePromptIds = new Set(allPrompts.map((p) => p.id));
+    console.log('[submitPromptAnswers] All active prompt IDs:', Array.from(activePromptIds));
 
     const invalidAnswers = answers.filter(
       (a) => !activePromptIds.has(a.promptId),
     );
+    console.log('[submitPromptAnswers] Invalid answers:', invalidAnswers);
 
     if (invalidAnswers.length > 0) {
+      console.warn('[submitPromptAnswers] ERROR: Some prompts are invalid or inactive:', invalidAnswers.map((a) => a.promptId));
       throw new BadRequestException(
         'Some prompts are invalid or inactive: ' +
           invalidAnswers.map((a) => a.promptId).join(', '),
@@ -383,11 +390,13 @@ export class ProfilesService {
     });
 
     if (!profile) {
+      console.error('[submitPromptAnswers] ERROR: Profile not found for user', userId);
       throw new NotFoundException('Profile not found');
     }
 
     try {
       // Delete existing prompt answers
+      console.log('[submitPromptAnswers] Deleting existing prompt answers for profileId:', profile.id);
       await this.promptAnswerRepository.delete({ profileId: profile.id });
 
       // Create new prompt answers
@@ -400,7 +409,7 @@ export class ProfilesService {
         });
       });
 
-      console.log('Saving prompt answers:', {
+      console.log('[submitPromptAnswers] Saving prompt answers:', {
         userId,
         profileId: profile.id,
         answersCount: answerEntities.length,
@@ -409,7 +418,7 @@ export class ProfilesService {
 
       const savedAnswers = await this.promptAnswerRepository.save(answerEntities);
       
-      console.log('Prompt answers saved successfully:', {
+      console.log('[submitPromptAnswers] Prompt answers saved successfully:', {
         userId,
         savedCount: savedAnswers.length,
         savedIds: savedAnswers.map(a => a.id),
@@ -419,7 +428,7 @@ export class ProfilesService {
       await this.updateProfileCompletionStatus(userId);
     } catch (error) {
       // Log the error for debugging
-      console.error('Error saving prompt answers for user', userId, ':', error);
+      console.error('[submitPromptAnswers] ERROR saving prompt answers for user', userId, ':', error);
       throw new BadRequestException(
         'Failed to save prompt answers: ' + error.message,
       );
