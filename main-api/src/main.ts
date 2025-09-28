@@ -79,9 +79,10 @@ async function bootstrap() {
     SwaggerModule.setup(`${apiPrefix}/docs`, app, document);
   }
 
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   logger.info('🚀 GoldWen API is running successfully', {
     url: `http://localhost:${port}/${apiPrefix}`,
+    networkUrl: `http://192.168.1.171:${port}/${apiPrefix}`,
     docs: `http://localhost:${port}/${apiPrefix}/docs`,
     environment: configService.get('app.environment'),
   });

@@ -49,14 +49,40 @@ import { PromptAnswer } from '../../database/entities/prompt-answer.entity';
           },
         }),
         fileFilter: (req, file, callback) => {
-          if (!file.mimetype.match(/\/(jpg|jpeg|png|webp)$/)) {
-            callback(
-              new Error('Only image files (JPEG, PNG, WebP) are allowed!'),
-              false,
-            );
-          } else {
+          console.log('File upload attempt:', {
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size
+          });
+          
+          // Check for valid image MIME types
+          const validMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+          
+          // Primary check: MIME type
+          if (validMimeTypes.includes(file.mimetype.toLowerCase())) {
+            console.log('Accepted file type:', file.mimetype);
             callback(null, true);
+            return;
           }
+          
+          // Fallback: Check file extension if MIME type is application/octet-stream
+          if (file.mimetype === 'application/octet-stream' && file.originalname) {
+            const extension = file.originalname.split('.').pop()?.toLowerCase();
+            const validExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+            
+            if (extension && validExtensions.includes(extension)) {
+              console.log('Accepted file based on extension:', extension);
+              callback(null, true);
+              return;
+            }
+          }
+          
+          // Reject if neither MIME type nor extension is valid
+          console.log('Rejected file type:', file.mimetype);
+          callback(
+            new Error(`Only image files (JPEG, PNG, WebP) are allowed! Received: ${file.mimetype}`),
+            false,
+          );
         },
         limits: {
           fileSize: 10 * 1024 * 1024, // 10MB limit

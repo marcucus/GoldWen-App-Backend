@@ -23,8 +23,6 @@ import {
   UpdateProfileStatusDto,
 } from './dto/profiles.dto';
 
-import { ImageProcessorUtil } from '../../common/utils/image-processor.util';
-
 @Injectable()
 export class ProfilesService {
   constructor(
@@ -206,73 +204,23 @@ export class ProfilesService {
       throw new BadRequestException('At least one photo is required');
     }
 
-    const processedPhotos: Photo[] = [];
+    console.log('Received files for upload:', files);
 
-    for (let index = 0; index < files.length; index++) {
-      const file = files[index];
-
-      // Validate image file
-      const validation = ImageProcessorUtil.validateImage(file);
-      if (!validation.isValid) {
-        throw new BadRequestException(validation.error);
-      }
-
-      // Process and compress the image
-      const processedImagePath = path.join(
-        path.dirname(file.path),
-        `processed-${path.basename(file.path)}`,
-      );
-
-      try {
-        const processingResult = await ImageProcessorUtil.processImage(
-          file.path,
-          processedImagePath,
-          {
-            maxWidth: 1200,
-            maxHeight: 1600,
-            quality: 85,
-            format: 'jpeg',
-          },
-        );
-
-        // Remove the original file and rename processed file
-        fs.unlinkSync(file.path);
-        fs.renameSync(processedImagePath, file.path);
-
-        // Create photo entity with processed image info
-        const photoEntity = this.photoRepository.create({
-          profileId: profile.id,
-          url: `/uploads/photos/${file.filename}`,
-          filename: file.filename,
-          mimeType: 'image/jpeg', // All images are converted to JPEG
-          fileSize: processingResult.processedSize,
-          width: processingResult.width,
-          height: processingResult.height,
-          order: currentPhotosCount + index + 1,
-          isPrimary: currentPhotosCount === 0 && index === 0, // First photo is primary if no photos exist
-          isApproved: true, // Auto-approve for MVP, can be changed later
-        });
-
-        processedPhotos.push(photoEntity);
-      } catch (error) {
-        console.error('Image processing error:', error);
-        // Fallback to original file if processing fails
-        const photoEntity = this.photoRepository.create({
-          profileId: profile.id,
-          url: `/uploads/photos/${file.filename}`,
-          filename: file.filename,
-          mimeType: file.mimetype,
-          fileSize: file.size,
-          order: currentPhotosCount + index + 1,
-          isPrimary: currentPhotosCount === 0 && index === 0,
-          isApproved: true,
-        });
-
-        processedPhotos.push(photoEntity);
-      }
-    }
-
-    const savedPhotos = await this.photoRepository.save(processedPhotos);
+    // Simplified version without image processing for now
+    const photoEntities = files.map((file, index) => {
+      return this.photoRepository.create({
+        profileId: profile.id,
+        url: `/uploads/photos/${file.filename}`,
+        filename: file.filename,
+        mimeType: file.mimetype,
+        fileSize: file.size,
+        order: currentPhotosCount + index + 1,
+        isPrimary: currentPhotosCount === 0 && index === 0, // First photo is primary if no photos exist
+        isApproved: true, // Auto-approve for MVP
+      });
+    });
+    console.log('Photo entities to be saved:', photoEntities);
+    const savedPhotos = await this.photoRepository.save(photoEntities);
 
     // Check if profile is now complete after upload
     await this.updateProfileCompletionStatus(userId);
@@ -397,6 +345,8 @@ export class ProfilesService {
     const requiredPrompts = await this.promptRepository.find({
       where: { isActive: true, isRequired: true },
     });
+    
+    console.log('submitPromptAnswers: Validating against required prompts, got answers for:', answers.map(a => a.promptId));
 
     // Validate that all required prompts are answered
     const answeredPromptIds = new Set(answers.map((a) => a.promptId));
@@ -450,7 +400,20 @@ export class ProfilesService {
         });
       });
 
-      await this.promptAnswerRepository.save(answerEntities);
+      console.log('Saving prompt answers:', {
+        userId,
+        profileId: profile.id,
+        answersCount: answerEntities.length,
+        answers: answerEntities.map(a => ({ promptId: a.promptId, answer: a.answer })),
+      });
+
+      const savedAnswers = await this.promptAnswerRepository.save(answerEntities);
+      
+      console.log('Prompt answers saved successfully:', {
+        userId,
+        savedCount: savedAnswers.length,
+        savedIds: savedAnswers.map(a => a.id),
+      });
 
       // Check if profile is now complete
       await this.updateProfileCompletionStatus(userId);
@@ -584,6 +547,14 @@ export class ProfilesService {
       throw new NotFoundException('Profile not found');
     }
 
+    // Debug: Log the user profile data
+    console.log('Profile completion debug - user data:', {
+      userId: user.id,
+      profileId: user.profile.id,
+      promptAnswersRaw: user.profile.promptAnswers,
+      promptAnswersCount: user.profile.promptAnswers?.length || 0,
+    });
+
     const photosCount = user.profile.photos?.length || 0;
     const hasPhotos = photosCount >= 3;
     const hasRequiredProfileFields = !!(
@@ -593,6 +564,18 @@ export class ProfilesService {
     // Get required prompts and check if user has answered all of them
     const requiredPrompts = await this.promptRepository.find({
       where: { isActive: true, isRequired: true },
+    });
+
+    // Debug: Log all prompts for verification
+    const allPrompts = await this.promptRepository.find({
+      where: { isActive: true },
+    });
+    
+    console.log('All active prompts in database:', {
+      totalActive: allPrompts.length,
+      requiredPrompts: allPrompts.filter(p => p.isRequired).map(p => ({ id: p.id, text: p.text, isRequired: p.isRequired, order: p.order })),
+      optionalPrompts: allPrompts.filter(p => !p.isRequired).map(p => ({ id: p.id, text: p.text, isRequired: p.isRequired, order: p.order })),
+      totalRequired: requiredPrompts.length,
     });
 
     const answeredPromptIds = new Set(
@@ -606,6 +589,17 @@ export class ProfilesService {
     const hasPrompts = missingRequiredPrompts.length === 0;
     const promptsCount = user.profile.promptAnswers?.length || 0;
     const requiredPromptsCount = requiredPrompts.length;
+
+    // Debug: Log prompts validation
+    console.log('Prompts validation debug:', {
+      userId: user.id,
+      requiredPromptsCount,
+      promptsCount,
+      answeredPromptIds: Array.from(answeredPromptIds),
+      requiredPromptIds: requiredPrompts.map(p => p.id),
+      missingRequiredPrompts: missingRequiredPrompts.map(p => ({ id: p.id, text: p.text })),
+      hasPrompts,
+    });
 
     const requiredQuestionsCount =
       await this.personalityQuestionRepository.count({

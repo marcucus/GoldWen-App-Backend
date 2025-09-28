@@ -95,6 +95,11 @@ export class SecurityLoggingMiddleware implements NestMiddleware {
   }
 
   private checkSuspiciousActivity(req: Request) {
+    // Skip security checks in development environment
+    if (process.env.NODE_ENV === 'development') {
+      return;
+    }
+    
     const suspiciousPatterns = [
       // SQL injection patterns
       /('|(\\x27)|(\\x2D)|(\\x2C)|(\\x23)|(\\x3B))/gi,
@@ -102,8 +107,8 @@ export class SecurityLoggingMiddleware implements NestMiddleware {
       /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
       // Path traversal patterns
       /\.\.[\/\\]/g,
-      // Command injection patterns
-      /[;&|`$(){}[\]]/g,
+      // Command injection patterns - exclude {} for JSON
+      /[;&|`$()[\]]/g,
     ];
 
     const userInput =

@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: goldwen_postgres
@@ -19,57 +18,19 @@ services:
       timeout: 10s
       retries: 3
 
-  # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: goldwen_redis
     ports:
       - "6379:6379"
-    volumes:
-      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3
 
-  # Main API Service
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile.api
-    container_name: goldwen_api
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=development
-      - DATABASE_HOST=postgres
-      - DATABASE_PORT=5432
-      - DATABASE_USERNAME=goldwen
-      - DATABASE_PASSWORD=goldwen_password
-      - DATABASE_NAME=goldwen_db
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - MATCHING_SERVICE_URL=http://host.docker.internal:8000
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    volumes:
-      - ./main-api/uploads:/app/uploads
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
 volumes:
   postgres_data:
-    driver: local
-  redis_data:
     driver: local
 
 networks:

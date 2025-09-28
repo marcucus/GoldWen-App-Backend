@@ -350,7 +350,6 @@ export class MonitoringService {
       this.alerts = this.alerts.slice(-this.maxAlertsToKeep);
     }
   }
-}
 
   private async getMonitoringStatus() {
     const monitoringConfig = this.configService.get('monitoring');
