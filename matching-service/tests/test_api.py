@@ -3,7 +3,7 @@ Integration tests for the matching service API endpoints.
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi.testclient import TestClient
 from main import app
 
@@ -31,7 +31,7 @@ class TestCalculateCompatibilityV1:
 
     def test_calculate_compatibility_v1_success(self):
         """V1 compatibility calculation should succeed with valid data."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         request_data = {
             "user1Profile": {
                 "userId": "user1",
@@ -112,7 +112,7 @@ class TestCalculateCompatibilityV2:
 
     def test_calculate_compatibility_v2_success(self):
         """V2 compatibility calculation should succeed with valid data."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         request_data = {
             "user1Profile": {
                 "userId": "user1",
@@ -162,7 +162,7 @@ class TestCalculateCompatibilityV2:
 
     def test_calculate_compatibility_v2_has_advanced_factors(self):
         """V2 response should include all advanced factors."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         request_data = {
             "user1Profile": {
                 "userId": "user1",

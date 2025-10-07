@@ -3,7 +3,7 @@ Unit tests for compatibility calculator.
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from services.compatibility_calculator import CompatibilityCalculator
 
 
@@ -339,7 +339,7 @@ class TestCompatibilityV2:
 
     def test_v2_returns_required_fields(self):
         """V2 compatibility should return all required fields."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         profile1 = {
             "personalityAnswers": [
                 {"questionId": "q1", "numericAnswer": 7, "category": "values"}
@@ -380,7 +380,7 @@ class TestCompatibilityV2:
 
     def test_v2_has_advanced_factors(self):
         """V2 should include advanced factors breakdown."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         profile1 = {
             "personalityAnswers": [
                 {"questionId": "q1", "numericAnswer": 7, "category": "values"}
@@ -415,7 +415,7 @@ class TestCompatibilityV2:
 
     def test_v2_score_in_valid_range(self):
         """V2 score should be between 0 and 100."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         profile1 = {
             "personalityAnswers": [
                 {"questionId": "q1", "numericAnswer": 1, "category": "values"}
@@ -446,7 +446,7 @@ class TestCompatibilityV2:
 
     def test_v2_active_users_higher_than_inactive(self):
         """V2 should score active users higher than inactive ones."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         
         # Active users with good personality match
         active_profile1 = {

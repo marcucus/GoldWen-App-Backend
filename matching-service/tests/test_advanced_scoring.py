@@ -3,7 +3,7 @@ Unit tests for advanced scoring service.
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from services.advanced_scoring import AdvancedScoringService
 
 
@@ -12,7 +12,7 @@ class TestActivityScore:
 
     def test_very_recent_activity_high_score(self):
         """Users active within 24 hours should get high scores."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         last_active = now - timedelta(hours=12)
         
         score = AdvancedScoringService.calculate_activity_score(
@@ -25,7 +25,7 @@ class TestActivityScore:
 
     def test_recent_activity_good_score(self):
         """Users active within 3 days should get good scores."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         last_active = now - timedelta(days=2)
         
         score = AdvancedScoringService.calculate_activity_score(
@@ -38,7 +38,7 @@ class TestActivityScore:
 
     def test_week_old_activity_moderate_score(self):
         """Users active within a week should get moderate scores."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         last_active = now - timedelta(days=5)
         
         score = AdvancedScoringService.calculate_activity_score(
@@ -51,7 +51,7 @@ class TestActivityScore:
 
     def test_month_old_activity_low_score(self):
         """Users active within a month should get low scores."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         last_active = now - timedelta(days=20)
         
         score = AdvancedScoringService.calculate_activity_score(
@@ -64,7 +64,7 @@ class TestActivityScore:
 
     def test_very_old_activity_very_low_score(self):
         """Very inactive users should get very low scores."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         last_active = now - timedelta(days=60)
         
         score = AdvancedScoringService.calculate_activity_score(
@@ -77,7 +77,7 @@ class TestActivityScore:
 
     def test_no_activity_data_neutral_score(self):
         """Users with no activity data should get neutral score."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         
         score = AdvancedScoringService.calculate_activity_score(
             last_active_at=None,
@@ -89,7 +89,7 @@ class TestActivityScore:
 
     def test_uses_most_recent_activity(self):
         """Should use the most recent of last_active or last_login."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         recent = now - timedelta(hours=6)
         old = now - timedelta(days=10)
         
@@ -235,7 +235,7 @@ class TestAdvancedScore:
 
     def test_complete_scoring_structure(self):
         """Test that complete scoring returns all expected fields."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         user_data = {
             "lastActiveAt": now - timedelta(hours=12),
             "lastLoginAt": now - timedelta(hours=10),
@@ -279,7 +279,7 @@ class TestAdvancedScore:
 
     def test_both_users_very_active_high_activity_score(self):
         """Both active users should result in high activity score."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         user_data = {
             "lastActiveAt": now - timedelta(hours=2),
             "lastLoginAt": now - timedelta(hours=1),
@@ -312,7 +312,7 @@ class TestAdvancedScore:
 
     def test_one_inactive_user_lowers_activity_score(self):
         """One inactive user should lower the activity score."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         user_data = {
             "lastActiveAt": now - timedelta(hours=2),
             "lastLoginAt": now - timedelta(hours=1),

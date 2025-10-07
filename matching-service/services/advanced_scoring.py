@@ -36,7 +36,17 @@ class AdvancedScoringService:
         Returns:
             Activity score between 0.0 and 1.0
         """
-        now = datetime.now()
+        from datetime import timezone
+        
+        now = datetime.now(timezone.utc)
+        
+        # Ensure all datetimes are timezone-aware
+        if last_active_at and last_active_at.tzinfo is None:
+            last_active_at = last_active_at.replace(tzinfo=timezone.utc)
+        if last_login_at and last_login_at.tzinfo is None:
+            last_login_at = last_login_at.replace(tzinfo=timezone.utc)
+        if account_created_at and account_created_at.tzinfo is None:
+            account_created_at = account_created_at.replace(tzinfo=timezone.utc)
         
         # If no activity data, return neutral score
         if not last_active_at and not last_login_at:

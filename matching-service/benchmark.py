@@ -17,7 +17,7 @@ def generate_test_profile(
     active: bool = True,
 ) -> Dict:
     """Generate a test user profile."""
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     
     personality_answers = [
         {
