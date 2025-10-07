@@ -8,7 +8,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
-import { EmailService } from '../../common/email.service';
+import { EmailModule } from '../email/email.module';
 
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
@@ -27,8 +27,9 @@ import { GoogleStrategy } from './strategies/google.strategy';
       }),
       inject: [ConfigService],
     }),
+    EmailModule,
   ],
-  providers: [AuthService, EmailService, JwtStrategy, GoogleStrategy], // AppleStrategy , GoogleStrategy
+  providers: [AuthService, JwtStrategy, GoogleStrategy], // AppleStrategy , GoogleStrategy
   controllers: [AuthController],
   exports: [AuthService, JwtStrategy, PassportModule],
 })

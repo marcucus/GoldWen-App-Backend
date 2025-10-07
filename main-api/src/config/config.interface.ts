@@ -49,6 +49,8 @@ export interface NotificationConfig {
 
 export interface EmailConfig {
   from: string;
+  provider?: 'smtp' | 'sendgrid'; // Default to smtp for backward compatibility
+  sendgridApiKey?: string;
   smtp: {
     host: string;
     port: number;
