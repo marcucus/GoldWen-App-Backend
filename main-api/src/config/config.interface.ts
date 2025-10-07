@@ -83,3 +83,18 @@ export interface MonitoringConfig {
     emailRecipients: string[];
   };
 }
+
+export interface ThrottlerConfig {
+  global: {
+    ttl: number; // Time to live in milliseconds
+    limit: number; // Max requests per TTL
+  };
+  sensitive: {
+    ttl: number;
+    limit: number;
+  };
+  auth: {
+    ttl: number;
+    limit: number;
+  };
+}
