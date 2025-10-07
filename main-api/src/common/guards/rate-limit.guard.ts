@@ -22,26 +22,30 @@ export class RateLimitGuard extends ThrottlerGuard {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const response = context.switchToHttp().getResponse();
-    
+
     try {
       const canActivate = await super.canActivate(context);
-      
+
       // Add rate limit headers on successful request
-      const throttlers = Array.isArray(this.options) ? this.options : this.options.throttlers || [];
+      const throttlers = Array.isArray(this.options)
+        ? this.options
+        : this.options.throttlers || [];
       const ttl = Number(throttlers[0]?.ttl) || 60000;
       const limit = Number(throttlers[0]?.limit) || 100;
-      
+
       response.setHeader('X-RateLimit-Limit', limit);
       response.setHeader('X-RateLimit-Reset', Date.now() + ttl);
-      
+
       return canActivate;
     } catch (error) {
       if (error instanceof ThrottlerException) {
         // Add rate limit headers on rate limit exceeded
-        const throttlers = Array.isArray(this.options) ? this.options : this.options.throttlers || [];
+        const throttlers = Array.isArray(this.options)
+          ? this.options
+          : this.options.throttlers || [];
         const ttl = Number(throttlers[0]?.ttl) || 60000;
         const limit = Number(throttlers[0]?.limit) || 100;
-        
+
         response.setHeader('X-RateLimit-Limit', limit);
         response.setHeader('X-RateLimit-Remaining', 0);
         response.setHeader('X-RateLimit-Reset', Date.now() + ttl);

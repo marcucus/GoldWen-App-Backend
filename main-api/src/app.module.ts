@@ -81,8 +81,9 @@ import { StatsModule } from './modules/stats/stats.module';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
         const ttl = configService.get<number>('throttler.global.ttl') || 60000;
-        const limit = configService.get<number>('throttler.global.limit') || 100;
-        
+        const limit =
+          configService.get<number>('throttler.global.limit') || 100;
+
         return {
           throttlers: [
             {

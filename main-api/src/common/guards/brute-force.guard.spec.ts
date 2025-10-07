@@ -95,7 +95,9 @@ describe('BruteForceGuard', () => {
   describe('constructor', () => {
     it('should configure throttler with auth limits from config', () => {
       expect(mockConfigService.get).toHaveBeenCalledWith('throttler.auth.ttl');
-      expect(mockConfigService.get).toHaveBeenCalledWith('throttler.auth.limit');
+      expect(mockConfigService.get).toHaveBeenCalledWith(
+        'throttler.auth.limit',
+      );
     });
   });
 
@@ -198,7 +200,7 @@ describe('BruteForceGuard', () => {
         mockStorage,
         mockReflector,
       );
-      
+
       expect(guardInstance).toBeDefined();
     });
   });
@@ -216,4 +218,3 @@ describe('BruteForceGuard', () => {
     });
   });
 });
-

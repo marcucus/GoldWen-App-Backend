@@ -112,7 +112,9 @@ describe('RateLimitGuard', () => {
     it('should throw ThrottlerException with appropriate message', async () => {
       await expect(
         guard['throwThrottlingException'](mockContext),
-      ).rejects.toThrow('Too many requests. Please try again in a few minutes.');
+      ).rejects.toThrow(
+        'Too many requests. Please try again in a few minutes.',
+      );
     });
   });
 
@@ -136,4 +138,3 @@ describe('RateLimitGuard', () => {
     });
   });
 });
-

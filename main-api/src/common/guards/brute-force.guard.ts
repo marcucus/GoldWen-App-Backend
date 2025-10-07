@@ -24,7 +24,7 @@ export class BruteForceGuard extends ThrottlerGuard {
   ) {
     const authTtl = configService.get<number>('throttler.auth.ttl') || 900000;
     const authLimit = configService.get<number>('throttler.auth.limit') || 5;
-    
+
     super(
       {
         throttlers: [
@@ -45,14 +45,14 @@ export class BruteForceGuard extends ThrottlerGuard {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const response = context.switchToHttp().getResponse();
-    
+
     try {
       const canActivate = await super.canActivate(context);
-      
+
       // Add rate limit headers on successful request
       response.setHeader('X-RateLimit-Limit', this.authLimit);
       response.setHeader('X-RateLimit-Reset', Date.now() + this.authTtl);
-      
+
       return canActivate;
     } catch (error) {
       if (error instanceof ThrottlerException) {

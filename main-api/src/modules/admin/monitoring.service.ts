@@ -59,12 +59,13 @@ export class MonitoringService {
   }
 
   async getDashboardData() {
-    const [systemMetrics, dbStats, redisStats, monitoringStatus] = await Promise.all([
-      this.getSystemMetrics(),
-      this.getDatabaseStats(),
-      this.getRedisStats(),
-      this.getMonitoringStatus(),
-    ]);
+    const [systemMetrics, dbStats, redisStats, monitoringStatus] =
+      await Promise.all([
+        this.getSystemMetrics(),
+        this.getDatabaseStats(),
+        this.getRedisStats(),
+        this.getMonitoringStatus(),
+      ]);
 
     return {
       overview: {
@@ -353,21 +354,25 @@ export class MonitoringService {
 
   private async getMonitoringStatus() {
     const monitoringConfig = this.configService.get('monitoring');
-    
+
     return {
       sentry: {
-        enabled: !!(monitoringConfig?.sentry?.dsn),
+        enabled: !!monitoringConfig?.sentry?.dsn,
         environment: monitoringConfig?.sentry?.environment || 'development',
         tracesSampleRate: monitoringConfig?.sentry?.tracesSampleRate || 0.1,
       },
       datadog: {
-        enabled: !!(monitoringConfig?.datadog?.apiKey && monitoringConfig?.datadog?.appKey),
-        configured: !!(monitoringConfig?.datadog),
+        enabled: !!(
+          monitoringConfig?.datadog?.apiKey && monitoringConfig?.datadog?.appKey
+        ),
+        configured: !!monitoringConfig?.datadog,
       },
       alerts: {
-        webhookConfigured: !!(monitoringConfig?.alerts?.webhookUrl),
-        slackConfigured: !!(monitoringConfig?.alerts?.slackWebhookUrl),
-        emailConfigured: !!(monitoringConfig?.alerts?.emailRecipients?.length > 0),
+        webhookConfigured: !!monitoringConfig?.alerts?.webhookUrl,
+        slackConfigured: !!monitoringConfig?.alerts?.slackWebhookUrl,
+        emailConfigured: !!(
+          monitoringConfig?.alerts?.emailRecipients?.length > 0
+        ),
         totalChannels: [
           monitoringConfig?.alerts?.webhookUrl,
           monitoringConfig?.alerts?.slackWebhookUrl,

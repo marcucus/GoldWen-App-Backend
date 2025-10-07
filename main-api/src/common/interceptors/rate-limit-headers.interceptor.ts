@@ -17,8 +17,8 @@ export class RateLimitHeadersInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap(() => {
         // Add rate limit headers if they exist from throttler
-        const rateLimitInfo = (request as any).rateLimit;
-        
+        const rateLimitInfo = request.rateLimit;
+
         if (rateLimitInfo) {
           response.setHeader('X-RateLimit-Limit', rateLimitInfo.limit || 100);
           response.setHeader(
