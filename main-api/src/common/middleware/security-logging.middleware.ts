@@ -99,7 +99,7 @@ export class SecurityLoggingMiddleware implements NestMiddleware {
     if (process.env.NODE_ENV === 'development') {
       return;
     }
-    
+
     const suspiciousPatterns = [
       // SQL injection patterns
       /('|(\\x27)|(\\x2D)|(\\x2C)|(\\x23)|(\\x3B))/gi,

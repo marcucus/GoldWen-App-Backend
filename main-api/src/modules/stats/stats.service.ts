@@ -57,9 +57,15 @@ export class StatsService {
 
     try {
       const today = new Date();
-      const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const startOfToday = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+      );
       const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const thirtyDaysAgo = new Date(
+        today.getTime() - 30 * 24 * 60 * 60 * 1000,
+      );
 
       // Parallel execution of all queries for better performance
       const [
@@ -81,7 +87,9 @@ export class StatsService {
         this.userRepository.count({ where: { status: UserStatus.SUSPENDED } }),
         this.matchRepository.count({ where: { status: MatchStatus.MATCHED } }),
         this.chatRepository.count({ where: { status: ChatStatus.ACTIVE } }),
-        this.reportRepository.count({ where: { status: ReportStatus.PENDING } }),
+        this.reportRepository.count({
+          where: { status: ReportStatus.PENDING },
+        }),
         this.subscriptionRepository.count({
           where: { status: SubscriptionStatus.ACTIVE },
         }),
@@ -158,9 +166,9 @@ export class StatsService {
 
     try {
       // Check if user exists
-      const user = await this.userRepository.findOne({ 
+      const user = await this.userRepository.findOne({
         where: { id: userId },
-        relations: ['profile']
+        relations: ['profile'],
       });
       if (!user) {
         throw new NotFoundException('User not found');
@@ -178,7 +186,9 @@ export class StatsService {
       const activeChats = await this.chatRepository
         .createQueryBuilder('chat')
         .innerJoin('chat.match', 'match')
-        .where('(match.user1Id = :userId OR match.user2Id = :userId)', { userId })
+        .where('(match.user1Id = :userId OR match.user2Id = :userId)', {
+          userId,
+        })
         .andWhere('chat.status = :status', { status: ChatStatus.ACTIVE })
         .getCount();
 
@@ -193,7 +203,9 @@ export class StatsService {
         .innerJoin('message.chat', 'chat')
         .innerJoin('chat.match', 'match')
         .where('message.senderId != :userId', { userId })
-        .andWhere('(match.user1Id = :userId OR match.user2Id = :userId)', { userId })
+        .andWhere('(match.user1Id = :userId OR match.user2Id = :userId)', {
+          userId,
+        })
         .getCount();
 
       // Get daily selections for the user
@@ -218,7 +230,7 @@ export class StatsService {
       // Calculate profile completion percentage (basic implementation)
       let profileCompletionPercent = 0;
       const profile = user.profile;
-      
+
       if (profile?.firstName) profileCompletionPercent += 20;
       if (profile?.lastName) profileCompletionPercent += 20;
       if (profile?.birthDate) profileCompletionPercent += 20;
@@ -226,16 +238,19 @@ export class StatsService {
       if (profile?.location) profileCompletionPercent += 20;
 
       // Calculate average choices per selection
-      const averageChoicesPerSelection = dailySelectionsUsed > 0
-        ? Math.round(
-            (parseInt(totalChoicesUsed?.total || '0') / dailySelectionsUsed) * 100,
-          ) / 100
-        : 0;
+      const averageChoicesPerSelection =
+        dailySelectionsUsed > 0
+          ? Math.round(
+              (parseInt(totalChoicesUsed?.total || '0') / dailySelectionsUsed) *
+                100,
+            ) / 100
+          : 0;
 
       // Calculate match rate
-      const matchRate = dailySelectionsUsed > 0
-        ? Math.round((totalMatches / dailySelectionsUsed) * 100) / 100
-        : 0;
+      const matchRate =
+        dailySelectionsUsed > 0
+          ? Math.round((totalMatches / dailySelectionsUsed) * 100) / 100
+          : 0;
 
       const stats: UserStatsResponseDto = {
         userId,
@@ -256,10 +271,15 @@ export class StatsService {
         profileCompletionPercent,
       };
 
-      this.logger.log(`User statistics fetched successfully for user: ${userId}`);
+      this.logger.log(
+        `User statistics fetched successfully for user: ${userId}`,
+      );
       return stats;
     } catch (error) {
-      this.logger.error(`Failed to fetch user statistics for user: ${userId}`, error);
+      this.logger.error(
+        `Failed to fetch user statistics for user: ${userId}`,
+        error,
+      );
       throw error;
     }
   }
@@ -267,16 +287,18 @@ export class StatsService {
   /**
    * Get activity statistics over time
    */
-  async getActivityStats(query: GetActivityStatsDto): Promise<ActivityStatsResponseDto> {
+  async getActivityStats(
+    query: GetActivityStatsDto,
+  ): Promise<ActivityStatsResponseDto> {
     this.logger.log('Fetching activity statistics');
 
     try {
       // Set default date range (last 30 days)
       const endDate = query.endDate ? new Date(query.endDate) : new Date();
-      const startDate = query.startDate 
-        ? new Date(query.startDate) 
+      const startDate = query.startDate
+        ? new Date(query.startDate)
         : new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
-      
+
       const period = query.period || ActivityPeriod.DAILY;
 
       // Get date format based on period
@@ -285,11 +307,11 @@ export class StatsService {
           case ActivityPeriod.DAILY:
             return 'DATE(created_at)';
           case ActivityPeriod.WEEKLY:
-            return 'DATE_TRUNC(\'week\', created_at)';
+            return "DATE_TRUNC('week', created_at)";
           case ActivityPeriod.MONTHLY:
-            return 'DATE_TRUNC(\'month\', created_at)';
+            return "DATE_TRUNC('month', created_at)";
           case ActivityPeriod.YEARLY:
-            return 'DATE_TRUNC(\'year\', created_at)';
+            return "DATE_TRUNC('year', created_at)";
           default:
             return 'DATE(created_at)';
         }
@@ -301,7 +323,10 @@ export class StatsService {
       const userRegistrations = await this.userRepository
         .createQueryBuilder('user')
         .select(`${dateFormat} as date, COUNT(*) as count`)
-        .where('user.createdAt BETWEEN :startDate AND :endDate', { startDate, endDate })
+        .where('user.createdAt BETWEEN :startDate AND :endDate', {
+          startDate,
+          endDate,
+        })
         .groupBy('date')
         .orderBy('date', 'ASC')
         .getRawMany();
@@ -309,8 +334,13 @@ export class StatsService {
       // Matches created over time
       const matchesCreated = await this.matchRepository
         .createQueryBuilder('match')
-        .select(`${dateFormat.replace('created_at', 'match.createdAt')} as date, COUNT(*) as count`)
-        .where('match.createdAt BETWEEN :startDate AND :endDate', { startDate, endDate })
+        .select(
+          `${dateFormat.replace('created_at', 'match.createdAt')} as date, COUNT(*) as count`,
+        )
+        .where('match.createdAt BETWEEN :startDate AND :endDate', {
+          startDate,
+          endDate,
+        })
         .andWhere('match.status = :status', { status: MatchStatus.MATCHED })
         .groupBy('date')
         .orderBy('date', 'ASC')
@@ -319,8 +349,13 @@ export class StatsService {
       // Messages sent over time
       const messagesSent = await this.messageRepository
         .createQueryBuilder('message')
-        .select(`${dateFormat.replace('created_at', 'message.createdAt')} as date, COUNT(*) as count`)
-        .where('message.createdAt BETWEEN :startDate AND :endDate', { startDate, endDate })
+        .select(
+          `${dateFormat.replace('created_at', 'message.createdAt')} as date, COUNT(*) as count`,
+        )
+        .where('message.createdAt BETWEEN :startDate AND :endDate', {
+          startDate,
+          endDate,
+        })
         .groupBy('date')
         .orderBy('date', 'ASC')
         .getRawMany();
@@ -328,8 +363,13 @@ export class StatsService {
       // Daily active users (users who were active on each date)
       const dailyActiveUsers = await this.userRepository
         .createQueryBuilder('user')
-        .select(`${dateFormat.replace('created_at', 'user.lastActiveAt')} as date, COUNT(DISTINCT user.id) as count`)
-        .where('user.lastActiveAt BETWEEN :startDate AND :endDate', { startDate, endDate })
+        .select(
+          `${dateFormat.replace('created_at', 'user.lastActiveAt')} as date, COUNT(DISTINCT user.id) as count`,
+        )
+        .where('user.lastActiveAt BETWEEN :startDate AND :endDate', {
+          startDate,
+          endDate,
+        })
         .groupBy('date')
         .orderBy('date', 'ASC')
         .getRawMany();
@@ -337,26 +377,40 @@ export class StatsService {
       // Subscription conversions over time
       const subscriptionConversions = await this.subscriptionRepository
         .createQueryBuilder('subscription')
-        .select(`${dateFormat.replace('created_at', 'subscription.createdAt')} as date, COUNT(*) as count`)
-        .where('subscription.createdAt BETWEEN :startDate AND :endDate', { startDate, endDate })
-        .andWhere('subscription.status = :status', { status: SubscriptionStatus.ACTIVE })
+        .select(
+          `${dateFormat.replace('created_at', 'subscription.createdAt')} as date, COUNT(*) as count`,
+        )
+        .where('subscription.createdAt BETWEEN :startDate AND :endDate', {
+          startDate,
+          endDate,
+        })
+        .andWhere('subscription.status = :status', {
+          status: SubscriptionStatus.ACTIVE,
+        })
         .groupBy('date')
         .orderBy('date', 'ASC')
         .getRawMany();
 
       // Calculate summary statistics
-      const totalActivity = userRegistrations.reduce((sum, item) => sum + parseInt(item.count), 0) +
-                           matchesCreated.reduce((sum, item) => sum + parseInt(item.count), 0) +
-                           messagesSent.reduce((sum, item) => sum + parseInt(item.count), 0);
+      const totalActivity =
+        userRegistrations.reduce((sum, item) => sum + parseInt(item.count), 0) +
+        matchesCreated.reduce((sum, item) => sum + parseInt(item.count), 0) +
+        messagesSent.reduce((sum, item) => sum + parseInt(item.count), 0);
 
-      const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24));
+      const daysDiff = Math.ceil(
+        (endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24),
+      );
       const averageDailyActivity = daysDiff > 0 ? totalActivity / daysDiff : 0;
 
       // Find peak activity
-      const allActivityData = [...userRegistrations, ...matchesCreated, ...messagesSent];
+      const allActivityData = [
+        ...userRegistrations,
+        ...matchesCreated,
+        ...messagesSent,
+      ];
       const activityByDate = new Map<string, number>();
-      
-      allActivityData.forEach(item => {
+
+      allActivityData.forEach((item) => {
         const date = new Date(item.date).toISOString().split('T')[0];
         const currentCount = activityByDate.get(date) || 0;
         activityByDate.set(date, currentCount + parseInt(item.count));
@@ -376,23 +430,23 @@ export class StatsService {
           startDate: startDate.toISOString().split('T')[0],
           endDate: endDate.toISOString().split('T')[0],
         },
-        userRegistrations: userRegistrations.map(item => ({
+        userRegistrations: userRegistrations.map((item) => ({
           date: new Date(item.date).toISOString().split('T')[0],
           count: parseInt(item.count),
         })),
-        matchesCreated: matchesCreated.map(item => ({
+        matchesCreated: matchesCreated.map((item) => ({
           date: new Date(item.date).toISOString().split('T')[0],
           count: parseInt(item.count),
         })),
-        messagesSent: messagesSent.map(item => ({
+        messagesSent: messagesSent.map((item) => ({
           date: new Date(item.date).toISOString().split('T')[0],
           count: parseInt(item.count),
         })),
-        dailyActiveUsers: dailyActiveUsers.map(item => ({
+        dailyActiveUsers: dailyActiveUsers.map((item) => ({
           date: new Date(item.date).toISOString().split('T')[0],
           count: parseInt(item.count),
         })),
-        subscriptionConversions: subscriptionConversions.map(item => ({
+        subscriptionConversions: subscriptionConversions.map((item) => ({
           date: new Date(item.date).toISOString().split('T')[0],
           count: parseInt(item.count),
         })),

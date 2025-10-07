@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
 import { ChatGateway } from './chat.gateway';
+import { ChatScheduler } from './chat.scheduler';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { ProfilesModule } from '../profiles/profiles.module';
 
@@ -29,8 +30,8 @@ import { User } from '../../database/entities/user.entity';
     forwardRef(() => NotificationsModule),
     ProfilesModule,
   ],
-  providers: [ChatService, ChatGateway],
+  providers: [ChatService, ChatGateway, ChatScheduler],
   controllers: [ChatController],
-  exports: [ChatService, ChatGateway],
+  exports: [ChatService, ChatGateway, ChatScheduler],
 })
 export class ChatModule {}
