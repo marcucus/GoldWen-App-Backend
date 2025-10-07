@@ -31,7 +31,7 @@ export class DatadogService {
     this.apiKey = this.configService.get('monitoring.datadog.apiKey') || '';
     this.appKey = this.configService.get('monitoring.datadog.appKey') || '';
     this.enabled = !!(this.apiKey && this.appKey);
-    
+
     if (!this.enabled) {
       this.logger.info('DataDog not configured, skipping initialization');
     } else {
@@ -41,7 +41,10 @@ export class DatadogService {
 
   async sendMetric(metric: DatadogMetric): Promise<boolean> {
     if (!this.enabled) {
-      this.logger.debug(`DataDog not enabled, skipping metric: ${metric.metric}`, 'DatadogService');
+      this.logger.debug(
+        `DataDog not enabled, skipping metric: ${metric.metric}`,
+        'DatadogService',
+      );
       return false;
     }
 
@@ -59,20 +62,32 @@ export class DatadogService {
       });
 
       if (!response.ok) {
-        throw new Error(`DataDog API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `DataDog API error: ${response.status} ${response.statusText}`,
+        );
       }
 
-      this.logger.debug(`Metric sent to DataDog: ${metric.metric}`, 'DatadogService');
+      this.logger.debug(
+        `Metric sent to DataDog: ${metric.metric}`,
+        'DatadogService',
+      );
       return true;
     } catch (error) {
-      this.logger.error('Failed to send metric to DataDog', error.stack, 'DatadogService');
+      this.logger.error(
+        'Failed to send metric to DataDog',
+        error.stack,
+        'DatadogService',
+      );
       return false;
     }
   }
 
   async sendEvent(event: DatadogEvent): Promise<boolean> {
     if (!this.enabled) {
-      this.logger.debug(`DataDog not enabled, skipping event: ${event.title}`, 'DatadogService');
+      this.logger.debug(
+        `DataDog not enabled, skipping event: ${event.title}`,
+        'DatadogService',
+      );
       return false;
     }
 
@@ -88,19 +103,32 @@ export class DatadogService {
       });
 
       if (!response.ok) {
-        throw new Error(`DataDog API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `DataDog API error: ${response.status} ${response.statusText}`,
+        );
       }
 
-      this.logger.debug(`Event sent to DataDog: ${event.title}`, 'DatadogService');
+      this.logger.debug(
+        `Event sent to DataDog: ${event.title}`,
+        'DatadogService',
+      );
       return true;
     } catch (error) {
-      this.logger.error('Failed to send event to DataDog', error.stack, 'DatadogService');
+      this.logger.error(
+        'Failed to send event to DataDog',
+        error.stack,
+        'DatadogService',
+      );
       return false;
     }
   }
 
   // Helper methods for common use cases
-  async sendGaugeMetric(metric: string, value: number, tags?: string[]): Promise<boolean> {
+  async sendGaugeMetric(
+    metric: string,
+    value: number,
+    tags?: string[],
+  ): Promise<boolean> {
     return this.sendMetric({
       metric,
       points: [[Date.now() / 1000, value]],
@@ -109,7 +137,11 @@ export class DatadogService {
     });
   }
 
-  async sendCountMetric(metric: string, value: number, tags?: string[]): Promise<boolean> {
+  async sendCountMetric(
+    metric: string,
+    value: number,
+    tags?: string[],
+  ): Promise<boolean> {
     return this.sendMetric({
       metric,
       points: [[Date.now() / 1000, value]],
@@ -118,7 +150,12 @@ export class DatadogService {
     });
   }
 
-  async sendAlert(title: string, message: string, level: 'error' | 'warning' | 'info' = 'info', tags?: string[]): Promise<boolean> {
+  async sendAlert(
+    title: string,
+    message: string,
+    level: 'error' | 'warning' | 'info' = 'info',
+    tags?: string[],
+  ): Promise<boolean> {
     return this.sendEvent({
       title,
       text: message,
@@ -134,17 +171,34 @@ export class DatadogService {
 
     const memoryUsage = process.memoryUsage();
     const uptime = process.uptime();
-    
+
     // Send memory metrics
     await Promise.allSettled([
-      this.sendGaugeMetric('goldwen.system.memory.heap_used', Math.round(memoryUsage.heapUsed / 1024 / 1024), ['unit:mb']),
-      this.sendGaugeMetric('goldwen.system.memory.heap_total', Math.round(memoryUsage.heapTotal / 1024 / 1024), ['unit:mb']),
-      this.sendGaugeMetric('goldwen.system.memory.external', Math.round(memoryUsage.external / 1024 / 1024), ['unit:mb']),
+      this.sendGaugeMetric(
+        'goldwen.system.memory.heap_used',
+        Math.round(memoryUsage.heapUsed / 1024 / 1024),
+        ['unit:mb'],
+      ),
+      this.sendGaugeMetric(
+        'goldwen.system.memory.heap_total',
+        Math.round(memoryUsage.heapTotal / 1024 / 1024),
+        ['unit:mb'],
+      ),
+      this.sendGaugeMetric(
+        'goldwen.system.memory.external',
+        Math.round(memoryUsage.external / 1024 / 1024),
+        ['unit:mb'],
+      ),
       this.sendGaugeMetric('goldwen.system.uptime', uptime, ['unit:seconds']),
     ]);
   }
 
-  async trackApiMetrics(endpoint: string, method: string, responseTime: number, statusCode: number): Promise<void> {
+  async trackApiMetrics(
+    endpoint: string,
+    method: string,
+    responseTime: number,
+    statusCode: number,
+  ): Promise<void> {
     if (!this.enabled) return;
 
     const tags = [
@@ -160,7 +214,11 @@ export class DatadogService {
     ]);
   }
 
-  async trackBusinessMetrics(event: string, value: number = 1, tags?: string[]): Promise<void> {
+  async trackBusinessMetrics(
+    event: string,
+    value: number = 1,
+    tags?: string[],
+  ): Promise<void> {
     if (!this.enabled) return;
 
     await this.sendCountMetric(`goldwen.business.${event}`, value, tags);

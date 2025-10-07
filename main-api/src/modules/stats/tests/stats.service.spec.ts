@@ -99,10 +99,18 @@ describe('StatsService', () => {
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
     matchRepository = module.get<Repository<Match>>(getRepositoryToken(Match));
     chatRepository = module.get<Repository<Chat>>(getRepositoryToken(Chat));
-    messageRepository = module.get<Repository<Message>>(getRepositoryToken(Message));
-    subscriptionRepository = module.get<Repository<Subscription>>(getRepositoryToken(Subscription));
-    reportRepository = module.get<Repository<Report>>(getRepositoryToken(Report));
-    dailySelectionRepository = module.get<Repository<DailySelection>>(getRepositoryToken(DailySelection));
+    messageRepository = module.get<Repository<Message>>(
+      getRepositoryToken(Message),
+    );
+    subscriptionRepository = module.get<Repository<Subscription>>(
+      getRepositoryToken(Subscription),
+    );
+    reportRepository = module.get<Repository<Report>>(
+      getRepositoryToken(Report),
+    );
+    dailySelectionRepository = module.get<Repository<DailySelection>>(
+      getRepositoryToken(DailySelection),
+    );
   });
 
   afterEach(() => {
@@ -117,24 +125,26 @@ describe('StatsService', () => {
     it('should return global statistics', async () => {
       // Mock all count methods
       jest.spyOn(userRepository, 'count').mockResolvedValueOnce(1000); // totalUsers
-      jest.spyOn(userRepository, 'count').mockResolvedValueOnce(950);  // activeUsers
-      jest.spyOn(userRepository, 'count').mockResolvedValueOnce(50);   // suspendedUsers
+      jest.spyOn(userRepository, 'count').mockResolvedValueOnce(950); // activeUsers
+      jest.spyOn(userRepository, 'count').mockResolvedValueOnce(50); // suspendedUsers
       jest.spyOn(matchRepository, 'count').mockResolvedValueOnce(500); // totalMatches
-      jest.spyOn(chatRepository, 'count').mockResolvedValueOnce(300);  // activeChats
+      jest.spyOn(chatRepository, 'count').mockResolvedValueOnce(300); // activeChats
       jest.spyOn(reportRepository, 'count').mockResolvedValueOnce(10); // pendingReports
       jest.spyOn(subscriptionRepository, 'count').mockResolvedValueOnce(200); // activeSubscriptions
-      jest.spyOn(userRepository, 'count').mockResolvedValueOnce(25);   // newRegistrationsToday
-      jest.spyOn(matchRepository, 'count').mockResolvedValueOnce(15);  // newMatchesToday
+      jest.spyOn(userRepository, 'count').mockResolvedValueOnce(25); // newRegistrationsToday
+      jest.spyOn(matchRepository, 'count').mockResolvedValueOnce(15); // newMatchesToday
       jest.spyOn(messageRepository, 'count').mockResolvedValueOnce(100); // messagesSentToday
-      jest.spyOn(userRepository, 'count').mockResolvedValueOnce(600);  // dailyActiveUsers
-      jest.spyOn(userRepository, 'count').mockResolvedValueOnce(800);  // monthlyActiveUsers
+      jest.spyOn(userRepository, 'count').mockResolvedValueOnce(600); // dailyActiveUsers
+      jest.spyOn(userRepository, 'count').mockResolvedValueOnce(800); // monthlyActiveUsers
 
       // Mock subscriptions for revenue calculation
-      jest.spyOn(subscriptionRepository, 'find').mockResolvedValueOnce([
-        { price: 10 } as any,
-        { price: 15 } as any,
-        { price: 20 } as any,
-      ]);
+      jest
+        .spyOn(subscriptionRepository, 'find')
+        .mockResolvedValueOnce([
+          { price: 10 } as any,
+          { price: 15 } as any,
+          { price: 20 } as any,
+        ]);
 
       const result = await service.getGlobalStats();
 
@@ -156,7 +166,9 @@ describe('StatsService', () => {
       });
 
       expect(mockLogger.log).toHaveBeenCalledWith('Fetching global statistics');
-      expect(mockLogger.log).toHaveBeenCalledWith('Global statistics fetched successfully');
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        'Global statistics fetched successfully',
+      );
     });
 
     it('should handle errors', async () => {
@@ -164,7 +176,10 @@ describe('StatsService', () => {
       jest.spyOn(userRepository, 'count').mockRejectedValueOnce(error);
 
       await expect(service.getGlobalStats()).rejects.toThrow(error);
-      expect(mockLogger.error).toHaveBeenCalledWith('Failed to fetch global statistics', error);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to fetch global statistics',
+        error,
+      );
     });
   });
 
@@ -184,9 +199,11 @@ describe('StatsService', () => {
     };
 
     it('should return user statistics', async () => {
-      jest.spyOn(userRepository, 'findOne').mockResolvedValueOnce(mockUser as any);
+      jest
+        .spyOn(userRepository, 'findOne')
+        .mockResolvedValueOnce(mockUser as any);
       jest.spyOn(matchRepository, 'count').mockResolvedValueOnce(5);
-      
+
       // Mock chat query builder
       const mockChatQueryBuilder = {
         createQueryBuilder: jest.fn().mockReturnThis(),
@@ -195,10 +212,12 @@ describe('StatsService', () => {
         andWhere: jest.fn().mockReturnThis(),
         getCount: jest.fn().mockResolvedValue(3),
       };
-      jest.spyOn(chatRepository, 'createQueryBuilder').mockReturnValue(mockChatQueryBuilder as any);
+      jest
+        .spyOn(chatRepository, 'createQueryBuilder')
+        .mockReturnValue(mockChatQueryBuilder as any);
 
       jest.spyOn(messageRepository, 'count').mockResolvedValueOnce(20); // messagesSent
-      
+
       // Mock message query builder for received messages
       const mockMessageQueryBuilder = {
         createQueryBuilder: jest.fn().mockReturnThis(),
@@ -207,10 +226,12 @@ describe('StatsService', () => {
         andWhere: jest.fn().mockReturnThis(),
         getCount: jest.fn().mockResolvedValue(15),
       };
-      jest.spyOn(messageRepository, 'createQueryBuilder').mockReturnValue(mockMessageQueryBuilder as any);
+      jest
+        .spyOn(messageRepository, 'createQueryBuilder')
+        .mockReturnValue(mockMessageQueryBuilder as any);
 
       jest.spyOn(dailySelectionRepository, 'count').mockResolvedValueOnce(10);
-      
+
       // Mock daily selection query builder
       const mockDailySelectionQueryBuilder = {
         createQueryBuilder: jest.fn().mockReturnThis(),
@@ -218,7 +239,9 @@ describe('StatsService', () => {
         where: jest.fn().mockReturnThis(),
         getRawOne: jest.fn().mockResolvedValue({ total: '30' }),
       };
-      jest.spyOn(dailySelectionRepository, 'createQueryBuilder').mockReturnValue(mockDailySelectionQueryBuilder as any);
+      jest
+        .spyOn(dailySelectionRepository, 'createQueryBuilder')
+        .mockReturnValue(mockDailySelectionQueryBuilder as any);
 
       jest.spyOn(subscriptionRepository, 'findOne').mockResolvedValueOnce({
         plan: 'premium',
@@ -226,29 +249,33 @@ describe('StatsService', () => {
 
       const result = await service.getUserStats(userId);
 
-      expect(result).toEqual(expect.objectContaining({
-        userId,
-        totalMatches: 5,
-        activeChats: 3,
-        messagesSent: 20,
-        messagesReceived: 15,
-        dailySelectionsUsed: 10,
-        totalChoicesUsed: 30,
-        averageChoicesPerSelection: 3,
-        matchRate: 0.5,
-        hasActiveSubscription: true,
-        subscriptionPlan: 'premium',
-        profileCompletionPercent: 100,
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          userId,
+          totalMatches: 5,
+          activeChats: 3,
+          messagesSent: 20,
+          messagesReceived: 15,
+          dailySelectionsUsed: 10,
+          totalChoicesUsed: 30,
+          averageChoicesPerSelection: 3,
+          matchRate: 0.5,
+          hasActiveSubscription: true,
+          subscriptionPlan: 'premium',
+          profileCompletionPercent: 100,
+        }),
+      );
     });
 
     it('should throw NotFoundException when user does not exist', async () => {
       jest.spyOn(userRepository, 'findOne').mockResolvedValueOnce(null);
 
-      await expect(service.getUserStats(userId)).rejects.toThrow(NotFoundException);
+      await expect(service.getUserStats(userId)).rejects.toThrow(
+        NotFoundException,
+      );
       expect(mockLogger.error).toHaveBeenCalledWith(
         `Failed to fetch user statistics for user: ${userId}`,
-        expect.any(NotFoundException)
+        expect.any(NotFoundException),
       );
     });
   });
@@ -271,27 +298,37 @@ describe('StatsService', () => {
         getRawMany: jest.fn().mockResolvedValue(mockData),
       };
 
-      jest.spyOn(userRepository, 'createQueryBuilder').mockReturnValue(mockQueryBuilder as any);
-      jest.spyOn(matchRepository, 'createQueryBuilder').mockReturnValue(mockQueryBuilder as any);
-      jest.spyOn(messageRepository, 'createQueryBuilder').mockReturnValue(mockQueryBuilder as any);
-      jest.spyOn(subscriptionRepository, 'createQueryBuilder').mockReturnValue(mockQueryBuilder as any);
+      jest
+        .spyOn(userRepository, 'createQueryBuilder')
+        .mockReturnValue(mockQueryBuilder as any);
+      jest
+        .spyOn(matchRepository, 'createQueryBuilder')
+        .mockReturnValue(mockQueryBuilder as any);
+      jest
+        .spyOn(messageRepository, 'createQueryBuilder')
+        .mockReturnValue(mockQueryBuilder as any);
+      jest
+        .spyOn(subscriptionRepository, 'createQueryBuilder')
+        .mockReturnValue(mockQueryBuilder as any);
 
       const result = await service.getActivityStats({});
 
-      expect(result).toEqual(expect.objectContaining({
-        dateRange: expect.any(Object),
-        userRegistrations: expect.any(Array),
-        matchesCreated: expect.any(Array),
-        messagesSent: expect.any(Array),
-        dailyActiveUsers: expect.any(Array),
-        subscriptionConversions: expect.any(Array),
-        summary: expect.objectContaining({
-          totalActivity: expect.any(Number),
-          averageDailyActivity: expect.any(Number),
-          peakActivityDate: expect.any(String),
-          peakActivityCount: expect.any(Number),
+      expect(result).toEqual(
+        expect.objectContaining({
+          dateRange: expect.any(Object),
+          userRegistrations: expect.any(Array),
+          matchesCreated: expect.any(Array),
+          messagesSent: expect.any(Array),
+          dailyActiveUsers: expect.any(Array),
+          subscriptionConversions: expect.any(Array),
+          summary: expect.objectContaining({
+            totalActivity: expect.any(Number),
+            averageDailyActivity: expect.any(Number),
+            peakActivityDate: expect.any(String),
+            peakActivityCount: expect.any(Number),
+          }),
         }),
-      }));
+      );
     });
   });
 
@@ -302,7 +339,9 @@ describe('StatsService', () => {
         activeUsers: 950,
       };
 
-      jest.spyOn(service, 'getGlobalStats').mockResolvedValueOnce(mockGlobalStats as any);
+      jest
+        .spyOn(service, 'getGlobalStats')
+        .mockResolvedValueOnce(mockGlobalStats as any);
 
       const result = await service.exportStats('global');
 
@@ -319,7 +358,9 @@ describe('StatsService', () => {
         userRegistrations: [],
       };
 
-      jest.spyOn(service, 'getActivityStats').mockResolvedValueOnce(mockActivityStats as any);
+      jest
+        .spyOn(service, 'getActivityStats')
+        .mockResolvedValueOnce(mockActivityStats as any);
 
       const result = await service.exportStats('activity', {});
 

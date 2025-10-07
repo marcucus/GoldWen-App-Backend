@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not, In } from 'typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
 
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
@@ -49,45 +48,6 @@ export class MatchingService {
     private matchingIntegrationService: MatchingIntegrationService,
     private logger: CustomLoggerService,
   ) {}
-
-  // Daily selection generation - runs every day at 12:00 PM
-  @Cron('0 12 * * *')
-  async generateDailySelectionsForAllUsers() {
-    const users = await this.userRepository.find({
-      where: { isProfileCompleted: true },
-    });
-
-    this.logger.info('Starting daily selection generation for all users', {
-      totalUsers: users.length,
-    });
-
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const user of users) {
-      try {
-        await this.generateDailySelection(user.id);
-
-        // Send daily selection notification
-        await this.notificationsService.sendDailySelectionNotification(user.id);
-
-        successCount++;
-      } catch (error) {
-        this.logger.error(
-          'Failed to generate daily selection for user',
-          error.stack,
-          'MatchingService',
-        );
-        errorCount++;
-      }
-    }
-
-    this.logger.info('Daily selection generation completed', {
-      totalUsers: users.length,
-      successCount,
-      errorCount,
-    });
-  }
 
   async generateDailySelection(userId: string): Promise<DailySelection> {
     const user = await this.userRepository.findOne({

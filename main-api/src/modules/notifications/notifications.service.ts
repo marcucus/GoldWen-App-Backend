@@ -176,7 +176,9 @@ export class NotificationsService {
         type,
         reason: 'user_preferences',
       });
-      throw new ForbiddenException('Notification creation skipped due to user preferences');
+      throw new ForbiddenException(
+        'Notification creation skipped due to user preferences',
+      );
     }
 
     const notification = this.notificationRepository.create({

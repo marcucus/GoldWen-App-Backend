@@ -8,7 +8,6 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Or, In, Not, LessThan, Between } from 'typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
 
 import { Chat } from '../../database/entities/chat.entity';
 import { Message } from '../../database/entities/message.entity';
@@ -33,73 +32,6 @@ export class ChatService {
     @Inject(forwardRef(() => NotificationsService))
     private notificationsService: NotificationsService,
   ) {}
-
-  // Automatically expire chats every hour
-  @Cron(CronExpression.EVERY_HOUR)
-  async expireChats() {
-    const now = new Date();
-
-    const expiredChats = await this.chatRepository.find({
-      where: {
-        status: ChatStatus.ACTIVE,
-        expiresAt: LessThan(now),
-      },
-    });
-
-    for (const chat of expiredChats) {
-      chat.status = ChatStatus.EXPIRED;
-      await this.chatRepository.save(chat);
-    }
-  }
-
-  // Send expiration warnings 2 hours before chat expires
-  @Cron(CronExpression.EVERY_HOUR)
-  async warnAboutExpiringChats() {
-    const now = new Date();
-    const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-    const threeHoursFromNow = new Date(now.getTime() + 3 * 60 * 60 * 1000);
-
-    const expiringChats = await this.chatRepository.find({
-      where: {
-        status: ChatStatus.ACTIVE,
-        expiresAt: Between(twoHoursFromNow, threeHoursFromNow),
-      },
-      relations: [
-        'match',
-        'match.user1',
-        'match.user1.profile',
-        'match.user2',
-        'match.user2.profile',
-      ],
-    });
-
-    for (const chat of expiringChats) {
-      const hoursLeft = Math.ceil(
-        (chat.expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60),
-      );
-
-      // Send notification to both users
-      const user1 = chat.match.user1;
-      const user2 = chat.match.user2;
-
-      try {
-        await this.notificationsService.sendChatExpiringNotification(
-          user1.id,
-          user2.profile?.firstName || 'votre match',
-          hoursLeft,
-        );
-
-        await this.notificationsService.sendChatExpiringNotification(
-          user2.id,
-          user1.profile?.firstName || 'votre match',
-          hoursLeft,
-        );
-      } catch (error) {
-        // Log error but don't throw to avoid stopping other notifications
-        console.error('Failed to send chat expiring notifications:', error);
-      }
-    }
-  }
 
   async createChatForMatch(matchId: string): Promise<Chat> {
     const match = await this.matchRepository.findOne({

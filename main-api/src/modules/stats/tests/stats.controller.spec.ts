@@ -63,7 +63,9 @@ describe('StatsController', () => {
         monthlyActiveUsers: 800,
       };
 
-      jest.spyOn(statsService, 'getGlobalStats').mockResolvedValueOnce(mockStats);
+      jest
+        .spyOn(statsService, 'getGlobalStats')
+        .mockResolvedValueOnce(mockStats);
 
       const result = await controller.getGlobalStats();
 
@@ -150,7 +152,9 @@ describe('StatsController', () => {
         },
       };
 
-      jest.spyOn(statsService, 'getActivityStats').mockResolvedValueOnce(mockStats);
+      jest
+        .spyOn(statsService, 'getActivityStats')
+        .mockResolvedValueOnce(mockStats);
 
       const result = await controller.getActivityStats(query);
 
@@ -180,15 +184,24 @@ describe('StatsController', () => {
         json: jest.fn(),
       } as unknown as Response;
 
-      jest.spyOn(statsService, 'exportStats').mockResolvedValueOnce(mockExportResult);
+      jest
+        .spyOn(statsService, 'exportStats')
+        .mockResolvedValueOnce(mockExportResult);
 
       await controller.exportGlobalStats(exportOptions, mockResponse);
 
-      expect(statsService.exportStats).toHaveBeenCalledWith('global', undefined, exportOptions);
-      expect(mockResponse.setHeader).toHaveBeenCalledWith('Content-Type', 'application/json');
+      expect(statsService.exportStats).toHaveBeenCalledWith(
+        'global',
+        undefined,
+        exportOptions,
+      );
+      expect(mockResponse.setHeader).toHaveBeenCalledWith(
+        'Content-Type',
+        'application/json',
+      );
       expect(mockResponse.setHeader).toHaveBeenCalledWith(
         'Content-Disposition',
-        'attachment; filename="global-stats-2024-01-15.json"'
+        'attachment; filename="global-stats-2024-01-15.json"',
       );
       expect(mockResponse.json).toHaveBeenCalledWith(mockExportResult.data);
     });
@@ -215,18 +228,27 @@ describe('StatsController', () => {
         json: jest.fn(),
       } as unknown as Response;
 
-      jest.spyOn(statsService, 'exportStats').mockResolvedValueOnce(mockExportResult);
+      jest
+        .spyOn(statsService, 'exportStats')
+        .mockResolvedValueOnce(mockExportResult);
 
       await controller.exportActivityStats(query, mockResponse);
 
       const { format, includeDetails, ...activityQuery } = query;
       const exportOptions = { format, includeDetails };
 
-      expect(statsService.exportStats).toHaveBeenCalledWith('activity', activityQuery, exportOptions);
-      expect(mockResponse.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv');
+      expect(statsService.exportStats).toHaveBeenCalledWith(
+        'activity',
+        activityQuery,
+        exportOptions,
+      );
+      expect(mockResponse.setHeader).toHaveBeenCalledWith(
+        'Content-Type',
+        'text/csv',
+      );
       expect(mockResponse.setHeader).toHaveBeenCalledWith(
         'Content-Disposition',
-        'attachment; filename="activity-stats-2024-01-15.csv"'
+        'attachment; filename="activity-stats-2024-01-15.csv"',
       );
       expect(mockResponse.json).toHaveBeenCalledWith(mockExportResult.data);
     });
