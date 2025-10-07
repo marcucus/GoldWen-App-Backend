@@ -30,6 +30,7 @@ import {
 } from './dto/auth.dto';
 import { SuccessResponseDto } from '../../common/dto/response.dto';
 import { User } from '../../database/entities/user.entity';
+import { BruteForceGuard } from '../../common/guards';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -60,6 +61,8 @@ export class AuthController {
   @ApiOperation({ summary: 'Login with email and password' })
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  @ApiResponse({ status: 429, description: 'Too many login attempts' })
+  @UseGuards(BruteForceGuard)
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
     const result = await this.authService.login(loginDto);

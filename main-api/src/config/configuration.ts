@@ -11,6 +11,7 @@ import {
   MatchingServiceConfig,
   RevenueCatConfig,
   MonitoringConfig,
+  ThrottlerConfig,
 } from './config.interface';
 
 export const databaseConfig = registerAs(
@@ -136,6 +137,24 @@ export const monitoringConfig = registerAs(
             email.trim(),
           )
         : [],
+    },
+  }),
+);
+
+export const throttlerConfig = registerAs(
+  'throttler',
+  (): ThrottlerConfig => ({
+    global: {
+      ttl: parseInt(process.env.THROTTLE_TTL || '60000', 10), // 60 seconds (100 req/min)
+      limit: parseInt(process.env.THROTTLE_LIMIT || '100', 10),
+    },
+    sensitive: {
+      ttl: parseInt(process.env.THROTTLE_SENSITIVE_TTL || '60000', 10), // 60 seconds (20 req/min)
+      limit: parseInt(process.env.THROTTLE_SENSITIVE_LIMIT || '20', 10),
+    },
+    auth: {
+      ttl: parseInt(process.env.THROTTLE_AUTH_TTL || '900000', 10), // 15 minutes (5 attempts)
+      limit: parseInt(process.env.THROTTLE_AUTH_LIMIT || '5', 10),
     },
   }),
 );

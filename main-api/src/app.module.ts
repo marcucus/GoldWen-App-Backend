@@ -4,6 +4,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { BullModule } from '@nestjs/bull';
 import { RedisModule } from '@nestjs-modules/ioredis';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -16,6 +18,9 @@ import { MonitoringModule } from './common/monitoring';
 
 // Middleware
 import { SecurityLoggingMiddleware } from './common/middleware';
+
+// Guards
+import { RateLimitGuard } from './common/guards';
 
 // Configuration
 import {
@@ -30,6 +35,7 @@ import {
   matchingServiceConfig,
   revenueCatConfig,
   monitoringConfig,
+  throttlerConfig,
 } from './config/configuration';
 
 // Modules
@@ -66,7 +72,28 @@ import { StatsModule } from './modules/stats/stats.module';
         matchingServiceConfig,
         revenueCatConfig,
         monitoringConfig,
+        throttlerConfig,
       ],
+    }),
+
+    // Throttler for rate limiting
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => {
+        const ttl = configService.get<number>('throttler.global.ttl') || 60000;
+        const limit = configService.get<number>('throttler.global.limit') || 100;
+        
+        return {
+          throttlers: [
+            {
+              name: 'default',
+              ttl,
+              limit,
+            },
+          ],
+        };
+      },
+      inject: [ConfigService],
     }),
 
     // Database
@@ -135,7 +162,13 @@ import { StatsModule } from './modules/stats/stats.module';
     StatsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: RateLimitGuard,
+    },
+  ],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
