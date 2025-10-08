@@ -1,12 +1,9 @@
-import {
-  Injectable,
-  BadRequestException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CustomLoggerService } from '../../common/logger';
 import { SubscriptionsService } from './subscriptions.service';
 import { RevenueCatWebhookDto } from './dto/subscription.dto';
+import { SubscriptionStatus } from '../../common/enums';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -53,7 +50,7 @@ export class RevenueCatService {
     } catch (error) {
       this.logger.error(
         'Error verifying webhook signature',
-        error.stack,
+        (error as Error).stack,
         'RevenueCatService',
       );
       return false;
@@ -83,8 +80,8 @@ export class RevenueCatService {
       });
     } catch (error) {
       this.logger.error(
-        `Error processing RevenueCat webhook: ${error.message}`,
-        error.stack,
+        `Error processing RevenueCat webhook: ${(error as Error).message}`,
+        (error as Error).stack,
         'RevenueCatService',
       );
       throw error;
@@ -95,7 +92,7 @@ export class RevenueCatService {
    * Get available subscription offerings
    * Returns the available subscription plans that can be purchased
    */
-  async getOfferings(): Promise<{
+  getOfferings(): {
     offerings: Array<{
       identifier: string;
       packages: Array<{
@@ -103,7 +100,7 @@ export class RevenueCatService {
         platform_product_identifier: string;
       }>;
     }>;
-  }> {
+  } {
     // Get the plans from subscriptions service
     const { plans } = this.subscriptionsService.getPlans();
 
@@ -149,7 +146,8 @@ export class RevenueCatService {
       }
 
       const willRenew =
-        subscription.status === 'active' && !subscription.cancelledAt;
+        subscription.status === SubscriptionStatus.ACTIVE &&
+        subscription.cancelledAt === null;
 
       this.logger.info('Retrieved subscription status', {
         userId,
@@ -166,8 +164,8 @@ export class RevenueCatService {
       };
     } catch (error) {
       this.logger.error(
-        `Error getting subscription status: ${error.message}`,
-        error.stack,
+        `Error getting subscription status: ${(error as Error).message}`,
+        (error as Error).stack,
         'RevenueCatService',
       );
       throw error;

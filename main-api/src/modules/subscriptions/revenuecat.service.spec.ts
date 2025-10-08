@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { UnauthorizedException } from '@nestjs/common';
 import * as crypto from 'crypto';
 
 import { RevenueCatService } from './revenuecat.service';
@@ -11,9 +10,6 @@ import { SubscriptionPlan } from '../../common/enums';
 
 describe('RevenueCatService', () => {
   let service: RevenueCatService;
-  let subscriptionsService: SubscriptionsService;
-  let configService: ConfigService;
-  let logger: CustomLoggerService;
 
   const mockSubscriptionsService = {
     handleRevenueCatWebhook: jest.fn(),
@@ -56,9 +52,8 @@ describe('RevenueCatService', () => {
     }).compile();
 
     service = module.get<RevenueCatService>(RevenueCatService);
-    subscriptionsService = module.get<SubscriptionsService>(
-      SubscriptionsService,
-    );
+    subscriptionsService =
+      module.get<SubscriptionsService>(SubscriptionsService);
     configService = module.get<ConfigService>(ConfigService);
     logger = module.get<CustomLoggerService>(CustomLoggerService);
   });
@@ -220,7 +215,7 @@ describe('RevenueCatService', () => {
   });
 
   describe('getOfferings', () => {
-    it('should return offerings in RevenueCat format', async () => {
+    it('should return offerings in RevenueCat format', () => {
       mockSubscriptionsService.getPlans.mockReturnValue({
         plans: [
           {
@@ -242,7 +237,7 @@ describe('RevenueCatService', () => {
         ],
       });
 
-      const result = await service.getOfferings();
+      const result = service.getOfferings();
 
       expect(result.offerings).toHaveLength(1);
       expect(result.offerings[0].identifier).toBe('default');
@@ -332,9 +327,9 @@ describe('RevenueCatService', () => {
       const error = new Error('Database error');
       mockSubscriptionsService.getActiveSubscription.mockRejectedValue(error);
 
-      await expect(
-        service.getSubscriptionStatus('user-123'),
-      ).rejects.toThrow('Database error');
+      await expect(service.getSubscriptionStatus('user-123')).rejects.toThrow(
+        'Database error',
+      );
 
       expect(mockLogger.error).toHaveBeenCalled();
     });

@@ -9,8 +9,6 @@ import { SubscriptionPlan } from '../../common/enums';
 
 describe('RevenueCatController', () => {
   let controller: RevenueCatController;
-  let revenueCatService: RevenueCatService;
-  let logger: CustomLoggerService;
 
   const mockRevenueCatService = {
     verifyWebhookSignature: jest.fn(),
@@ -41,8 +39,6 @@ describe('RevenueCatController', () => {
     }).compile();
 
     controller = module.get<RevenueCatController>(RevenueCatController);
-    revenueCatService = module.get<RevenueCatService>(RevenueCatService);
-    logger = module.get<CustomLoggerService>(CustomLoggerService);
   });
 
   afterEach(() => {
@@ -196,9 +192,9 @@ describe('RevenueCatController', () => {
     });
 
     it('should handle errors when getting offerings', async () => {
-      mockRevenueCatService.getOfferings.mockRejectedValue(
-        new Error('Service error'),
-      );
+      mockRevenueCatService.getOfferings.mockImplementation(() => {
+        throw new Error('Service error');
+      });
 
       await expect(controller.getOfferings()).rejects.toThrow(
         BadRequestException,
