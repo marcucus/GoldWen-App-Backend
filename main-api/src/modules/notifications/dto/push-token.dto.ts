@@ -1,9 +1,4 @@
-import {
-  IsString,
-  IsEnum,
-  IsOptional,
-  IsNotEmpty,
-} from 'class-validator';
+import { IsString, IsEnum, IsOptional, IsNotEmpty } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Platform } from '../../../database/entities/push-token.entity';
 

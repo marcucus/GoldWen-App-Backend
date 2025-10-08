@@ -84,8 +84,7 @@ describe('ModerationService', () => {
     service = module.get<ModerationService>(ModerationService);
     photoRepository = module.get<Repository<Photo>>(getRepositoryToken(Photo));
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
-    aiModerationService =
-      module.get<AiModerationService>(AiModerationService);
+    aiModerationService = module.get<AiModerationService>(AiModerationService);
     imageModerationService = module.get<ImageModerationService>(
       ImageModerationService,
     );
@@ -278,9 +277,7 @@ describe('ModerationService', () => {
       );
 
       expect(result.approved).toBe(false);
-      expect(result.reason).toBe(
-        'Content contains inappropriate hate speech',
-      );
+      expect(result.reason).toBe('Content contains inappropriate hate speech');
       expect(logger.logSecurityEvent).toHaveBeenCalledWith(
         'text_content_blocked',
         {

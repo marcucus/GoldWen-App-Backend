@@ -188,7 +188,8 @@ export class GdprService {
         `Error processing deletion request ${requestId}:`,
         error,
       );
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       await this.accountDeletionRepository.update(requestId, {
         status: DeletionStatus.FAILED,
         errorMessage,

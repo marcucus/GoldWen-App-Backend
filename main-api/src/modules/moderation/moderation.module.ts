@@ -9,16 +9,9 @@ import { User } from '../../database/entities/user.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Photo, User]),
-    NotificationsModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Photo, User]), NotificationsModule],
   controllers: [ModerationController],
-  providers: [
-    ModerationService,
-    AiModerationService,
-    ImageModerationService,
-  ],
+  providers: [ModerationService, AiModerationService, ImageModerationService],
   exports: [ModerationService, AiModerationService, ImageModerationService],
 })
 export class ModerationModule {}

@@ -118,7 +118,8 @@ export class DataExportService {
       this.logger.log(`Export request ${requestId} completed successfully`);
     } catch (error) {
       this.logger.error(`Error processing export request ${requestId}:`, error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       await this.dataExportRequestRepository.update(requestId, {
         status: ExportStatus.FAILED,
         errorMessage,
@@ -256,9 +257,9 @@ export class DataExportService {
   private sanitizeUserData(user: User | null): Record<string, unknown> | null {
     if (!user) return null;
     // Remove sensitive fields before export
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const userObj = user as any;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     const {
       passwordHash: _passwordHash,
       emailVerificationToken: _token,

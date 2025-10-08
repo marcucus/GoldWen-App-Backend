@@ -29,10 +29,7 @@ import {
   TestNotificationDto,
   SendGroupNotificationDto,
 } from './dto/notifications.dto';
-import {
-  RegisterPushTokenDto,
-  DeletePushTokenDto,
-} from './dto/push-token.dto';
+import { RegisterPushTokenDto, DeletePushTokenDto } from './dto/push-token.dto';
 
 @ApiTags('notifications')
 @Controller('notifications')

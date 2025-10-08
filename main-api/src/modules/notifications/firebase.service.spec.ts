@@ -171,9 +171,7 @@ describe('FirebaseService', () => {
     });
 
     it('should not identify other errors as invalid token errors', () => {
-      expect(service.isInvalidTokenError('messaging/server-error')).toBe(
-        false,
-      );
+      expect(service.isInvalidTokenError('messaging/server-error')).toBe(false);
       expect(service.isInvalidTokenError('unknown-error')).toBe(false);
       expect(service.isInvalidTokenError(undefined)).toBe(false);
     });
