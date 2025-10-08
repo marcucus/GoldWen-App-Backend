@@ -66,6 +66,7 @@ export interface MatchingServiceConfig {
 
 export interface RevenueCatConfig {
   apiKey: string;
+  webhookSecret: string;
 }
 
 export interface MonitoringConfig {

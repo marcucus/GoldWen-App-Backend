@@ -1244,7 +1244,7 @@ Cette documentation complète liste toutes les routes API disponibles dans le ba
 **Paramètres**: `id` (string)
 
 ### POST /subscriptions/webhook/revenuecat
-**Description**: Gérer le webhook RevenueCat  
+**Description**: Gérer le webhook RevenueCat (DEPRECATED - Utiliser /webhooks/revenuecat)  
 **Authentification**: Aucune  
 **Body**:
 ```json
@@ -1263,6 +1263,79 @@ Cette documentation complète liste toutes les routes API disponibles dans le ba
   },
   "app_user_id": "string",
   "api_version?": "string (optionnel)"
+}
+```
+
+### POST /webhooks/revenuecat
+**Description**: Gérer le webhook RevenueCat (événements: INITIAL_PURCHASE, RENEWAL, CANCELLATION, EXPIRATION, BILLING_ISSUE)  
+**Authentification**: Signature HMAC (X-RevenueCat-Signature header)  
+**Headers**:
+- `X-RevenueCat-Signature`: Signature HMAC SHA-256 pour la vérification du webhook  
+**Body**:
+```json
+{
+  "event": {
+    "type": "string (INITIAL_PURCHASE | RENEWAL | CANCELLATION | EXPIRATION | BILLING_ISSUE)",
+    "id": "string",
+    "product_id?": "string (optionnel)",
+    "original_transaction_id?": "string (optionnel)",
+    "price_in_purchased_currency?": "number (optionnel)",
+    "currency?": "string (optionnel)",
+    "store?": "string (optionnel, app_store | play_store)",
+    "purchased_at?": "ISO date string (optionnel)",
+    "expiration_at?": "ISO date string (optionnel)",
+    "subscriber_attributes?": "any (optionnel)"
+  },
+  "app_user_id": "string (ID utilisateur)",
+  "api_version?": "string (optionnel)"
+}
+```
+**Réponse**:
+```json
+{
+  "received": true
+}
+```
+
+### GET /subscriptions/offerings
+**Description**: Obtenir les offres d'abonnement disponibles (pour RevenueCat)  
+**Authentification**: Aucune  
+**Réponse**:
+```json
+{
+  "offerings": [
+    {
+      "identifier": "default",
+      "packages": [
+        {
+          "identifier": "monthly",
+          "platform_product_identifier": "goldwen_plus_monthly"
+        },
+        {
+          "identifier": "quarterly",
+          "platform_product_identifier": "goldwen_plus_quarterly"
+        },
+        {
+          "identifier": "yearly",
+          "platform_product_identifier": "goldwen_plus_yearly"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### GET /subscriptions/status
+**Description**: Obtenir le statut d'abonnement de l'utilisateur authentifié  
+**Authentification**: Bearer Token  
+**Réponse**:
+```json
+{
+  "active": true,
+  "plan": "goldwen_plus",
+  "expiresAt": "2024-12-31T23:59:59.000Z",
+  "willRenew": true,
+  "platform": "ios"
 }
 ```
 
