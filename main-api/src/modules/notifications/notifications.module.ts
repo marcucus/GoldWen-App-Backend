@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
+import { FirebaseService } from './firebase.service';
 import { FcmService } from './fcm.service';
 import { ScheduledNotificationsService } from './scheduled-notifications.service';
 import { Notification } from '../../database/entities/notification.entity';
@@ -23,8 +24,13 @@ import { Chat } from '../../database/entities/chat.entity';
       Chat,
     ]),
   ],
-  providers: [NotificationsService, FcmService, ScheduledNotificationsService],
+  providers: [
+    NotificationsService,
+    FirebaseService,
+    FcmService,
+    ScheduledNotificationsService,
+  ],
   controllers: [NotificationsController],
-  exports: [NotificationsService, FcmService],
+  exports: [NotificationsService, FirebaseService, FcmService],
 })
 export class NotificationsModule {}

@@ -45,6 +45,12 @@ export interface FileUploadConfig {
 
 export interface NotificationConfig {
   fcmServerKey: string;
+  firebase?: {
+    projectId?: string;
+    clientEmail?: string;
+    privateKey?: string;
+    serviceAccountPath?: string;
+  };
 }
 
 export interface EmailConfig {

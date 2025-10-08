@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CustomLoggerService } from '../../common/logger';
+import { FirebaseService } from './firebase.service';
 
 export interface NotificationPayload {
   title: string;
@@ -13,6 +14,7 @@ export interface FcmResponse {
   success: boolean;
   messageId?: string;
   error?: string;
+  errorCode?: string;
 }
 
 @Injectable()
@@ -23,6 +25,7 @@ export class FcmService {
   constructor(
     private readonly configService: ConfigService,
     private readonly logger: CustomLoggerService,
+    private readonly firebaseService: FirebaseService,
   ) {
     this.serverKey = this.configService.get('notification.fcmServerKey') || '';
   }
@@ -31,6 +34,12 @@ export class FcmService {
     deviceToken: string,
     payload: NotificationPayload,
   ): Promise<FcmResponse> {
+    // Use Firebase Admin SDK if initialized, otherwise fall back to HTTP API
+    if (this.firebaseService.isInitialized()) {
+      return this.firebaseService.sendToDevice(deviceToken, payload);
+    }
+
+    // Fallback to legacy HTTP API
     if (!this.serverKey) {
       this.logger.warn(
         'FCM server key not configured, skipping push notification',
@@ -80,7 +89,7 @@ export class FcmService {
       const result = await response.json();
 
       if (response.ok && result.success === 1) {
-        this.logger.info('Push notification sent successfully', {
+        this.logger.info('Push notification sent successfully (HTTP API)', {
           messageId: result.results?.[0]?.message_id,
           deviceToken: deviceToken.substring(0, 10) + '...',
         });
@@ -119,6 +128,12 @@ export class FcmService {
     deviceTokens: string[],
     payload: NotificationPayload,
   ): Promise<FcmResponse[]> {
+    // Use Firebase Admin SDK if initialized
+    if (this.firebaseService.isInitialized()) {
+      return this.firebaseService.sendToMultipleDevices(deviceTokens, payload);
+    }
+
+    // Fallback to legacy HTTP API
     const results: FcmResponse[] = [];
 
     for (const token of deviceTokens) {
@@ -128,7 +143,7 @@ export class FcmService {
 
     const successCount = results.filter((r) => r.success).length;
 
-    this.logger.info('Batch push notifications sent', {
+    this.logger.info('Batch push notifications sent (HTTP API)', {
       total: deviceTokens.length,
       successful: successCount,
       failed: deviceTokens.length - successCount,
@@ -141,6 +156,12 @@ export class FcmService {
     topic: string,
     payload: NotificationPayload,
   ): Promise<FcmResponse> {
+    // Use Firebase Admin SDK if initialized
+    if (this.firebaseService.isInitialized()) {
+      return this.firebaseService.sendToTopic(topic, payload);
+    }
+
+    // Fallback to legacy HTTP API
     if (!this.serverKey) {
       this.logger.warn(
         'FCM server key not configured, skipping topic notification',
@@ -171,7 +192,7 @@ export class FcmService {
       const result = await response.json();
 
       if (response.ok && result.success >= 1) {
-        this.logger.info('Topic notification sent successfully', {
+        this.logger.info('Topic notification sent successfully (HTTP API)', {
           topic,
           messageId: result.message_id,
         });
@@ -272,6 +293,24 @@ export class FcmService {
         type: 'chat_expiring',
         conversationId,
         expiresAt: expiresAt.toISOString(),
+        action: 'open_chat',
+      },
+    });
+  }
+
+  async sendChatAcceptedNotification(
+    deviceToken: string,
+    accepterName: string,
+    conversationId: string,
+    accepterId: string,
+  ) {
+    return this.sendToDevice(deviceToken, {
+      title: 'Chat accepté !',
+      body: `${accepterName} a accepté votre demande de chat`,
+      data: {
+        type: 'chat_accepted',
+        conversationId,
+        accepterId,
         action: 'open_chat',
       },
     });
