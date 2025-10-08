@@ -52,6 +52,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { EmailModule } from './modules/email/email.module';
+import { GdprModule } from './modules/gdpr/gdpr.module';
 
 @Module({
   imports: [
@@ -163,6 +164,7 @@ import { EmailModule } from './modules/email/email.module';
     AdminModule,
     ReportsModule,
     StatsModule,
+    GdprModule,
   ],
   controllers: [AppController],
   providers: [
