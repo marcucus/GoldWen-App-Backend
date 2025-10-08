@@ -34,7 +34,7 @@ export class QuotaGuard implements CanActivate {
     today.setHours(0, 0, 0, 0);
 
     // Get or create today's daily selection
-    let dailySelection = await this.dailySelectionRepository.findOne({
+    const dailySelection = await this.dailySelectionRepository.findOne({
       where: {
         userId,
         selectionDate: today,
@@ -44,7 +44,7 @@ export class QuotaGuard implements CanActivate {
     if (!dailySelection) {
       // No daily selection for today - user hasn't generated their selection yet
       throw new ForbiddenException(
-        'Vous devez d\'abord consulter votre sélection quotidienne',
+        "Vous devez d'abord consulter votre sélection quotidienne",
       );
     }
 
