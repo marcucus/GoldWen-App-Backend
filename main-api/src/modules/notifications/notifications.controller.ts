@@ -29,6 +29,7 @@ import {
   TestNotificationDto,
   SendGroupNotificationDto,
 } from './dto/notifications.dto';
+import { RegisterPushTokenDto, DeletePushTokenDto } from './dto/push-token.dto';
 
 @ApiTags('notifications')
 @Controller('notifications')
@@ -240,6 +241,92 @@ export class NotificationsController {
     return {
       success: true,
       message: 'Daily selection notifications triggered successfully',
+    };
+  }
+
+  @Post('push-tokens')
+  @ApiOperation({ summary: 'Register a push notification token' })
+  @ApiResponse({
+    status: 201,
+    description: 'Push token registered successfully',
+  })
+  async registerPushToken(
+    @Request() req: any,
+    @Body() registerPushTokenDto: RegisterPushTokenDto,
+  ) {
+    const userId = req.user.id;
+
+    this.logger.setContext({ userId, userEmail: req.user.email });
+
+    const pushToken = await this.notificationsService.registerPushToken(
+      userId,
+      registerPushTokenDto.token,
+      registerPushTokenDto.platform,
+      registerPushTokenDto.appVersion,
+      registerPushTokenDto.deviceId,
+    );
+
+    return {
+      success: true,
+      data: {
+        id: pushToken.id,
+        platform: pushToken.platform,
+        isActive: pushToken.isActive,
+      },
+      message: 'Push token registered successfully',
+    };
+  }
+
+  @Delete('push-tokens')
+  @ApiOperation({ summary: 'Delete a push notification token' })
+  @ApiResponse({
+    status: 200,
+    description: 'Push token deleted successfully',
+  })
+  async deletePushToken(
+    @Request() req: any,
+    @Body() deletePushTokenDto: DeletePushTokenDto,
+  ) {
+    const userId = req.user.id;
+
+    this.logger.setContext({ userId, userEmail: req.user.email });
+
+    await this.notificationsService.deletePushToken(
+      userId,
+      deletePushTokenDto.token,
+    );
+
+    return {
+      success: true,
+      message: 'Push token deleted successfully',
+    };
+  }
+
+  @Get('push-tokens')
+  @ApiOperation({ summary: 'Get all push tokens for the current user' })
+  @ApiResponse({
+    status: 200,
+    description: 'Push tokens retrieved successfully',
+  })
+  async getPushTokens(@Request() req: any) {
+    const userId = req.user.id;
+
+    this.logger.setContext({ userId, userEmail: req.user.email });
+
+    const pushTokens =
+      await this.notificationsService.getUserPushTokens(userId);
+
+    return {
+      success: true,
+      data: pushTokens.map((token) => ({
+        id: token.id,
+        platform: token.platform,
+        appVersion: token.appVersion,
+        deviceId: token.deviceId,
+        isActive: token.isActive,
+        lastUsedAt: token.lastUsedAt,
+        createdAt: token.createdAt,
+      })),
     };
   }
 }

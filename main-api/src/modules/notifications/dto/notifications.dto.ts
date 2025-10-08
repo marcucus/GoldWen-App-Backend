@@ -44,12 +44,12 @@ export class UpdateNotificationSettingsDto {
   @ApiPropertyOptional({ description: 'Enable new match notifications' })
   @IsOptional()
   @IsBoolean()
-  newMatch?: boolean;
+  newMatches?: boolean;
 
   @ApiPropertyOptional({ description: 'Enable new message notifications' })
   @IsOptional()
   @IsBoolean()
-  newMessage?: boolean;
+  newMessages?: boolean;
 
   @ApiPropertyOptional({ description: 'Enable chat expiring notifications' })
   @IsOptional()
@@ -59,7 +59,22 @@ export class UpdateNotificationSettingsDto {
   @ApiPropertyOptional({ description: 'Enable subscription notifications' })
   @IsOptional()
   @IsBoolean()
-  subscription?: boolean;
+  subscriptionUpdates?: boolean;
+
+  @ApiPropertyOptional({ description: 'Enable push notifications globally' })
+  @IsOptional()
+  @IsBoolean()
+  pushNotifications?: boolean;
+
+  @ApiPropertyOptional({ description: 'Enable email notifications globally' })
+  @IsOptional()
+  @IsBoolean()
+  emailNotifications?: boolean;
+
+  @ApiPropertyOptional({ description: 'Enable marketing emails' })
+  @IsOptional()
+  @IsBoolean()
+  marketingEmails?: boolean;
 }
 
 export class CreateNotificationDto {

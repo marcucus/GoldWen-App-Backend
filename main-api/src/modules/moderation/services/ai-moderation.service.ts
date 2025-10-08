@@ -127,7 +127,11 @@ export class AiModerationService {
         reason,
       };
     } catch (error) {
-      this.logger.error('Error moderating text content', error.stack, 'AiModerationService');
+      this.logger.error(
+        'Error moderating text content',
+        error.stack,
+        'AiModerationService',
+      );
       // On error, return safe result (don't block)
       return this.createSafeResult();
     }

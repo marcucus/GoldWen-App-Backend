@@ -14,6 +14,7 @@ import { PushToken } from '../../database/entities/push-token.entity';
 import { NotificationType } from '../../common/enums';
 import { CustomLoggerService } from '../../common/logger';
 import { FcmService } from './fcm.service';
+import { FirebaseService } from './firebase.service';
 
 import {
   GetNotificationsDto,
@@ -37,6 +38,7 @@ export class NotificationsService {
     private configService: ConfigService,
     private logger: CustomLoggerService,
     private fcmService: FcmService,
+    private firebaseService: FirebaseService,
   ) {}
 
   async getNotifications(
@@ -460,11 +462,27 @@ export class NotificationsService {
               'NotificationsService',
             );
 
-            // Deactivate invalid tokens
+            // Deactivate invalid tokens using Firebase error codes
             if (
+              result.errorCode &&
+              this.firebaseService.isInvalidTokenError(result.errorCode)
+            ) {
+              this.logger.info(
+                `Deactivating invalid token ${pushToken.id} - Error: ${result.errorCode}`,
+                'NotificationsService',
+              );
+              await this.pushTokenRepository.update(pushToken.id, {
+                isActive: false,
+              });
+            } else if (
               result.error?.includes('InvalidRegistration') ||
               result.error?.includes('NotRegistered')
             ) {
+              // Fallback for legacy HTTP API errors
+              this.logger.info(
+                `Deactivating invalid token ${pushToken.id} - Legacy error`,
+                'NotificationsService',
+              );
               await this.pushTokenRepository.update(pushToken.id, {
                 isActive: false,
               });
@@ -668,5 +686,117 @@ export class NotificationsService {
     });
 
     return notifications;
+  }
+
+  /**
+   * Register a new push token for a user
+   */
+  async registerPushToken(
+    userId: string,
+    token: string,
+    platform: string,
+    appVersion?: string,
+    deviceId?: string,
+  ): Promise<PushToken> {
+    // Check if token already exists
+    const existingToken = await this.pushTokenRepository.findOne({
+      where: { token },
+    });
+
+    if (existingToken) {
+      // Update existing token
+      existingToken.userId = userId;
+      existingToken.platform = platform as any;
+      existingToken.appVersion = appVersion;
+      existingToken.deviceId = deviceId;
+      existingToken.isActive = true;
+      existingToken.lastUsedAt = new Date();
+
+      const updated = await this.pushTokenRepository.save(existingToken);
+
+      this.logger.logUserAction('update_push_token', {
+        userId,
+        tokenId: updated.id,
+        platform,
+      });
+
+      return updated;
+    }
+
+    // Create new token
+    const pushToken = this.pushTokenRepository.create({
+      userId,
+      token,
+      platform: platform as any,
+      appVersion,
+      deviceId,
+      isActive: true,
+      lastUsedAt: new Date(),
+    });
+
+    const saved = await this.pushTokenRepository.save(pushToken);
+
+    this.logger.logUserAction('register_push_token', {
+      userId,
+      tokenId: saved.id,
+      platform,
+    });
+
+    return saved;
+  }
+
+  /**
+   * Delete a push token
+   */
+  async deletePushToken(userId: string, token: string): Promise<void> {
+    const pushToken = await this.pushTokenRepository.findOne({
+      where: { token, userId },
+    });
+
+    if (!pushToken) {
+      throw new NotFoundException('Push token not found');
+    }
+
+    await this.pushTokenRepository.delete(pushToken.id);
+
+    this.logger.logUserAction('delete_push_token', {
+      userId,
+      tokenId: pushToken.id,
+    });
+  }
+
+  /**
+   * Get all push tokens for a user
+   */
+  async getUserPushTokens(userId: string): Promise<PushToken[]> {
+    return this.pushTokenRepository.find({
+      where: { userId, isActive: true },
+      order: { lastUsedAt: 'DESC' },
+    });
+  }
+
+  /**
+   * Deactivate inactive push tokens (older than 90 days)
+   */
+  async deactivateInactivePushTokens(): Promise<number> {
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+    const result = await this.pushTokenRepository
+      .createQueryBuilder()
+      .update(PushToken)
+      .set({ isActive: false })
+      .where('isActive = :isActive', { isActive: true })
+      .andWhere('lastUsedAt < :date', { date: ninetyDaysAgo })
+      .execute();
+
+    const affected = result.affected || 0;
+
+    this.logger.info('Deactivated inactive push tokens', {
+      affected,
+      threshold: '90 days',
+    });
+
+    return affected;
   }
 }
