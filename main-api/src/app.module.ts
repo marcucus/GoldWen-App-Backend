@@ -54,6 +54,7 @@ import { ReportsModule } from './modules/reports/reports.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { EmailModule } from './modules/email/email.module';
 import { ModerationModule } from './modules/moderation/moderation.module';
+import { GdprModule } from './modules/gdpr/gdpr.module';
 
 @Module({
   imports: [
@@ -167,6 +168,7 @@ import { ModerationModule } from './modules/moderation/moderation.module';
     ReportsModule,
     StatsModule,
     ModerationModule,
+    GdprModule,
   ],
   controllers: [AppController],
   providers: [
