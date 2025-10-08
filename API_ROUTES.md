@@ -653,7 +653,7 @@ Cette documentation liste toutes les routes API disponibles pour le frontend et 
 Le service de matching n'est plus inclus dans ce repository.
 
 ### POST /matching-service/calculate-compatibility
-**Description**: Calcul de compatibilité entre deux profils  
+**Description**: Calcul de compatibilité entre deux profils (V1 - basé sur la personnalité)  
 **Headers**: `X-API-Key: <service_key>`  
 **Body**:
 ```json
@@ -668,6 +668,72 @@ Le service de matching n'est plus inclus dans ce repository.
   }
 }
 ```
+
+### POST /matching/calculate-compatibility-v2
+**Description**: Calcul de compatibilité avec scoring avancé (V2)  
+**Headers**: `X-API-Key: <service_key>`  
+**Body**:
+```json
+{
+  "user1Profile": {
+    "userId": "string",
+    "age": 28,
+    "interests": ["hiking", "reading"],
+    "personalityAnswers": [...],
+    "lastActiveAt": "2025-01-01T12:00:00Z",
+    "lastLoginAt": "2025-01-01T11:00:00Z",
+    "createdAt": "2024-12-01T10:00:00Z",
+    "messagesSent": 50,
+    "messagesReceived": 50,
+    "matchesCount": 5
+  },
+  "user2Profile": {
+    "userId": "string",
+    "age": 30,
+    "interests": ["reading", "travel"],
+    "personalityAnswers": [...],
+    "lastActiveAt": "2025-01-01T10:00:00Z",
+    "lastLoginAt": "2025-01-01T09:00:00Z",
+    "createdAt": "2024-11-15T10:00:00Z",
+    "messagesSent": 40,
+    "messagesReceived": 45,
+    "matchesCount": 4
+  }
+}
+```
+**Response**:
+```json
+{
+  "compatibilityScore": 78.5,
+  "version": "v2",
+  "details": {
+    "communication": 0.85,
+    "values": 0.90,
+    "lifestyle": 0.75,
+    "personality": 0.80
+  },
+  "advancedFactors": {
+    "activityScore": 0.95,
+    "responseRateScore": 0.88,
+    "reciprocityScore": 0.82,
+    "details": {
+      "userActivity": 0.96,
+      "targetActivity": 0.94,
+      "userResponseRate": 0.90,
+      "targetResponseRate": 0.86
+    }
+  },
+  "sharedInterests": ["reading"],
+  "scoringWeights": {
+    "personalityWeight": 0.6,
+    "advancedWeight": 0.4
+  }
+}
+```
+**Facteurs V2**:
+- **Activité utilisateur** (30%): Score basé sur la récence des connexions
+- **Taux de réponse** (40%): Ratio messages envoyés/reçus
+- **Réciprocité potentielle** (30%): Intérêts communs + alignement préférences
 
 ### POST /matching-service/generate-daily-selection
 **Description**: Génération de la sélection quotidienne  

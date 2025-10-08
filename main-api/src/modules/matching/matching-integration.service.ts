@@ -29,6 +29,22 @@ export interface CompatibilityResult {
     personality: number;
   };
   sharedInterests: string[];
+  version?: string;
+  advancedFactors?: {
+    activityScore: number;
+    responseRateScore: number;
+    reciprocityScore: number;
+    details: {
+      userActivity: number;
+      targetActivity: number;
+      userResponseRate: number;
+      targetResponseRate: number;
+    };
+  };
+  scoringWeights?: {
+    personalityWeight: number;
+    advancedWeight: number;
+  };
 }
 
 export interface DailySelectionResult {
@@ -103,6 +119,51 @@ export class MatchingIntegrationService {
         },
         sharedInterests: [],
       };
+    }
+  }
+
+  async calculateCompatibilityV2(
+    request: CompatibilityRequest,
+  ): Promise<CompatibilityResult> {
+    try {
+      const response = await fetch(
+        `${this.matchingServiceUrl}/api/v1/matching/calculate-compatibility-v2`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': this.apiKey,
+          },
+          body: JSON.stringify(request),
+        },
+      );
+
+      if (!response.ok) {
+        throw new HttpException(
+          `Matching service error: ${response.statusText}`,
+          response.status,
+        );
+      }
+
+      const result = await response.json();
+
+      this.logger.info('Compatibility V2 calculated', {
+        score: result.compatibilityScore,
+        activityScore: result.advancedFactors?.activityScore,
+        responseRateScore: result.advancedFactors?.responseRateScore,
+        reciprocityScore: result.advancedFactors?.reciprocityScore,
+      });
+
+      return result;
+    } catch (error) {
+      this.logger.error(
+        'Failed to calculate compatibility V2',
+        error.message,
+        'MatchingIntegration',
+      );
+
+      // Fallback to V1 if V2 fails
+      return this.calculateCompatibility(request);
     }
   }
 
