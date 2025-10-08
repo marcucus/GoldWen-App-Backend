@@ -109,9 +109,8 @@ export class GdprService {
       requestedAt: new Date(),
     });
 
-    const savedRequest = await this.accountDeletionRepository.save(
-      deletionRequest,
-    );
+    const savedRequest =
+      await this.accountDeletionRepository.save(deletionRequest);
 
     // Process deletion asynchronously
     this.processDeletionRequest(savedRequest.id).catch((error) => {
@@ -185,10 +184,14 @@ export class GdprService {
 
       this.logger.log(`Account deletion ${requestId} completed successfully`);
     } catch (error) {
-      this.logger.error(`Error processing deletion request ${requestId}:`, error);
+      this.logger.error(
+        `Error processing deletion request ${requestId}:`,
+        error,
+      );
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       await this.accountDeletionRepository.update(requestId, {
         status: DeletionStatus.FAILED,
-        errorMessage: error.message,
+        errorMessage,
       });
     }
   }

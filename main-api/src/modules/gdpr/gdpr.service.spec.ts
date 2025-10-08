@@ -3,7 +3,10 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GdprService } from './gdpr.service';
 import { DataExportService } from './data-export.service';
-import { AccountDeletion, DeletionStatus } from '../../database/entities/account-deletion.entity';
+import {
+  AccountDeletion,
+  DeletionStatus,
+} from '../../database/entities/account-deletion.entity';
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
 import { UserConsent } from '../../database/entities/user-consent.entity';
@@ -205,9 +208,9 @@ describe('GdprService', () => {
 
         const result = await service.getUserExportRequests(userId);
 
-        expect(mockDataExportService.getUserExportRequests).toHaveBeenCalledWith(
-          userId,
-        );
+        expect(
+          mockDataExportService.getUserExportRequests,
+        ).toHaveBeenCalledWith(userId);
         expect(result).toEqual(mockRequests);
       });
     });

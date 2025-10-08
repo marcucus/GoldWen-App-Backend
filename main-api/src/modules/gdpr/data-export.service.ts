@@ -66,9 +66,8 @@ export class DataExportService {
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
 
-    const savedRequest = await this.dataExportRequestRepository.save(
-      exportRequest,
-    );
+    const savedRequest =
+      await this.dataExportRequestRepository.save(exportRequest);
 
     // Process export asynchronously (in a real app, this would be a queue job)
     this.processExportRequest(savedRequest.id).catch((error) => {
@@ -119,9 +118,10 @@ export class DataExportService {
       this.logger.log(`Export request ${requestId} completed successfully`);
     } catch (error) {
       this.logger.error(`Error processing export request ${requestId}:`, error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       await this.dataExportRequestRepository.update(requestId, {
         status: ExportStatus.FAILED,
-        errorMessage: error.message,
+        errorMessage,
       });
     }
   }
@@ -233,7 +233,8 @@ export class DataExportService {
       },
       user: this.sanitizeUserData(user),
       profile: this.sanitizeProfileData(profile),
-      matches: matches?.map((match) => this.sanitizeMatchData(match, userId)) || [],
+      matches:
+        matches?.map((match) => this.sanitizeMatchData(match, userId)) || [],
       messages: messages?.map((msg) => this.sanitizeMessageData(msg)) || [],
       subscriptions:
         subscriptions?.map((sub) => this.sanitizeSubscriptionData(sub)) || [],
@@ -252,14 +253,18 @@ export class DataExportService {
   }
 
   // Sanitization methods
-  private sanitizeUserData(user: User | null): Record<string, any> | null {
+  private sanitizeUserData(user: User | null): Record<string, unknown> | null {
     if (!user) return null;
+    // Remove sensitive fields before export
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userObj = user as any;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const {
       passwordHash: _passwordHash,
       emailVerificationToken: _token,
       resetPasswordToken: _resetToken,
       ...safeData
-    } = user as any;
+    } = userObj;
     return safeData;
   }
 

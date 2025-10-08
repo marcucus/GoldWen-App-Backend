@@ -109,7 +109,10 @@ describe('DataExportService', () => {
       mockRepositories.create.mockReturnValue(mockRequest);
       mockRepositories.save.mockResolvedValue(mockRequest);
 
-      const result = await service.createExportRequest(userId, ExportFormat.JSON);
+      const result = await service.createExportRequest(
+        userId,
+        ExportFormat.JSON,
+      );
 
       expect(dataExportRequestRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -135,7 +138,10 @@ describe('DataExportService', () => {
       mockRepositories.create.mockReturnValue(mockRequest);
       mockRepositories.save.mockResolvedValue(mockRequest);
 
-      const result = await service.createExportRequest(userId, ExportFormat.PDF);
+      const result = await service.createExportRequest(
+        userId,
+        ExportFormat.PDF,
+      );
 
       expect(result.format).toBe(ExportFormat.PDF);
     });

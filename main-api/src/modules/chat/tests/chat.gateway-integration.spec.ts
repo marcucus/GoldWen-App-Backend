@@ -104,8 +104,7 @@ describe('ChatGateway - Real-time Features Integration', () => {
     typingIndicatorService = module.get<TypingIndicatorService>(
       TypingIndicatorService,
     );
-    readReceiptsService =
-      module.get<ReadReceiptsService>(ReadReceiptsService);
+    readReceiptsService = module.get<ReadReceiptsService>(ReadReceiptsService);
     presenceService = module.get<PresenceService>(PresenceService);
 
     jest.clearAllMocks();
