@@ -15,6 +15,7 @@ import { PersonalityAnswer } from '../../database/entities/personality-answer.en
 import { Photo } from '../../database/entities/photo.entity';
 import { Prompt } from '../../database/entities/prompt.entity';
 import { PromptAnswer } from '../../database/entities/prompt-answer.entity';
+import { ModerationService } from '../moderation/services/moderation.service';
 
 import {
   UpdateProfileDto,
@@ -40,6 +41,7 @@ export class ProfilesService {
     private promptRepository: Repository<Prompt>,
     @InjectRepository(PromptAnswer)
     private promptAnswerRepository: Repository<PromptAnswer>,
+    private moderationService: ModerationService,
   ) {}
 
   async getProfile(userId: string): Promise<Profile> {
@@ -72,6 +74,20 @@ export class ProfilesService {
 
     if (!profile) {
       throw new NotFoundException('Profile not found');
+    }
+
+    // Moderate bio if it's being updated
+    if (updateProfileDto.bio) {
+      const moderationResult = await this.moderationService.moderateTextContent(
+        updateProfileDto.bio,
+        userId,
+      );
+
+      if (!moderationResult.approved) {
+        throw new BadRequestException(
+          `Bio rejected: ${moderationResult.reason}`,
+        );
+      }
     }
 
     // Handle legacy age field - convert to birthDate if provided
@@ -206,7 +222,7 @@ export class ProfilesService {
 
     console.log('Received files for upload:', files);
 
-    // Simplified version without image processing for now
+    // Create photo entities with initial approval status as false
     const photoEntities = files.map((file, index) => {
       return this.photoRepository.create({
         profileId: profile.id,
@@ -216,11 +232,24 @@ export class ProfilesService {
         fileSize: file.size,
         order: currentPhotosCount + index + 1,
         isPrimary: currentPhotosCount === 0 && index === 0, // First photo is primary if no photos exist
-        isApproved: true, // Auto-approve for MVP
+        isApproved: false, // Start as unapproved, will be moderated
       });
     });
     console.log('Photo entities to be saved:', photoEntities);
     const savedPhotos = await this.photoRepository.save(photoEntities);
+
+    // Trigger moderation for each photo asynchronously
+    // We don't await this so the upload response is fast
+    savedPhotos.forEach((photo) => {
+      this.moderationService
+        .moderatePhoto(photo.id)
+        .catch((error) => {
+          console.error(
+            `Error moderating photo ${photo.id}:`,
+            error.message,
+          );
+        });
+    });
 
     // Check if profile is now complete after upload
     await this.updateProfileCompletionStatus(userId);
@@ -340,6 +369,25 @@ export class ProfilesService {
     promptAnswersDto: SubmitPromptAnswersDto,
   ): Promise<void> {
     const { answers } = promptAnswersDto;
+
+    // Moderate all prompt answers
+    const textsToModerate = answers.map((a) => a.answer);
+    const moderationResults =
+      await this.moderationService.moderateTextContentBatch(textsToModerate);
+
+    // Check if any answer was blocked
+    const blockedAnswers = moderationResults
+      .map((result, index) => ({ result, index }))
+      .filter(({ result }) => !result.approved);
+
+    if (blockedAnswers.length > 0) {
+      const reasons = blockedAnswers
+        .map(({ result, index }) => `Answer ${index + 1}: ${result.reason}`)
+        .join('; ');
+      throw new BadRequestException(
+        `Some prompt answers contain inappropriate content: ${reasons}`,
+      );
+    }
 
     // Get required prompts to validate answers
     const requiredPrompts = await this.promptRepository.find({

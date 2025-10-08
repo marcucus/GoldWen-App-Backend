@@ -12,6 +12,7 @@ import {
   RevenueCatConfig,
   MonitoringConfig,
   ThrottlerConfig,
+  ModerationConfig,
 } from './config.interface';
 
 export const databaseConfig = registerAs(
@@ -161,6 +162,28 @@ export const throttlerConfig = registerAs(
     auth: {
       ttl: parseInt(process.env.THROTTLE_AUTH_TTL || '900000', 10), // 15 minutes (5 attempts)
       limit: parseInt(process.env.THROTTLE_AUTH_LIMIT || '5', 10),
+    },
+  }),
+);
+
+export const moderationConfig = registerAs(
+  'moderation',
+  (): ModerationConfig => ({
+    openai: {
+      apiKey: process.env.OPENAI_API_KEY || '',
+      model: process.env.OPENAI_MODERATION_MODEL || 'text-moderation-latest',
+    },
+    aws: {
+      region: process.env.AWS_REGION || 'us-east-1',
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+    },
+    autoBlock: {
+      enabled: process.env.MODERATION_AUTO_BLOCK === 'true',
+      textThreshold: parseFloat(process.env.MODERATION_TEXT_THRESHOLD || '0.7'),
+      imageThreshold: parseFloat(
+        process.env.MODERATION_IMAGE_THRESHOLD || '80',
+      ),
     },
   }),
 );

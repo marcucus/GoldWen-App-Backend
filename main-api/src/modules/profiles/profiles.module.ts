@@ -10,6 +10,7 @@ import { PersonalityController } from './personality.controller';
 import { ProfilesService } from './profiles.service';
 import { DatabaseSeederService } from './database-seeder.service';
 import { ProfileCompletionGuard } from '../auth/guards/profile-completion.guard';
+import { ModerationModule } from '../moderation/moderation.module';
 
 import { Profile } from '../../database/entities/profile.entity';
 import { User } from '../../database/entities/user.entity';
@@ -30,6 +31,7 @@ import { PromptAnswer } from '../../database/entities/prompt-answer.entity';
       Prompt,
       PromptAnswer,
     ]),
+    ModerationModule,
     MulterModule.registerAsync({
       useFactory: (configService: ConfigService) => ({
         storage: diskStorage({
