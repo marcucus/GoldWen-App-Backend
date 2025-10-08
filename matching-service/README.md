@@ -12,6 +12,7 @@ Advanced matching algorithm service with V1 and V2 scoring for the GoldWen datin
   - Lifestyle preferences
   - Personality traits
 - Shared interests detection
+- **Redis caching for improved performance**
 
 ### V2 Algorithm (Advanced Scoring)
 V2 enhances V1 with behavioral and activity-based factors:
@@ -92,6 +93,12 @@ POST /api/v1/matching-service/generate-daily-selection
 Headers: X-API-Key: <api-key>
 ```
 
+### Get Recommendations
+```
+GET /api/v1/matching/recommendations/:userId
+Headers: X-API-Key: <api-key>
+```
+
 ### Algorithm Statistics
 ```
 GET /api/v1/matching-service/algorithm/stats
@@ -117,15 +124,40 @@ pytest tests/test_advanced_scoring.py
 
 ## Configuration
 
-Set the API key in environment variable (recommended for production):
+### Environment Variables
+
+The matching service supports the following environment variables:
+
 ```bash
+# API Key (recommended for production)
 export MATCHING_SERVICE_API_KEY=your-secret-key
+
+# Redis Configuration
+export REDIS_HOST=localhost        # Default: localhost
+export REDIS_PORT=6379             # Default: 6379
+export REDIS_DB=0                  # Default: 0
+export CACHE_TTL=3600              # Cache TTL in seconds, Default: 3600 (1 hour)
+export CACHE_ENABLED=true          # Enable/disable caching, Default: true
 ```
 
-Or configure in the code (default for development):
-```python
-API_KEY = "matching-service-secret-key"
+### Docker Deployment
+
+Build and run with Docker Compose:
+```bash
+# Build and start all services (including Redis)
+docker-compose up --build matching-service
+
+# Or run individually
+cd matching-service
+docker build -t goldwen-matching-service .
+docker run -p 8000:8000 -e REDIS_HOST=redis goldwen-matching-service
 ```
+
+The service includes:
+- Health checks for monitoring
+- Redis caching for performance
+- Graceful fallback when Redis is unavailable
+- Multi-stage Docker build for optimized image size
 
 ## Architecture
 

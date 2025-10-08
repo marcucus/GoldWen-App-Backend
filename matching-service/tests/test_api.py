@@ -371,3 +371,40 @@ class TestAlgorithmStats:
         )
         
         assert response.status_code == 401
+
+
+class TestRecommendations:
+    """Test suite for recommendations endpoint."""
+
+    def test_get_recommendations_success(self):
+        """Recommendations endpoint should return user-specific recommendations."""
+        user_id = "test-user-123"
+        response = client.get(
+            f"/api/v1/matching/recommendations/{user_id}",
+            headers={"X-API-Key": API_KEY},
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert "userId" in data
+        assert data["userId"] == user_id
+        assert "recommendations" in data
+        assert "totalAvailable" in data
+        assert "generatedAt" in data
+        assert isinstance(data["recommendations"], list)
+        assert isinstance(data["totalAvailable"], int)
+
+    def test_get_recommendations_no_api_key(self):
+        """Recommendations endpoint should reject requests without API key."""
+        response = client.get("/api/v1/matching/recommendations/test-user-123")
+        
+        assert response.status_code == 422
+
+    def test_get_recommendations_invalid_api_key(self):
+        """Recommendations endpoint should reject invalid API key."""
+        response = client.get(
+            "/api/v1/matching/recommendations/test-user-123",
+            headers={"X-API-Key": "invalid-key"},
+        )
+        
+        assert response.status_code == 401

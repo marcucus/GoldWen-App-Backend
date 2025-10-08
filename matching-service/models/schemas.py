@@ -165,3 +165,20 @@ class HealthCheckResponse(BaseModel):
     status: str = "healthy"
     version: str = "2.0.0"
     timestamp: str
+
+
+class RecommendationItem(BaseModel):
+    """Individual recommendation item."""
+
+    userId: str
+    compatibilityScore: float = Field(ge=0, le=100)
+    reasons: List[str] = Field(default_factory=list)
+
+
+class RecommendationsResponse(BaseModel):
+    """Response model for recommendations endpoint."""
+
+    userId: str
+    recommendations: List[RecommendationItem]
+    totalAvailable: int
+    generatedAt: str

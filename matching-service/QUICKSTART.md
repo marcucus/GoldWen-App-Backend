@@ -6,6 +6,8 @@ This guide helps you get the matching service running quickly.
 
 - Python 3.12+ installed
 - pip package manager
+- Redis (optional, for caching - service runs without it)
+- Docker and Docker Compose (optional, for containerized deployment)
 
 ## Installation
 
@@ -33,6 +35,29 @@ The service will start on `http://localhost:8000`
 
 ```bash
 uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
+```
+
+### Docker Mode
+
+Using Docker Compose (recommended - includes Redis):
+```bash
+# From the root directory
+docker-compose up matching-service
+
+# Or build and run with all dependencies
+docker-compose up --build
+```
+
+Using Docker only:
+```bash
+# Build
+docker build -t goldwen-matching-service .
+
+# Run
+docker run -p 8000:8000 \
+  -e REDIS_HOST=localhost \
+  -e CACHE_ENABLED=false \
+  goldwen-matching-service
 ```
 
 ## Testing the Service
@@ -108,15 +133,22 @@ The main NestJS API automatically connects to this service. Ensure:
 
 ## Environment Variables
 
-Create a `.env` file (optional):
+The service supports the following environment variables:
 
 ```env
 # API Configuration
 API_KEY=matching-service-secret-key
+
+# Redis Configuration (optional - service runs without Redis)
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_DB=0
+CACHE_TTL=3600           # Cache TTL in seconds (1 hour)
+CACHE_ENABLED=true       # Set to false to disable caching
+
+# Server Configuration
 HOST=0.0.0.0
 PORT=8000
-
-# Logging
 LOG_LEVEL=info
 ```
 
@@ -134,6 +166,12 @@ LOG_LEVEL=info
 - Verify matching service is running on port 8000
 - Check firewall settings
 - Verify API key matches
+
+### Redis connection issues
+- Service will run without Redis (caching disabled)
+- Check Redis is running: `redis-cli ping`
+- Verify REDIS_HOST and REDIS_PORT environment variables
+- Set CACHE_ENABLED=false to bypass Redis entirely
 
 ## Next Steps
 
