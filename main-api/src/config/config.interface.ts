@@ -101,3 +101,20 @@ export interface ThrottlerConfig {
     limit: number;
   };
 }
+
+export interface ModerationConfig {
+  openai: {
+    apiKey: string;
+    model?: string;
+  };
+  aws: {
+    region: string;
+    accessKeyId: string;
+    secretAccessKey: string;
+  };
+  autoBlock: {
+    enabled: boolean;
+    textThreshold: number; // 0-1, higher means stricter
+    imageThreshold: number; // 0-100, confidence level for inappropriate content
+  };
+}

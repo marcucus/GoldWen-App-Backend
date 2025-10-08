@@ -36,6 +36,7 @@ import {
   revenueCatConfig,
   monitoringConfig,
   throttlerConfig,
+  moderationConfig,
 } from './config/configuration';
 
 // Modules
@@ -52,6 +53,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { EmailModule } from './modules/email/email.module';
+import { ModerationModule } from './modules/moderation/moderation.module';
 
 @Module({
   imports: [
@@ -74,6 +76,7 @@ import { EmailModule } from './modules/email/email.module';
         revenueCatConfig,
         monitoringConfig,
         throttlerConfig,
+        moderationConfig,
       ],
     }),
 
@@ -163,6 +166,7 @@ import { EmailModule } from './modules/email/email.module';
     AdminModule,
     ReportsModule,
     StatsModule,
+    ModerationModule,
   ],
   controllers: [AppController],
   providers: [
