@@ -51,6 +51,7 @@ import { PreferencesModule } from './modules/preferences/preferences.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { StatsModule } from './modules/stats/stats.module';
+import { EmailModule } from './modules/email/email.module';
 
 @Module({
   imports: [
@@ -149,6 +150,7 @@ import { StatsModule } from './modules/stats/stats.module';
     MonitoringModule,
 
     // Feature modules
+    EmailModule,
     AuthModule,
     UsersModule,
     ProfilesModule,

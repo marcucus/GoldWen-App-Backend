@@ -88,6 +88,8 @@ export const emailConfig = registerAs(
   'email',
   (): EmailConfig => ({
     from: process.env.EMAIL_FROM || 'noreply@goldwen.com',
+    provider: (process.env.EMAIL_PROVIDER as 'smtp' | 'sendgrid') || 'smtp',
+    sendgridApiKey: process.env.SENDGRID_API_KEY || '',
     smtp: {
       host: process.env.EMAIL_HOST || 'smtp.gmail.com',
       port: parseInt(process.env.EMAIL_PORT || '587', 10),

@@ -14,7 +14,7 @@ import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
 import { UserStatus } from '../../common/enums';
 import { PasswordUtil, StringUtil } from '../../common/utils';
-import { EmailService } from '../../common/email.service';
+import { EmailService } from '../email/email.service';
 
 import {
   LoginDto,
