@@ -31,6 +31,8 @@ export enum StandardErrorCode {
   // Rate limiting (429)
   RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
   TOO_MANY_REQUESTS = 'TOO_MANY_REQUESTS',
+  DAILY_QUOTA_EXCEEDED = 'DAILY_QUOTA_EXCEEDED',
+  QUOTA_LIMIT_REACHED = 'QUOTA_LIMIT_REACHED',
 
   // Server errors (500)
   INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
@@ -81,6 +83,10 @@ export const ErrorRecoveryActions = {
   [StandardErrorCode.RATE_LIMIT_EXCEEDED]:
     'Too many requests. Please try again in a few minutes.',
   [StandardErrorCode.TOO_MANY_REQUESTS]: 'Please slow down and try again later',
+  [StandardErrorCode.DAILY_QUOTA_EXCEEDED]:
+    'Vous avez utilisé tous vos choix quotidiens. Revenez demain !',
+  [StandardErrorCode.QUOTA_LIMIT_REACHED]:
+    'Quota quotidien atteint. Passez à GoldWen Plus pour plus de choix.',
 
   [StandardErrorCode.INTERNAL_SERVER_ERROR]:
     'Something went wrong. Please try again later.',
