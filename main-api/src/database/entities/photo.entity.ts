@@ -46,7 +46,7 @@ export class Photo {
   @Column({ default: false })
   isApproved: boolean;
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   rejectionReason: string | null;
 
   @CreateDateColumn()

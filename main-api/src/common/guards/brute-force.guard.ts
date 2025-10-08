@@ -1,43 +1,40 @@
-import { Injectable, ExecutionContext } from '@nestjs/common';
-import {
-  ThrottlerGuard,
-  ThrottlerException,
-  ThrottlerModuleOptions,
-  ThrottlerStorage,
-} from '@nestjs/throttler';
+import { Injectable, ExecutionContext, Inject } from '@nestjs/common';
+import * as throttler from '@nestjs/throttler';
+import { ThrottlerOptions } from '@nestjs/throttler';
 import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { CustomLoggerService } from '../logger';
 import { AlertingService } from '../monitoring';
 
 @Injectable()
-export class BruteForceGuard extends ThrottlerGuard {
+export class BruteForceGuard extends throttler.ThrottlerGuard {
   private readonly authTtl: number;
   private readonly authLimit: number;
 
   constructor(
+    options: throttler.ThrottlerModuleOptions,
+    storageService: throttler.ThrottlerStorage,
+    reflector: Reflector,
     private readonly configService: ConfigService,
     private readonly logger: CustomLoggerService,
     private readonly alerting: AlertingService,
-    storageService: ThrottlerStorage,
-    reflector: Reflector,
   ) {
     const authTtl = configService.get<number>('throttler.auth.ttl') || 900000;
     const authLimit = configService.get<number>('throttler.auth.limit') || 5;
 
-    super(
-      {
-        throttlers: [
-          {
-            name: 'brute-force',
-            ttl: authTtl,
-            limit: authLimit,
-          },
-        ],
-      },
-      storageService,
-      reflector,
-    );
+    // Override the options with brute-force specific settings
+    const bruteForceOptions = {
+      ...options,
+      throttlers: [
+        {
+          name: 'brute-force',
+          ttl: authTtl,
+          limit: authLimit,
+        },
+      ],
+    };
+
+    super(bruteForceOptions, storageService, reflector);
 
     this.authTtl = authTtl;
     this.authLimit = authLimit;
@@ -55,7 +52,7 @@ export class BruteForceGuard extends ThrottlerGuard {
 
       return canActivate;
     } catch (error) {
-      if (error instanceof ThrottlerException) {
+      if (error instanceof throttler.ThrottlerException) {
         // Add rate limit headers on rate limit exceeded
         response.setHeader('X-RateLimit-Limit', this.authLimit);
         response.setHeader('X-RateLimit-Remaining', 0);
@@ -99,7 +96,7 @@ export class BruteForceGuard extends ThrottlerGuard {
       },
     );
 
-    throw new ThrottlerException(
+    throw new throttler.ThrottlerException(
       'Too many login attempts. Please try again in 15 minutes.',
     );
   }
