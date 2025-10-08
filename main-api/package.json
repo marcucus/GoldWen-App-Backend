@@ -58,6 +58,7 @@
     "firebase-admin": "^13.5.0",
     "google-auth-library": "^10.3.0",
     "ioredis": "^5.7.0",
+    "mixpanel": "^0.18.1",
     "multer": "^2.0.2",
     "nest-winston": "^1.10.2",
     "node-cron": "^4.2.1",

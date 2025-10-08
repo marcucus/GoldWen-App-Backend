@@ -124,3 +124,10 @@ export interface ModerationConfig {
     imageThreshold: number; // 0-100, confidence level for inappropriate content
   };
 }
+
+export interface AnalyticsConfig {
+  mixpanel: {
+    token: string;
+    enabled: boolean;
+  };
+}

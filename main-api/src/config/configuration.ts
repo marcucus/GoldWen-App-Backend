@@ -13,6 +13,7 @@ import {
   MonitoringConfig,
   ThrottlerConfig,
   ModerationConfig,
+  AnalyticsConfig,
 } from './config.interface';
 
 export const databaseConfig = registerAs(
@@ -190,6 +191,16 @@ export const moderationConfig = registerAs(
       imageThreshold: parseFloat(
         process.env.MODERATION_IMAGE_THRESHOLD || '80',
       ),
+    },
+  }),
+);
+
+export const analyticsConfig = registerAs(
+  'analytics',
+  (): AnalyticsConfig => ({
+    mixpanel: {
+      token: process.env.MIXPANEL_TOKEN || '',
+      enabled: process.env.MIXPANEL_ENABLED === 'true',
     },
   }),
 );
