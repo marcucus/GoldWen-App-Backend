@@ -840,20 +840,130 @@ const socket = io('ws://localhost:3000/chat', {
 
 ### Events Entrants (du serveur vers le client)
 - `new_message`: Nouveau message reçu
-- `message_read`: Message marqué comme lu
-- `user_typing`: Utilisateur en train d'écrire
+  ```javascript
+  {
+    messageId: string,
+    conversationId: string,
+    senderId: string,
+    content: string,
+    type: string,
+    timestamp: Date
+  }
+  ```
+- `message_read`: Message marqué comme lu avec accusé de lecture
+  ```javascript
+  {
+    conversationId: string,
+    messageId: string,
+    readBy: string,
+    readAt: Date,
+    timestamp: Date
+  }
+  ```
+- `conversation_read`: Toute la conversation marquée comme lue
+  ```javascript
+  {
+    conversationId: string,
+    readBy: string,
+    messageCount: number,
+    timestamp: Date
+  }
+  ```
+- `user_typing`: Utilisateur en train d'écrire (indicateur "écrit...")
+  ```javascript
+  {
+    conversationId: string,
+    userId: string
+  }
+  ```
 - `user_stopped_typing`: Utilisateur a arrêté d'écrire
+  ```javascript
+  {
+    conversationId: string,
+    userId: string
+  }
+  ```
+- `user_presence_changed`: Statut de présence d'un utilisateur a changé
+  ```javascript
+  {
+    userId: string,
+    isOnline: boolean,
+    timestamp: Date
+  }
+  ```
+- `presence_status`: Réponse avec le statut de présence des utilisateurs
+  ```javascript
+  {
+    statuses: [{
+      userId: string,
+      isOnline: boolean,
+      lastSeen: Date,
+      lastSeenFormatted: string  // "Il y a 5 min", "En ligne", etc.
+    }]
+  }
+  ```
 - `chat_expired`: Conversation expirée
 - `new_match`: Nouveau match
 - `match_expired`: Match expiré
+- `error`: Erreur WebSocket
+  ```javascript
+  {
+    message: string
+  }
+  ```
 
 ### Events Sortants (du client vers le serveur)
 - `join_chat`: Rejoindre une conversation
+  ```javascript
+  {
+    conversationId: string
+  }
+  ```
 - `leave_chat`: Quitter une conversation
+  ```javascript
+  {
+    conversationId: string
+  }
+  ```
 - `send_message`: Envoyer un message
-- `start_typing`: Commencer à écrire
+  ```javascript
+  {
+    conversationId: string,
+    content: string,
+    type?: string  // 'text' | 'emoji' | 'system'
+  }
+  ```
+- `start_typing`: Commencer à écrire (auto-timeout après 5 secondes)
+  ```javascript
+  {
+    conversationId: string
+  }
+  ```
 - `stop_typing`: Arrêter d'écrire
-- `read_message`: Marquer comme lu
+  ```javascript
+  {
+    conversationId: string
+  }
+  ```
+- `read_message`: Marquer un message comme lu
+  ```javascript
+  {
+    conversationId: string,
+    messageId: string
+  }
+  ```
+- `mark_conversation_read`: Marquer toute la conversation comme lue
+  ```javascript
+  {
+    conversationId: string
+  }
+  ```
+- `get_presence`: Obtenir le statut de présence d'utilisateurs
+  ```javascript
+  {
+    userIds: string[]
+  }
+  ```
 
 ---
 
