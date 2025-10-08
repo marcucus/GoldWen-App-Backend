@@ -17,6 +17,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ProfileCompletionGuard } from '../auth/guards/profile-completion.guard';
+import { QuotaGuard } from './guards/quota.guard';
 import { MatchingService } from './matching.service';
 import { GetMatchesDto } from './dto/matching.dto';
 
@@ -61,10 +62,15 @@ export class MatchingController {
   }
 
   @Post('choose/:targetUserId')
+  @UseGuards(QuotaGuard)
   @ApiOperation({ summary: 'Choose a profile from daily selection' })
   @ApiResponse({
     status: 201,
     description: 'Profile choice registered successfully',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Daily quota exceeded',
   })
   async chooseProfile(
     @Request() req: any,
