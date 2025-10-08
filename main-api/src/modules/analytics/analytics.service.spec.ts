@@ -10,7 +10,7 @@ describe('AnalyticsService', () => {
 
   const mockConfigService = {
     get: jest.fn((key: string) => {
-      const config = {
+      const config: Record<string, unknown> = {
         'analytics.mixpanel.token': 'test-token',
         'analytics.mixpanel.enabled': true,
         'app.environment': 'test',
@@ -77,7 +77,9 @@ describe('AnalyticsService', () => {
         userId: 'user-123',
       });
 
-      expect(mockGdprService.getCurrentConsent).toHaveBeenCalledWith('user-123');
+      expect(mockGdprService.getCurrentConsent).toHaveBeenCalledWith(
+        'user-123',
+      );
     });
 
     it('should track event if user has consented to analytics', async () => {
@@ -93,7 +95,9 @@ describe('AnalyticsService', () => {
         properties: { key: 'value' },
       });
 
-      expect(mockGdprService.getCurrentConsent).toHaveBeenCalledWith('user-123');
+      expect(mockGdprService.getCurrentConsent).toHaveBeenCalledWith(
+        'user-123',
+      );
     });
 
     it('should default to opt-out if no consent record exists', async () => {
@@ -104,7 +108,9 @@ describe('AnalyticsService', () => {
         userId: 'user-123',
       });
 
-      expect(mockGdprService.getCurrentConsent).toHaveBeenCalledWith('user-123');
+      expect(mockGdprService.getCurrentConsent).toHaveBeenCalledWith(
+        'user-123',
+      );
     });
 
     it('should handle errors gracefully when checking consent', async () => {
@@ -269,7 +275,9 @@ describe('AnalyticsService', () => {
         email: 'john@example.com',
       });
 
-      expect(mockGdprService.getCurrentConsent).toHaveBeenCalledWith('user-123');
+      expect(mockGdprService.getCurrentConsent).toHaveBeenCalledWith(
+        'user-123',
+      );
     });
 
     it('should identify user if consent is given', async () => {
@@ -284,7 +292,9 @@ describe('AnalyticsService', () => {
         email: 'john@example.com',
       });
 
-      expect(mockGdprService.getCurrentConsent).toHaveBeenCalledWith('user-123');
+      expect(mockGdprService.getCurrentConsent).toHaveBeenCalledWith(
+        'user-123',
+      );
     });
   });
 

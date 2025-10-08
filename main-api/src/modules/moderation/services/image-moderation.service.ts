@@ -57,7 +57,9 @@ export class ImageModerationService {
           secretAccessKey,
         },
       });
-      this.logger.info('Image Moderation Service initialized with AWS Rekognition');
+      this.logger.info(
+        'Image Moderation Service initialized with AWS Rekognition',
+      );
     } else {
       this.logger.warn(
         'AWS credentials not configured. Image moderation will be disabled.',
@@ -71,7 +73,9 @@ export class ImageModerationService {
    */
   async moderateImage(imagePath: string): Promise<ImageModerationResult> {
     if (!this.rekognitionClient) {
-      this.logger.warn('AWS Rekognition not configured, skipping image moderation');
+      this.logger.warn(
+        'AWS Rekognition not configured, skipping image moderation',
+      );
       return this.createSafeResult();
     }
 
@@ -105,7 +109,8 @@ export class ImageModerationService {
         flagged,
         shouldBlock,
         labelsCount: labels.length,
-        highestConfidence: labels.length > 0 ? Math.max(...labels.map(l => l.confidence)) : 0,
+        highestConfidence:
+          labels.length > 0 ? Math.max(...labels.map((l) => l.confidence)) : 0,
       });
 
       return {
@@ -116,7 +121,11 @@ export class ImageModerationService {
         moderationModelVersion: response.ModerationModelVersion,
       };
     } catch (error) {
-      this.logger.error(`Error moderating image: ${imagePath}`, error.stack, 'ImageModerationService');
+      this.logger.error(
+        `Error moderating image: ${imagePath}`,
+        error.stack,
+        'ImageModerationService',
+      );
       // On error, return safe result (don't block) to avoid false positives
       return this.createSafeResult();
     }
@@ -128,16 +137,18 @@ export class ImageModerationService {
    */
   async moderateImageFromUrl(imageUrl: string): Promise<ImageModerationResult> {
     if (!this.rekognitionClient) {
-      this.logger.warn('AWS Rekognition not configured, skipping image moderation');
+      this.logger.warn(
+        'AWS Rekognition not configured, skipping image moderation',
+      );
       return this.createSafeResult();
     }
 
     try {
       // Check if it's an S3 URL
       const s3Match = imageUrl.match(/s3:\/\/([^\/]+)\/(.+)/);
-      
+
       let params: DetectModerationLabelsCommandInput;
-      
+
       if (s3Match) {
         // S3 image
         const [, bucket, key] = s3Match;
@@ -196,7 +207,11 @@ export class ImageModerationService {
         moderationModelVersion: awsResponse.ModerationModelVersion,
       };
     } catch (error) {
-      this.logger.error(`Error moderating image from URL: ${imageUrl}`, error.stack, 'ImageModerationService');
+      this.logger.error(
+        `Error moderating image from URL: ${imageUrl}`,
+        error.stack,
+        'ImageModerationService',
+      );
       return this.createSafeResult();
     }
   }

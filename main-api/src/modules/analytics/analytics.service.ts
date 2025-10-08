@@ -11,13 +11,22 @@ export interface AnalyticsEvent {
 }
 
 export interface OnboardingEvent {
-  step: 'registration' | 'profile_creation' | 'questionnaire' | 'photos_upload' | 'completed';
+  step:
+    | 'registration'
+    | 'profile_creation'
+    | 'questionnaire'
+    | 'photos_upload'
+    | 'completed';
   method?: 'google' | 'apple' | 'email';
   metadata?: Record<string, any>;
 }
 
 export interface MatchingEvent {
-  action: 'daily_selection_viewed' | 'profile_chosen' | 'match_created' | 'match_expired';
+  action:
+    | 'daily_selection_viewed'
+    | 'profile_chosen'
+    | 'match_created'
+    | 'match_expired';
   matchId?: string;
   compatibilityScore?: number;
   metadata?: Record<string, any>;
@@ -30,7 +39,11 @@ export interface ChatEvent {
 }
 
 export interface SubscriptionEvent {
-  action: 'subscription_started' | 'subscription_renewed' | 'subscription_cancelled' | 'subscription_upgraded';
+  action:
+    | 'subscription_started'
+    | 'subscription_renewed'
+    | 'subscription_cancelled'
+    | 'subscription_upgraded';
   plan?: string;
   price?: number;
   currency?: string;
@@ -48,7 +61,8 @@ export class AnalyticsService {
     private readonly gdprService: GdprService,
   ) {
     const token = this.configService.get<string>('analytics.mixpanel.token');
-    this.enabled = this.configService.get<boolean>('analytics.mixpanel.enabled') || false;
+    this.enabled =
+      this.configService.get<boolean>('analytics.mixpanel.enabled') || false;
 
     if (!token || !this.enabled) {
       this.logger.warn('Mixpanel analytics not configured or disabled');
@@ -59,7 +73,8 @@ export class AnalyticsService {
       this.mixpanel = Mixpanel.init(token);
       this.logger.log('Mixpanel analytics service initialized');
     } catch (error) {
-      this.logger.error('Failed to initialize Mixpanel', error.stack);
+      const errorMessage = error instanceof Error ? error.stack : String(error);
+      this.logger.error('Failed to initialize Mixpanel', errorMessage);
       this.enabled = false;
     }
   }
@@ -70,7 +85,7 @@ export class AnalyticsService {
   private async hasAnalyticsConsent(userId: string): Promise<boolean> {
     try {
       const consent = await this.gdprService.getCurrentConsent(userId);
-      
+
       // If no consent record exists, default to opt-out (GDPR compliant)
       if (!consent) {
         return false;
@@ -79,7 +94,11 @@ export class AnalyticsService {
       // Check if analytics consent is explicitly given
       return consent.analytics === true;
     } catch (error) {
-      this.logger.error(`Failed to check analytics consent for user ${userId}`, error.stack);
+      const errorMessage = error instanceof Error ? error.stack : String(error);
+      this.logger.error(
+        `Failed to check analytics consent for user ${userId}`,
+        errorMessage,
+      );
       // On error, default to opt-out for GDPR compliance
       return false;
     }
@@ -104,7 +123,7 @@ export class AnalyticsService {
         }
       }
 
-      const properties = {
+      const properties: Record<string, unknown> = {
         ...event.properties,
         timestamp: event.timestamp || new Date(),
         environment: this.configService.get('app.environment'),
@@ -119,16 +138,22 @@ export class AnalyticsService {
         this.mixpanel.track(event.name, properties);
       }
 
-      this.logger.debug(`Event tracked: ${event.name}`, { userId: event.userId });
+      this.logger.debug(`Event tracked: ${event.name}`, {
+        userId: event.userId,
+      });
     } catch (error) {
-      this.logger.error(`Failed to track event: ${event.name}`, error.stack);
+      const errorMessage = error instanceof Error ? error.stack : String(error);
+      this.logger.error(`Failed to track event: ${event.name}`, errorMessage);
     }
   }
 
   /**
    * Identify a user in Mixpanel
    */
-  async identifyUser(userId: string, userProperties?: Record<string, any>): Promise<void> {
+  async identifyUser(
+    userId: string,
+    userProperties?: Record<string, unknown>,
+  ): Promise<void> {
     if (!this.enabled || !this.mixpanel) {
       return;
     }
@@ -148,7 +173,8 @@ export class AnalyticsService {
 
       this.logger.debug(`User identified: ${userId}`);
     } catch (error) {
-      this.logger.error(`Failed to identify user: ${userId}`, error.stack);
+      const errorMessage = error instanceof Error ? error.stack : String(error);
+      this.logger.error(`Failed to identify user: ${userId}`, errorMessage);
     }
   }
 
@@ -201,7 +227,10 @@ export class AnalyticsService {
   /**
    * Track subscription events
    */
-  async trackSubscription(userId: string, event: SubscriptionEvent): Promise<void> {
+  async trackSubscription(
+    userId: string,
+    event: SubscriptionEvent,
+  ): Promise<void> {
     await this.trackEvent({
       name: `subscription_${event.action}`,
       userId,
@@ -215,7 +244,10 @@ export class AnalyticsService {
     });
 
     // Also update user profile with subscription status
-    if (event.action === 'subscription_started' || event.action === 'subscription_renewed') {
+    if (
+      event.action === 'subscription_started' ||
+      event.action === 'subscription_renewed'
+    ) {
       await this.identifyUser(userId, {
         subscription_plan: event.plan,
         is_subscriber: true,
@@ -240,7 +272,8 @@ export class AnalyticsService {
       this.mixpanel.people.delete_user(userId);
       this.logger.log(`User ${userId} opted out of analytics`);
     } catch (error) {
-      this.logger.error(`Failed to opt out user ${userId}`, error.stack);
+      const errorMessage = error instanceof Error ? error.stack : String(error);
+      this.logger.error(`Failed to opt out user ${userId}`, errorMessage);
     }
   }
 
@@ -257,7 +290,11 @@ export class AnalyticsService {
       this.mixpanel.people.delete_user(userId);
       this.logger.log(`Analytics data deleted for user ${userId}`);
     } catch (error) {
-      this.logger.error(`Failed to delete analytics data for user ${userId}`, error.stack);
+      const errorMessage = error instanceof Error ? error.stack : String(error);
+      this.logger.error(
+        `Failed to delete analytics data for user ${userId}`,
+        errorMessage,
+      );
     }
   }
 }

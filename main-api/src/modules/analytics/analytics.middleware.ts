@@ -12,22 +12,23 @@ export class AnalyticsMiddleware implements NestMiddleware {
 
   constructor(private readonly analyticsService: AnalyticsService) {}
 
-  async use(req: Request, res: Response, next: NextFunction) {
+  use(req: Request, res: Response, next: NextFunction): void {
     const startTime = Date.now();
     const { method, path, ip } = req;
-    
+
     // Extract user ID from request if authenticated
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     const userId = (req as any).user?.id || (req as any).user?.userId;
 
     // Track API request
-    res.on('finish', async () => {
+    res.on('finish', () => {
       const duration = Date.now() - startTime;
       const { statusCode } = res;
 
       // Only track successful requests to avoid noise
       if (statusCode < 400) {
-        try {
-          await this.analyticsService.trackEvent({
+        void this.analyticsService
+          .trackEvent({
             name: 'api_request',
             userId,
             properties: {
@@ -38,10 +39,12 @@ export class AnalyticsMiddleware implements NestMiddleware {
               ip,
               userAgent: req.get('user-agent'),
             },
+          })
+          .catch((error: unknown) => {
+            const errorMessage =
+              error instanceof Error ? error.stack : String(error);
+            this.logger.error('Failed to track API request', errorMessage);
           });
-        } catch (error) {
-          this.logger.error('Failed to track API request', error.stack);
-        }
       }
     });
 

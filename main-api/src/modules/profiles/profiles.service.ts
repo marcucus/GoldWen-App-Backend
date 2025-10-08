@@ -241,14 +241,9 @@ export class ProfilesService {
     // Trigger moderation for each photo asynchronously
     // We don't await this so the upload response is fast
     savedPhotos.forEach((photo) => {
-      this.moderationService
-        .moderatePhoto(photo.id)
-        .catch((error) => {
-          console.error(
-            `Error moderating photo ${photo.id}:`,
-            error.message,
-          );
-        });
+      this.moderationService.moderatePhoto(photo.id).catch((error) => {
+        console.error(`Error moderating photo ${photo.id}:`, error.message);
+      });
     });
 
     // Check if profile is now complete after upload

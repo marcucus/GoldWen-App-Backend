@@ -59,7 +59,10 @@ export class ModerationService {
 
     // If photo is blocked, notify the user
     if (moderationResult.shouldBlock) {
-      await this.handlePhotoBlocked(photo, moderationResult.reason || 'Inappropriate content detected');
+      await this.handlePhotoBlocked(
+        photo,
+        moderationResult.reason || 'Inappropriate content detected',
+      );
     }
 
     this.logger.logBusinessEvent('photo_moderation_completed', {
@@ -119,7 +122,10 @@ export class ModerationService {
       });
 
       if (userId) {
-        await this.handleTextContentBlocked(userId, moderationResult.reason || 'Inappropriate content detected');
+        await this.handleTextContentBlocked(
+          userId,
+          moderationResult.reason || 'Inappropriate content detected',
+        );
       }
     }
 
@@ -175,7 +181,11 @@ export class ModerationService {
         });
       }
     } catch (error) {
-      this.logger.error(`Error handling blocked photo notification: ${photo.id}`, error.stack, 'ModerationService');
+      this.logger.error(
+        `Error handling blocked photo notification: ${photo.id}`,
+        error.stack,
+        'ModerationService',
+      );
     }
   }
 
@@ -212,7 +222,11 @@ export class ModerationService {
         });
       }
     } catch (error) {
-      this.logger.error(`Error handling blocked text content notification: ${userId}`, error.stack, 'ModerationService');
+      this.logger.error(
+        `Error handling blocked text content notification: ${userId}`,
+        error.stack,
+        'ModerationService',
+      );
     }
   }
 }

@@ -5,10 +5,9 @@ import { Request, Response, NextFunction } from 'express';
 
 describe('AnalyticsMiddleware', () => {
   let middleware: AnalyticsMiddleware;
-  let analyticsService: AnalyticsService;
 
   const mockAnalyticsService = {
-    trackEvent: jest.fn(),
+    trackEvent: jest.fn().mockResolvedValue(undefined),
   };
 
   beforeEach(async () => {
@@ -23,7 +22,6 @@ describe('AnalyticsMiddleware', () => {
     }).compile();
 
     middleware = module.get<AnalyticsMiddleware>(AnalyticsMiddleware);
-    analyticsService = module.get<AnalyticsService>(AnalyticsService);
   });
 
   afterEach(() => {
@@ -34,7 +32,7 @@ describe('AnalyticsMiddleware', () => {
     expect(middleware).toBeDefined();
   });
 
-  it('should track API request on response finish', async () => {
+  it('should track API request on response finish', () => {
     const mockRequest = {
       method: 'GET',
       path: '/api/v1/profiles',
@@ -45,9 +43,9 @@ describe('AnalyticsMiddleware', () => {
 
     const mockResponse = {
       statusCode: 200,
-      on: jest.fn((event, callback) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      on: jest.fn((event: string, callback: () => void) => {
         if (event === 'finish') {
-          // Simulate response finish
           callback();
         }
       }),
@@ -55,27 +53,26 @@ describe('AnalyticsMiddleware', () => {
 
     const mockNext = jest.fn() as NextFunction;
 
-    await middleware.use(mockRequest, mockResponse, mockNext);
+    middleware.use(mockRequest, mockResponse, mockNext);
 
-    // Wait for async tracking to complete
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    expect(mockNext).toHaveBeenCalled();
-    expect(mockAnalyticsService.trackEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'api_request',
-        userId: 'user-123',
-        properties: expect.objectContaining({
-          method: 'GET',
-          path: '/api/v1/profiles',
-          statusCode: 200,
-          ip: '127.0.0.1',
+    return new Promise((resolve) => setTimeout(resolve, 100)).then(() => {
+      expect(mockNext).toHaveBeenCalled();
+      expect(mockAnalyticsService.trackEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'api_request',
+          userId: 'user-123',
+          properties: expect.objectContaining({
+            method: 'GET',
+            path: '/api/v1/profiles',
+            statusCode: 200,
+            ip: '127.0.0.1',
+          }),
         }),
-      }),
-    );
+      );
+    });
   });
 
-  it('should not track failed requests (4xx/5xx)', async () => {
+  it('should not track failed requests (4xx/5xx)', () => {
     const mockRequest = {
       method: 'POST',
       path: '/api/v1/auth/login',
@@ -85,7 +82,8 @@ describe('AnalyticsMiddleware', () => {
 
     const mockResponse = {
       statusCode: 401,
-      on: jest.fn((event, callback) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      on: jest.fn((event: string, callback: () => void) => {
         if (event === 'finish') {
           callback();
         }
@@ -94,16 +92,15 @@ describe('AnalyticsMiddleware', () => {
 
     const mockNext = jest.fn() as NextFunction;
 
-    await middleware.use(mockRequest, mockResponse, mockNext);
+    middleware.use(mockRequest, mockResponse, mockNext);
 
-    // Wait for async tracking to complete
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    expect(mockNext).toHaveBeenCalled();
-    expect(mockAnalyticsService.trackEvent).not.toHaveBeenCalled();
+    return new Promise((resolve) => setTimeout(resolve, 100)).then(() => {
+      expect(mockNext).toHaveBeenCalled();
+      expect(mockAnalyticsService.trackEvent).not.toHaveBeenCalled();
+    });
   });
 
-  it('should work without authenticated user', async () => {
+  it('should work without authenticated user', () => {
     const mockRequest = {
       method: 'GET',
       path: '/api/v1/public',
@@ -113,7 +110,8 @@ describe('AnalyticsMiddleware', () => {
 
     const mockResponse = {
       statusCode: 200,
-      on: jest.fn((event, callback) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      on: jest.fn((event: string, callback: () => void) => {
         if (event === 'finish') {
           callback();
         }
@@ -122,21 +120,20 @@ describe('AnalyticsMiddleware', () => {
 
     const mockNext = jest.fn() as NextFunction;
 
-    await middleware.use(mockRequest, mockResponse, mockNext);
+    middleware.use(mockRequest, mockResponse, mockNext);
 
-    // Wait for async tracking to complete
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    expect(mockNext).toHaveBeenCalled();
-    expect(mockAnalyticsService.trackEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'api_request',
-        userId: undefined,
-      }),
-    );
+    return new Promise((resolve) => setTimeout(resolve, 100)).then(() => {
+      expect(mockNext).toHaveBeenCalled();
+      expect(mockAnalyticsService.trackEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'api_request',
+          userId: undefined,
+        }),
+      );
+    });
   });
 
-  it('should handle errors gracefully', async () => {
+  it('should handle errors gracefully', () => {
     mockAnalyticsService.trackEvent.mockRejectedValueOnce(
       new Error('Tracking failed'),
     );
@@ -151,7 +148,8 @@ describe('AnalyticsMiddleware', () => {
 
     const mockResponse = {
       statusCode: 200,
-      on: jest.fn((event, callback) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      on: jest.fn((event: string, callback: () => void) => {
         if (event === 'finish') {
           callback();
         }
@@ -160,14 +158,14 @@ describe('AnalyticsMiddleware', () => {
 
     const mockNext = jest.fn() as NextFunction;
 
-    await expect(
+    expect(() =>
       middleware.use(mockRequest, mockResponse, mockNext),
-    ).resolves.not.toThrow();
+    ).not.toThrow();
 
     expect(mockNext).toHaveBeenCalled();
   });
 
-  it('should calculate request duration', async () => {
+  it('should calculate request duration', () => {
     const mockRequest = {
       method: 'GET',
       path: '/api/v1/profiles',
@@ -178,9 +176,9 @@ describe('AnalyticsMiddleware', () => {
 
     const mockResponse = {
       statusCode: 200,
-      on: jest.fn((event, callback) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      on: jest.fn((event: string, callback: () => void) => {
         if (event === 'finish') {
-          // Simulate delay
           setTimeout(callback, 50);
         }
       }),
@@ -188,21 +186,20 @@ describe('AnalyticsMiddleware', () => {
 
     const mockNext = jest.fn() as NextFunction;
 
-    await middleware.use(mockRequest, mockResponse, mockNext);
+    middleware.use(mockRequest, mockResponse, mockNext);
 
-    // Wait for async tracking to complete
-    await new Promise((resolve) => setTimeout(resolve, 150));
-
-    expect(mockAnalyticsService.trackEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        properties: expect.objectContaining({
-          duration: expect.any(Number),
+    return new Promise((resolve) => setTimeout(resolve, 150)).then(() => {
+      expect(mockAnalyticsService.trackEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          properties: expect.objectContaining({
+            duration: expect.any(Number),
+          }),
         }),
-      }),
-    );
+      );
 
-    const trackedDuration = (mockAnalyticsService.trackEvent as jest.Mock).mock
-      .calls[0][0].properties.duration;
-    expect(trackedDuration).toBeGreaterThanOrEqual(50);
+      const trackedDuration = mockAnalyticsService.trackEvent.mock.calls[0][0]
+        .properties.duration as number;
+      expect(trackedDuration).toBeGreaterThanOrEqual(50);
+    });
   });
 });
