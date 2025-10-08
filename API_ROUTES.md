@@ -329,11 +329,57 @@ Cette documentation liste toutes les routes API disponibles pour le frontend et 
 
 ### GET /matching/daily-selection
 **Description**: Récupération de la sélection quotidienne  
-**Headers**: `Authorization: Bearer <token>`
+**Headers**: `Authorization: Bearer <token>`  
+**Response**:
+```json
+{
+  "profiles": [...],
+  "metadata": {
+    "date": "2025-01-XX",
+    "choicesRemaining": 3,
+    "choicesMade": 0,
+    "maxChoices": 3,
+    "refreshTime": "2025-01-XX T12:00:00.000Z"
+  }
+}
+```
 
-### POST /matching/choose/:profileId
+### POST /matching/choose/:targetUserId
 **Description**: Choisir un profil de la sélection quotidienne  
-**Headers**: `Authorization: Bearer <token>`
+**Headers**: `Authorization: Bearer <token>`  
+**Guards**: QuotaGuard (enforces daily quota limits)  
+**Body**:
+```json
+{
+  "choice": "like" | "pass"
+}
+```
+**Response (Success)**:
+```json
+{
+  "success": true,
+  "data": {
+    "isMatch": false,
+    "choicesRemaining": 2,
+    "message": "Votre choix a été enregistré ! Il vous reste 2 choix aujourd'hui.",
+    "canContinue": true
+  }
+}
+```
+**Response (Quota Exceeded - 403)**:
+```json
+{
+  "statusCode": 403,
+  "message": "Vous avez utilisé vos 3 choix quotidiens. Revenez demain pour de nouveaux profils !",
+  "error": "Forbidden"
+}
+```
+
+**Quota Rules**:
+- Free users: 1 choice/day
+- GoldWen Plus: 3 choices/day
+- Reset: Daily at midnight (00:00)
+- New selections: Daily at noon (12:00)
 
 ### GET /matching/matches
 **Description**: Liste des matches de l'utilisateur  
@@ -487,8 +533,24 @@ Cette documentation liste toutes les routes API disponibles pour le frontend et 
 **Headers**: `Authorization: Bearer <token>`
 
 ### GET /subscriptions/usage
-**Description**: Utilisation actuelle des fonctionnalités premium  
-**Headers**: `Authorization: Bearer <token>`
+**Description**: Utilisation actuelle des fonctionnalités premium et quotas quotidiens  
+**Headers**: `Authorization: Bearer <token>`  
+**Response**:
+```json
+{
+  "dailyChoices": {
+    "limit": 3,
+    "used": 1,
+    "remaining": 2,
+    "resetTime": "2025-01-XX T12:00:00.000Z"
+  },
+  "subscription": {
+    "tier": "premium",
+    "isActive": true
+  }
+}
+```
+**Note**: This endpoint returns real-time quota information from the daily_selections table
 
 ### POST /subscriptions/webhook/revenuecat
 **Description**: Webhook RevenueCat pour la mise à jour automatique des statuts  
