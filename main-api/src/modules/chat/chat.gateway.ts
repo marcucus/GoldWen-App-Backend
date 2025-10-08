@@ -225,7 +225,7 @@ export class ChatGateway
   }
 
   @SubscribeMessage('start_typing')
-  async handleStartTyping(
+  handleStartTyping(
     @MessageBody() data: { conversationId: string },
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
@@ -253,7 +253,7 @@ export class ChatGateway
   }
 
   @SubscribeMessage('stop_typing')
-  async handleStopTyping(
+  handleStopTyping(
     @MessageBody() data: { conversationId: string },
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
