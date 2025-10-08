@@ -37,6 +37,7 @@ import {
   monitoringConfig,
   throttlerConfig,
   moderationConfig,
+  analyticsConfig,
 } from './config/configuration';
 
 // Modules
@@ -55,6 +56,7 @@ import { StatsModule } from './modules/stats/stats.module';
 import { EmailModule } from './modules/email/email.module';
 import { ModerationModule } from './modules/moderation/moderation.module';
 import { GdprModule } from './modules/gdpr/gdpr.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 @Module({
   imports: [
@@ -78,6 +80,7 @@ import { GdprModule } from './modules/gdpr/gdpr.module';
         monitoringConfig,
         throttlerConfig,
         moderationConfig,
+        analyticsConfig,
       ],
     }),
 
@@ -169,6 +172,7 @@ import { GdprModule } from './modules/gdpr/gdpr.module';
     StatsModule,
     ModerationModule,
     GdprModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [
