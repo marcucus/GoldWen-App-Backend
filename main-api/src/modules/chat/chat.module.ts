@@ -7,6 +7,9 @@ import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
 import { ChatGateway } from './chat.gateway';
 import { ChatScheduler } from './chat.scheduler';
+import { TypingIndicatorService } from './services/typing-indicator.service';
+import { ReadReceiptsService } from './services/read-receipts.service';
+import { PresenceService } from './services/presence.service';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { ProfilesModule } from '../profiles/profiles.module';
 
@@ -30,8 +33,22 @@ import { User } from '../../database/entities/user.entity';
     forwardRef(() => NotificationsModule),
     ProfilesModule,
   ],
-  providers: [ChatService, ChatGateway, ChatScheduler],
+  providers: [
+    ChatService,
+    ChatGateway,
+    ChatScheduler,
+    TypingIndicatorService,
+    ReadReceiptsService,
+    PresenceService,
+  ],
   controllers: [ChatController],
-  exports: [ChatService, ChatGateway, ChatScheduler],
+  exports: [
+    ChatService,
+    ChatGateway,
+    ChatScheduler,
+    TypingIndicatorService,
+    ReadReceiptsService,
+    PresenceService,
+  ],
 })
 export class ChatModule {}

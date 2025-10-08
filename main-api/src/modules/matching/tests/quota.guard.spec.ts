@@ -222,7 +222,7 @@ describe('QuotaGuard', () => {
       });
     });
 
-    it('should check for today\'s selection date at midnight', async () => {
+    it("should check for today's selection date at midnight", async () => {
       const userId = 'user-123';
       const context = createMockExecutionContext(userId);
 

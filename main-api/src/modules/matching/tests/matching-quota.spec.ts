@@ -118,9 +118,7 @@ describe('MatchingService - Quota Enforcement', () => {
     dailySelectionRepository = module.get<Repository<DailySelection>>(
       getRepositoryToken(DailySelection),
     );
-    matchRepository = module.get<Repository<Match>>(
-      getRepositoryToken(Match),
-    );
+    matchRepository = module.get<Repository<Match>>(getRepositoryToken(Match));
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
   });
 
@@ -188,9 +186,7 @@ describe('MatchingService - Quota Enforcement', () => {
       ).rejects.toThrow(BadRequestException);
       await expect(
         service.chooseProfile(userId, targetUserId, 'like'),
-      ).rejects.toThrow(
-        'You have reached your daily limit of 1 choices',
-      );
+      ).rejects.toThrow('You have reached your daily limit of 1 choices');
     });
 
     it('should throw BadRequestException if daily quota is exceeded for premium user', async () => {
@@ -219,9 +215,7 @@ describe('MatchingService - Quota Enforcement', () => {
       ).rejects.toThrow(BadRequestException);
       await expect(
         service.chooseProfile(userId, targetUserId, 'like'),
-      ).rejects.toThrow(
-        'You have reached your daily limit of 3 choices',
-      );
+      ).rejects.toThrow('You have reached your daily limit of 3 choices');
     });
 
     it('should throw BadRequestException if profile already chosen', async () => {
