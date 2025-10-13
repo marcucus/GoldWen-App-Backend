@@ -220,19 +220,58 @@ export class PromptAnswerDto {
   @IsUUID()
   promptId: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Answer text (max 150 characters)',
+    maxLength: 150,
+  })
   @IsString()
-  @MaxLength(300)
+  @MaxLength(150)
   answer: string;
 }
 
 export class SubmitPromptAnswersDto {
-  @ApiProperty({ type: [PromptAnswerDto] })
+  @ApiProperty({
+    type: [PromptAnswerDto],
+    description: 'Array of prompt answers (minimum 3 required)',
+  })
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => PromptAnswerDto)
-  @ArrayMinSize(1)
+  @ArrayMinSize(3)
   answers: PromptAnswerDto[];
+}
+
+export class UpdatePromptAnswerDto {
+  @ApiPropertyOptional({
+    description: 'ID of existing answer (optional for updates)',
+  })
+  @IsOptional()
+  @IsUUID()
+  id?: string;
+
+  @ApiProperty({ description: 'ID of the prompt being answered' })
+  @IsUUID()
+  promptId: string;
+
+  @ApiProperty({
+    description: 'Answer text (max 150 characters)',
+    maxLength: 150,
+  })
+  @IsString()
+  @MaxLength(150)
+  answer: string;
+}
+
+export class UpdatePromptAnswersDto {
+  @ApiProperty({
+    type: [UpdatePromptAnswerDto],
+    description: 'Array of prompt answers (exactly 3 required)',
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UpdatePromptAnswerDto)
+  @ArrayMinSize(3)
+  answers: UpdatePromptAnswerDto[];
 }
 
 export class UpdateProfileStatusDto {

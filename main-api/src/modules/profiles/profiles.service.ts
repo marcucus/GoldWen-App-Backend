@@ -21,6 +21,7 @@ import {
   UpdateProfileDto,
   SubmitPersonalityAnswersDto,
   SubmitPromptAnswersDto,
+  UpdatePromptAnswersDto,
   UpdateProfileStatusDto,
 } from './dto/profiles.dto';
 
@@ -507,6 +508,96 @@ export class ProfilesService {
       );
       throw new BadRequestException(
         'Failed to save prompt answers: ' + error.message,
+      );
+    }
+  }
+
+  async updatePromptAnswers(
+    userId: string,
+    updateDto: UpdatePromptAnswersDto,
+  ): Promise<PromptAnswer[]> {
+    const { answers } = updateDto;
+
+    // Validate exactly 3 answers
+    if (answers.length !== 3) {
+      throw new BadRequestException('Exactly 3 prompt answers are required');
+    }
+
+    // Moderate all prompt answers
+    const textsToModerate = answers.map((a) => a.answer);
+    const moderationResults =
+      await this.moderationService.moderateTextContentBatch(textsToModerate);
+
+    // Check if any answer was blocked
+    const blockedAnswers = moderationResults
+      .map((result, index) => ({ result, index }))
+      .filter(({ result }) => !result.approved);
+
+    if (blockedAnswers.length > 0) {
+      const reasons = blockedAnswers
+        .map(({ result, index }) => `Answer ${index + 1}: ${result.reason}`)
+        .join('; ');
+      throw new BadRequestException(
+        `Some prompt answers contain inappropriate content: ${reasons}`,
+      );
+    }
+
+    // Validate that all prompts exist and are active
+    const allPrompts = await this.promptRepository.find({
+      where: { isActive: true },
+    });
+    const activePromptIds = new Set(allPrompts.map((p) => p.id));
+
+    const invalidAnswers = answers.filter(
+      (a) => !activePromptIds.has(a.promptId),
+    );
+
+    if (invalidAnswers.length > 0) {
+      throw new BadRequestException(
+        'Some prompts are invalid or inactive: ' +
+          invalidAnswers.map((a) => a.promptId).join(', '),
+      );
+    }
+
+    // Get user profile
+    const profile = await this.profileRepository.findOne({
+      where: { userId },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    try {
+      // Delete existing prompt answers
+      await this.promptAnswerRepository.delete({ profileId: profile.id });
+
+      // Create new prompt answers
+      const answerEntities = answers.map((answer, index) => {
+        return this.promptAnswerRepository.create({
+          profileId: profile.id,
+          promptId: answer.promptId,
+          answer: answer.answer,
+          order: index + 1,
+        });
+      });
+
+      await this.promptAnswerRepository.save(answerEntities);
+
+      // Check if profile is now complete
+      await this.updateProfileCompletionStatus(userId);
+
+      // Return saved answers with prompt information
+      return this.getUserPromptAnswers(userId);
+    } catch (error) {
+      console.error(
+        '[updatePromptAnswers] ERROR updating prompt answers for user',
+        userId,
+        ':',
+        error,
+      );
+      throw new BadRequestException(
+        'Failed to update prompt answers: ' + error.message,
       );
     }
   }
