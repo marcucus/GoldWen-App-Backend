@@ -69,7 +69,56 @@ Once running, visit:
 GET /health
 ```
 
-### V1 Compatibility (Personality-Based)
+### V1 Specification Endpoints (TACHES_BACKEND.md Compliant)
+
+#### Generate Selection
+```
+POST /api/matching/generate-selection
+Headers: X-API-Key: <api-key>
+Body: {
+  "userId": "string",
+  "count": 3-5,
+  "excludeUserIds": ["array"]
+}
+Response: {
+  "selection": [{
+    "userId": "string",
+    "compatibilityScore": number (0-100),
+    "scoreBreakdown": {
+      "personality": number,
+      "interests": number,
+      "values": number
+    },
+    "matchReasons": ["string array"]
+  }],
+  "generatedAt": "ISO date string"
+}
+```
+
+#### Calculate Compatibility
+```
+POST /api/matching/calculate-compatibility
+Headers: X-API-Key: <api-key>
+Body: {
+  "userId1": "string",
+  "userId2": "string"
+}
+Response: {
+  "score": number (0-100),
+  "breakdown": {
+    "personality": number,
+    "interests": number,
+    "values": number
+  },
+  "matchReasons": ["string array"]
+}
+```
+
+**Note:** These endpoints require database connection. They fetch user profiles from PostgreSQL and calculate compatibility scores using the V1 algorithm.
+
+### Alternative Endpoints (Accept Full Profile Data)
+
+#### V1 Compatibility (Personality-Based)
 ```
 POST /api/v1/matching-service/calculate-compatibility
 Headers: X-API-Key: <api-key>
@@ -130,15 +179,48 @@ The matching service supports the following environment variables:
 
 ```bash
 # API Key (recommended for production)
-export MATCHING_SERVICE_API_KEY=your-secret-key
+export API_KEY=your-secret-key
 
-# Redis Configuration
+# Database Configuration (PostgreSQL)
+export DATABASE_URL=postgresql://user:password@localhost:5432/goldwen_db
+
+# Redis Configuration (Caching)
 export REDIS_HOST=localhost        # Default: localhost
 export REDIS_PORT=6379             # Default: 6379
 export REDIS_DB=0                  # Default: 0
 export CACHE_TTL=3600              # Cache TTL in seconds, Default: 3600 (1 hour)
 export CACHE_ENABLED=true          # Enable/disable caching, Default: true
 ```
+
+### Database Setup
+
+The matching service requires PostgreSQL for the V1 specification endpoints (`/api/matching/generate-selection` and `/api/matching/calculate-compatibility`).
+
+1. **Create Database**:
+```sql
+CREATE DATABASE goldwen_db;
+CREATE USER goldwen_user WITH PASSWORD 'goldwen_password';
+GRANT ALL PRIVILEGES ON DATABASE goldwen_db TO goldwen_user;
+```
+
+2. **Configure Connection**:
+```bash
+export DATABASE_URL=postgresql://goldwen_user:goldwen_password@localhost:5432/goldwen_db
+```
+
+3. **Database Models**:
+The service uses SQLAlchemy ORM with models for:
+- `users` - User accounts
+- `profiles` - User profiles with preferences
+- `personality_answers` - Personality quiz responses
+
+**Note:** The database schema should match the TypeORM entities from the NestJS main API. The matching service performs read-only operations.
+
+### Running Without Database
+
+The service can run without database connection. In this case:
+- V1 spec endpoints (`/api/matching/*`) will return 503 Service Unavailable
+- Alternative endpoints (`/api/v1/matching-service/*`) that accept full profile data will work normally
 
 ### Docker Deployment
 

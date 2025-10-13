@@ -9,27 +9,36 @@ advanced behavioral scoring (V2).
 import logging
 import os
 from datetime import datetime
-from typing import Dict
+from typing import Dict, List
 
-from fastapi import FastAPI, Header, HTTPException, status
+from fastapi import FastAPI, Header, HTTPException, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
 
 from models.schemas import (
     AlgorithmStats,
     BatchCompatibilityRequest,
     BatchCompatibilityResult,
+    CalculateCompatibilityRequestV1,
+    CalculateCompatibilityResponseV1,
     CompatibilityRequest,
     CompatibilityRequestV2,
     CompatibilityResult,
     CompatibilityResultV2,
     DailySelectionRequest,
     DailySelectionResult,
+    GenerateSelectionRequest,
+    GenerateSelectionResponse,
     HealthCheckResponse,
     RecommendationItem,
     RecommendationsResponse,
+    ScoreBreakdown,
+    SelectionProfile,
 )
 from services.compatibility_calculator import CompatibilityCalculator
 from services.cache import CacheService
+from database import init_database, get_db, check_database_connection
+from services.profile_service import fetch_user_profile, fetch_available_profiles
 
 # Configure logging
 logging.basicConfig(
@@ -57,7 +66,14 @@ app.add_middleware(
 )
 
 # API Key for authentication
-API_KEY = "matching-service-secret-key"  # Should be in environment variable in production
+API_KEY = os.getenv("API_KEY", "matching-service-secret-key")  # Should be in environment variable in production
+
+# Initialize database (optional - will work without DB for endpoints that provide full profiles)
+DB_ENABLED = init_database()
+if DB_ENABLED:
+    logger.info("Database connection enabled - V1 spec endpoints will work with user IDs")
+else:
+    logger.warning("Database connection disabled - V1 spec endpoints will return 501")
 
 # Initialize cache service
 cache = CacheService(
@@ -91,6 +107,9 @@ def verify_api_key(x_api_key: str = Header(...)) -> None:
 async def health_check() -> HealthCheckResponse:
     """Health check endpoint."""
     cache_status = "enabled" if cache.enabled and cache.health_check() else "disabled"
+    db_status = "connected" if check_database_connection() else "disconnected"
+    
+    logger.info(f"Health check - Cache: {cache_status}, DB: {db_status}")
     
     return HealthCheckResponse(
         status="healthy",
@@ -363,6 +382,232 @@ async def get_algorithm_stats(
         status="online",
         version="v2",
     )
+
+
+@app.post(
+    "/api/matching/generate-selection",
+    response_model=GenerateSelectionResponse,
+    dependencies=[],
+)
+async def generate_selection(
+    request: GenerateSelectionRequest,
+    x_api_key: str = Header(...),
+    db: Session = Depends(get_db),
+) -> GenerateSelectionResponse:
+    """
+    Generate a selection of compatible profiles for a user (V1 Algorithm).
+    
+    This endpoint implements the V1 matching algorithm as specified in TACHES_BACKEND.md:
+    - Filters by basic criteria (age, gender, distance, relationship status)
+    - Calculates personality score (40% of total)
+    - Calculates interests score (30% of total)
+    - Calculates values score (30% of total)
+    - Returns 3-5 most compatible profiles with breakdown and reasons
+    
+    Requires database connection to fetch user profiles.
+    """
+    verify_api_key(x_api_key)
+    
+    if not DB_ENABLED:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Database connection not available. "
+                "Please use /api/v1/matching-service/generate-daily-selection "
+                "with full profile data instead."
+            ),
+        )
+    
+    try:
+        logger.info(
+            f"Generate selection for user: {request.userId}, "
+            f"count: {request.count}, "
+            f"exclude: {len(request.excludeUserIds)} users"
+        )
+        
+        # Fetch current user's profile
+        user_profile = fetch_user_profile(db, request.userId)
+        if not user_profile:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User profile not found: {request.userId}",
+            )
+        
+        # Fetch available profiles
+        available_profiles = fetch_available_profiles(
+            db,
+            request.userId,
+            request.excludeUserIds,
+            limit=100,  # Fetch more than needed to allow for filtering
+        )
+        
+        if not available_profiles:
+            logger.warning(f"No available profiles found for user {request.userId}")
+            return GenerateSelectionResponse(
+                selection=[],
+                generatedAt=datetime.now().isoformat(),
+            )
+        
+        # Calculate compatibility for each profile
+        scored_profiles: List[Dict] = []
+        for profile in available_profiles:
+            try:
+                # Calculate V1 compatibility
+                result = CompatibilityCalculator.calculate_compatibility_v1(
+                    user1_profile=user_profile,
+                    user2_profile=profile,
+                )
+                
+                # Convert detailed scores to percentage scores for breakdown
+                details = result.get("details", {})
+                breakdown = ScoreBreakdown(
+                    personality=details.get("personality", 0.5) * 100,
+                    interests=details.get("lifestyle", 0.5) * 100,  # Using lifestyle as proxy
+                    values=details.get("values", 0.5) * 100,
+                )
+                
+                # Generate match reasons
+                match_reasons = CompatibilityCalculator.generate_match_reasons(
+                    breakdown={
+                        "personality": breakdown.personality,
+                        "interests": breakdown.interests,
+                        "values": breakdown.values,
+                    },
+                    shared_interests=result.get("sharedInterests", []),
+                    personality_details=details,
+                )
+                
+                scored_profiles.append({
+                    "userId": profile["userId"],
+                    "compatibilityScore": result["compatibilityScore"],
+                    "scoreBreakdown": breakdown,
+                    "matchReasons": match_reasons,
+                })
+                
+            except Exception as e:
+                logger.error(
+                    f"Error calculating compatibility for profile {profile['userId']}: {str(e)}"
+                )
+                continue
+        
+        # Sort by compatibility score and take top N
+        scored_profiles.sort(key=lambda x: x["compatibilityScore"], reverse=True)
+        selection = scored_profiles[:request.count]
+        
+        logger.info(
+            f"Generated selection of {len(selection)} profiles for user {request.userId}"
+        )
+        
+        return GenerateSelectionResponse(
+            selection=[SelectionProfile(**p) for p in selection],
+            generatedAt=datetime.now().isoformat(),
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating selection: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generating selection: {str(e)}",
+        )
+
+
+@app.post(
+    "/api/matching/calculate-compatibility",
+    response_model=CalculateCompatibilityResponseV1,
+    dependencies=[],
+)
+async def calculate_compatibility_v1_spec(
+    request: CalculateCompatibilityRequestV1,
+    x_api_key: str = Header(...),
+    db: Session = Depends(get_db),
+) -> CalculateCompatibilityResponseV1:
+    """
+    Calculate compatibility score between two users (V1 Algorithm - Specification Format).
+    
+    This endpoint follows the exact specification from TACHES_BACKEND.md:
+    - Accepts userId1 and userId2
+    - Returns score (0-100) with breakdown (personality, interests, values)
+    - Returns matchReasons array
+    
+    Requires database connection to fetch user profiles.
+    """
+    verify_api_key(x_api_key)
+    
+    if not DB_ENABLED:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Database connection not available. "
+                "Please use /api/v1/matching-service/calculate-compatibility "
+                "with full profile data instead."
+            ),
+        )
+    
+    try:
+        logger.info(
+            f"Calculate compatibility (V1 spec): {request.userId1} <-> {request.userId2}"
+        )
+        
+        # Fetch both user profiles
+        user1_profile = fetch_user_profile(db, request.userId1)
+        if not user1_profile:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User profile not found: {request.userId1}",
+            )
+        
+        user2_profile = fetch_user_profile(db, request.userId2)
+        if not user2_profile:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User profile not found: {request.userId2}",
+            )
+        
+        # Calculate V1 compatibility
+        result = CompatibilityCalculator.calculate_compatibility_v1(
+            user1_profile=user1_profile,
+            user2_profile=user2_profile,
+        )
+        
+        # Convert detailed scores to percentage scores for breakdown
+        details = result.get("details", {})
+        breakdown = ScoreBreakdown(
+            personality=details.get("personality", 0.5) * 100,
+            interests=details.get("lifestyle", 0.5) * 100,  # Using lifestyle as proxy
+            values=details.get("values", 0.5) * 100,
+        )
+        
+        # Generate match reasons
+        match_reasons = CompatibilityCalculator.generate_match_reasons(
+            breakdown={
+                "personality": breakdown.personality,
+                "interests": breakdown.interests,
+                "values": breakdown.values,
+            },
+            shared_interests=result.get("sharedInterests", []),
+            personality_details=details,
+        )
+        
+        logger.info(
+            f"Compatibility calculated: {result['compatibilityScore']}"
+        )
+        
+        return CalculateCompatibilityResponseV1(
+            score=result["compatibilityScore"],
+            breakdown=breakdown,
+            matchReasons=match_reasons,
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error calculating compatibility: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error calculating compatibility: {str(e)}",
+        )
 
 
 @app.get(
