@@ -11,6 +11,7 @@ import { PersonalityQuestion } from '../../../database/entities/personality-ques
 import { PersonalityAnswer } from '../../../database/entities/personality-answer.entity';
 import { Prompt } from '../../../database/entities/prompt.entity';
 import { PromptAnswer } from '../../../database/entities/prompt-answer.entity';
+import { ModerationService } from '../../moderation/services/moderation.service';
 
 describe('ProfilesService - Photo Management', () => {
   let service: ProfilesService;
@@ -70,7 +71,7 @@ describe('ProfilesService - Photo Management', () => {
           useClass: Repository,
         },
         {
-          provide: 'ModerationService',
+          provide: ModerationService,
           useValue: mockModerationService,
         },
       ],

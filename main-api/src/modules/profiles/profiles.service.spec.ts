@@ -10,11 +10,14 @@ import { Photo } from '../../database/entities/photo.entity';
 import { Prompt } from '../../database/entities/prompt.entity';
 import { PromptAnswer } from '../../database/entities/prompt-answer.entity';
 import { UserStatus } from '../../common/enums';
+import { ModerationService } from '../moderation/services/moderation.service';
 
 describe('ProfilesService', () => {
   let service: ProfilesService;
   let userRepository: Repository<User>;
   let profileRepository: Repository<Profile>;
+  let promptRepository: Repository<Prompt>;
+  let personalityQuestionRepository: Repository<PersonalityQuestion>;
 
   const mockUser = {
     id: 'user-id',
@@ -38,6 +41,11 @@ describe('ProfilesService', () => {
       { id: 'panswer1', questionId: 'q1' },
       { id: 'panswer2', questionId: 'q2' },
     ],
+  };
+
+  const mockModerationService = {
+    moderateTextContent: jest.fn().mockResolvedValue({ approved: true }),
+    moderatePhoto: jest.fn().mockResolvedValue({ approved: true }),
   };
 
   beforeEach(async () => {
@@ -89,6 +97,10 @@ describe('ProfilesService', () => {
             save: jest.fn(),
           },
         },
+        {
+          provide: ModerationService,
+          useValue: mockModerationService,
+        },
       ],
     }).compile();
 
@@ -97,6 +109,12 @@ describe('ProfilesService', () => {
     profileRepository = module.get<Repository<Profile>>(
       getRepositoryToken(Profile),
     );
+    promptRepository = module.get<Repository<Prompt>>(
+      getRepositoryToken(Prompt),
+    );
+    personalityQuestionRepository = module.get<Repository<PersonalityQuestion>>(
+      getRepositoryToken(PersonalityQuestion),
+    );
   });
 
   it('should be defined', () => {
@@ -104,39 +122,44 @@ describe('ProfilesService', () => {
   });
 
   describe('updateProfileStatus', () => {
-    it('should update user status and completion flags', async () => {
-      const userRepositorySaveSpy = jest.spyOn(userRepository, 'save');
+    it('should allow setting profile visibility to false without validation', async () => {
+      const profileRepositorySaveSpy = jest.spyOn(profileRepository, 'save');
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as any);
+      jest.spyOn(userRepository, 'save').mockResolvedValue(mockUser as any);
+      jest.spyOn(promptRepository, 'find').mockResolvedValue([]);
+      jest.spyOn(personalityQuestionRepository, 'count').mockResolvedValue(0);
 
       await service.updateProfileStatus('user-id', {
-        status: 'active',
-        completed: true,
+        isVisible: false,
       });
 
-      expect(userRepositorySaveSpy).toHaveBeenCalledWith(
+      expect(profileRepositorySaveSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: 'active',
-          isProfileCompleted: true,
-          isOnboardingCompleted: true,
+          isVisible: false,
         }),
       );
     });
 
-    it('should recalculate completion status when completed is false', async () => {
-      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as any);
+    it('should validate profile completion when setting visibility to true', async () => {
+      const incompleteUser = {
+        ...mockUser,
+        profile: {
+          ...mockUser.profile,
+          photos: [], // Incomplete profile
+        },
+      };
 
-      // Spy on the private method
-      const updateCompletionSpy = jest
-        .spyOn(service as any, 'updateProfileCompletionStatus')
-        .mockResolvedValue(undefined);
+      jest
+        .spyOn(userRepository, 'findOne')
+        .mockResolvedValue(incompleteUser as any);
+      jest.spyOn(promptRepository, 'find').mockResolvedValue([]);
+      jest.spyOn(personalityQuestionRepository, 'count').mockResolvedValue(0);
 
-      await service.updateProfileStatus('user-id', {
-        status: 'active',
-        completed: false,
-      });
-
-      // Should call the completion status calculation method
-      expect(updateCompletionSpy).toHaveBeenCalledWith('user-id');
+      await expect(
+        service.updateProfileStatus('user-id', {
+          isVisible: true,
+        }),
+      ).rejects.toThrow();
     });
   });
 });

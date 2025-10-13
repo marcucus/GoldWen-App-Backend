@@ -275,14 +275,12 @@ export class UpdatePromptAnswersDto {
 }
 
 export class UpdateProfileStatusDto {
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  status?: string;
-
-  @ApiProperty()
+  @ApiProperty({
+    description:
+      'Set profile visibility. Profile must be complete to set to true.',
+  })
   @IsBoolean()
-  completed: boolean;
+  isVisible: boolean;
 }
 
 export class UpdatePhotoOrderDto {

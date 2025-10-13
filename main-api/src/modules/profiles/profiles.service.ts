@@ -907,28 +907,96 @@ export class ProfilesService {
   ): Promise<void> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
-      relations: ['profile'],
+      relations: [
+        'profile',
+        'profile.photos',
+        'profile.promptAnswers',
+        'personalityAnswers',
+      ],
     });
 
     if (!user || !user.profile) {
       throw new NotFoundException('Profile not found');
     }
 
-    // Update user status
-    if (statusDto.status) {
-      user.status = statusDto.status as any; // Will be validated by enum
+    // If trying to set profile as visible, validate that profile is complete
+    if (statusDto.isVisible) {
+      // Check all completion requirements
+      const hasMinPhotos = (user.profile.photos?.length || 0) >= 3;
+
+      // Get required prompts and validate answers
+      const requiredPrompts = await this.promptRepository.find({
+        where: { isActive: true, isRequired: true },
+      });
+
+      const answeredPromptIds = new Set(
+        (user.profile.promptAnswers || []).map((a) => a.promptId),
+      );
+
+      const missingRequiredPrompts = requiredPrompts.filter(
+        (p) => !answeredPromptIds.has(p.id),
+      );
+
+      const hasPromptAnswers = missingRequiredPrompts.length === 0;
+
+      const hasRequiredProfileFields = !!(
+        user.profile.birthDate && user.profile.bio
+      );
+
+      // Get required personality questions count
+      const requiredQuestionsCount =
+        await this.personalityQuestionRepository.count({
+          where: { isActive: true, isRequired: true },
+        });
+
+      const hasPersonalityAnswers =
+        (user.personalityAnswers?.length || 0) >= requiredQuestionsCount;
+
+      const isProfileComplete =
+        hasMinPhotos &&
+        hasPromptAnswers &&
+        hasPersonalityAnswers &&
+        hasRequiredProfileFields;
+
+      if (!isProfileComplete) {
+        // Build detailed error message with missing requirements
+        const missingRequirements: string[] = [];
+        if (!hasMinPhotos) {
+          missingRequirements.push(
+            `Need ${3 - (user.profile.photos?.length || 0)} more photo(s)`,
+          );
+        }
+        if (!hasPromptAnswers) {
+          missingRequirements.push(
+            `Need to answer ${missingRequiredPrompts.length} required prompt(s)`,
+          );
+        }
+        if (!hasPersonalityAnswers) {
+          missingRequirements.push(
+            'Need to complete personality questionnaire',
+          );
+        }
+        if (!hasRequiredProfileFields) {
+          const missing = [];
+          if (!user.profile.birthDate) missing.push('birth date');
+          if (!user.profile.bio) missing.push('bio');
+          missingRequirements.push(`Need to provide: ${missing.join(', ')}`);
+        }
+
+        throw new BadRequestException({
+          message:
+            'Profile must be complete before it can be made visible. Please complete all required fields.',
+          code: 'PROFILE_INCOMPLETE',
+          missingRequirements,
+        });
+      }
     }
 
-    // Force update completion status if requested
-    if (statusDto.completed) {
-      user.isProfileCompleted = true;
-      user.isOnboardingCompleted = true;
-    } else {
-      // Recalculate completion status
-      await this.updateProfileCompletionStatus(userId);
-      return; // updateProfileCompletionStatus already saves the user
-    }
+    // Update profile visibility
+    user.profile.isVisible = statusDto.isVisible;
+    await this.profileRepository.save(user.profile);
 
-    await this.userRepository.save(user);
+    // Also update the completion status to keep it in sync
+    await this.updateProfileCompletionStatus(userId);
   }
 }
