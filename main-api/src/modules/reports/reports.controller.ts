@@ -55,8 +55,7 @@ export class ReportsController {
     schema: {
       example: {
         success: false,
-        message:
-          'You have already submitted a similar report for this target',
+        message: 'You have already submitted a similar report for this target',
         error: 'BadRequestException',
       },
     },

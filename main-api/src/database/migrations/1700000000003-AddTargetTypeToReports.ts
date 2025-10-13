@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner, TableColumn } from 'typeorm';
 
-export class AddTargetTypeToReports1700000000003
-  implements MigrationInterface
-{
+export class AddTargetTypeToReports1700000000003 implements MigrationInterface {
   name = 'AddTargetTypeToReports1700000000003';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
