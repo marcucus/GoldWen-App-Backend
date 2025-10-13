@@ -1,7 +1,11 @@
 # Critical Cron Jobs Implementation
 
 ## Overview
-This implementation provides automated scheduled tasks for the GoldWen backend, focusing on matching and chat functionalities.
+This implementation provides automated scheduled tasks for the GoldWen backend, focusing on matching, chat, and general data cleanup functionalities.
+
+## Module Organization
+
+All cron jobs are now centralized in the **CronJobsModule** (`main-api/src/modules/cron-jobs/cron-jobs.module.ts`), which imports and organizes all schedulers from different modules for better maintainability and discoverability.
 
 ## Implemented Schedulers
 
@@ -61,6 +65,22 @@ This implementation provides automated scheduled tasks for the GoldWen backend, 
   - Deletes messages first, then chats (referential integrity)
   - Detailed cleanup metrics
 
+### 3. Cleanup Scheduler (`cleanup.scheduler.ts`)
+
+**Location:** `main-api/src/modules/cron-jobs/schedulers/cleanup.scheduler.ts`
+
+#### Jobs:
+
+##### General Data Cleanup
+- **Schedule:** `0 3 * * *` (3:00 AM daily)
+- **Timezone:** Europe/Paris
+- **Purpose:** Clean up old data from various tables
+- **Features:**
+  - Deletes notifications older than 30 days
+  - Comprehensive logging with deletion counts
+  - Individual cleanup operations tracked separately
+  - Future-ready for additional cleanup tasks (sessions, exports, etc.)
+
 ## Architecture Changes
 
 ### Before
@@ -88,12 +108,31 @@ providers: [ChatService, ChatGateway, ChatScheduler],
 exports: [ChatService, ChatGateway, ChatScheduler],
 ```
 
+### cron-jobs.module.ts
+```typescript
+// New centralized module for all schedulers
+imports: [
+  TypeOrmModule.forFeature([Notification]),
+  MatchingModule,
+  ChatModule,
+],
+providers: [CleanupScheduler],
+exports: [CleanupScheduler],
+```
+
+### app.module.ts
+```typescript
+// Added to imports array
+CronJobsModule,
+```
+
 ## Testing
 
 ### Test Coverage
 - **Matching Scheduler:** 11 tests
 - **Chat Scheduler:** 13 tests
-- **Total:** 24 tests, all passing ✅
+- **Cleanup Scheduler:** 7 tests
+- **Total:** 31 tests, all passing ✅
 
 ### Test Categories
 1. **Success scenarios:** Normal job execution
@@ -134,6 +173,9 @@ await matchingScheduler.triggerCleanup();
 await chatScheduler.triggerChatExpiration();
 await chatScheduler.triggerExpirationWarnings();
 await chatScheduler.triggerCleanup();
+
+// Cleanup Scheduler
+await cleanupScheduler.triggerCleanup();
 ```
 
 **Note:** Manual triggers are only allowed in non-production environments.
@@ -180,12 +222,16 @@ await chatScheduler.triggerCleanup();
 
 ## Related Files
 
-- Service files (cron removed):
-  - `main-api/src/modules/matching/matching.service.ts`
-  - `main-api/src/modules/chat/chat.service.ts`
-- Module files (updated):
+- Scheduler files:
+  - `main-api/src/modules/matching/matching.scheduler.ts`
+  - `main-api/src/modules/chat/chat.scheduler.ts`
+  - `main-api/src/modules/cron-jobs/schedulers/cleanup.scheduler.ts`
+- Module files:
   - `main-api/src/modules/matching/matching.module.ts`
   - `main-api/src/modules/chat/chat.module.ts`
+  - `main-api/src/modules/cron-jobs/cron-jobs.module.ts` (new)
+  - `main-api/src/app.module.ts` (updated)
 - Test files:
   - `main-api/src/modules/matching/tests/matching.scheduler.spec.ts`
   - `main-api/src/modules/chat/tests/chat.scheduler.spec.ts`
+  - `main-api/src/modules/cron-jobs/tests/cleanup.scheduler.spec.ts` (new)
