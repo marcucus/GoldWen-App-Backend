@@ -6,6 +6,7 @@ import { MatchingService } from './matching.service';
 import { MatchingIntegrationService } from './matching-integration.service';
 import { MatchingScheduler } from './matching.scheduler';
 import { QuotaGuard } from './guards/quota.guard';
+import { PremiumGuard } from '../auth/guards/premium.guard';
 import { ChatModule } from '../chat/chat.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { ProfilesModule } from '../profiles/profiles.module';
@@ -36,6 +37,7 @@ import { Subscription } from '../../database/entities/subscription.entity';
     MatchingIntegrationService,
     MatchingScheduler,
     QuotaGuard,
+    PremiumGuard,
   ],
   controllers: [MatchingController],
   exports: [MatchingService, MatchingIntegrationService, MatchingScheduler],

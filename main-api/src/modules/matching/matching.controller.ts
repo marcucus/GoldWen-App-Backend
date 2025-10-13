@@ -17,6 +17,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ProfileCompletionGuard } from '../auth/guards/profile-completion.guard';
+import { PremiumGuard } from '../auth/guards/premium.guard';
 import { QuotaGuard } from './guards/quota.guard';
 import { MatchingService } from './matching.service';
 import { GetMatchesDto } from './dto/matching.dto';
@@ -36,6 +37,16 @@ export class MatchingController {
   })
   async getUserChoices(@Request() req: any, @Query('date') date?: string) {
     return this.matchingService.getUserChoices(req.user.id, date);
+  }
+
+  @Get('daily-selection/status')
+  @ApiOperation({ summary: 'Get daily selection status' })
+  @ApiResponse({
+    status: 200,
+    description: 'Daily selection status retrieved successfully',
+  })
+  async getDailySelectionStatus(@Request() req: any) {
+    return this.matchingService.getDailySelectionStatus(req.user.id);
   }
 
   @Get('daily-selection')
@@ -151,5 +162,49 @@ export class MatchingController {
       targetUserId,
     );
     return { compatibilityScore: score };
+  }
+
+  @Get('history')
+  @ApiOperation({ summary: 'Get matching history' })
+  @ApiResponse({
+    status: 200,
+    description: 'Matching history retrieved successfully',
+  })
+  async getMatchingHistory(
+    @Request() req: any,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const options = {
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 20,
+    };
+
+    return this.matchingService.getHistory(req.user.id, options);
+  }
+
+  @Get('who-liked-me')
+  @UseGuards(PremiumGuard)
+  @ApiOperation({
+    summary: 'Get users who liked me (Premium feature)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Users who liked me retrieved successfully',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Premium subscription required',
+  })
+  async getWhoLikedMe(@Request() req: any) {
+    const likedBy = await this.matchingService.getWhoLikedMe(req.user.id);
+    return {
+      success: true,
+      data: likedBy,
+    };
   }
 }
