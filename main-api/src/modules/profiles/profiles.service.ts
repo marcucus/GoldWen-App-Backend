@@ -881,7 +881,9 @@ export class ProfilesService {
           );
         }
         if (!hasPersonalityAnswers) {
-          missingRequirements.push('Need to complete personality questionnaire');
+          missingRequirements.push(
+            'Need to complete personality questionnaire',
+          );
         }
         if (!hasRequiredProfileFields) {
           const missing = [];
