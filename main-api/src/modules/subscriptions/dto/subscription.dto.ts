@@ -127,3 +127,59 @@ export class RevenueCatWebhookDto {
   @IsString()
   api_version?: string;
 }
+
+export class PurchaseDto {
+  @ApiProperty({
+    description: 'The product identifier (e.g., goldwen_plus_monthly)',
+    example: 'goldwen_plus_monthly',
+  })
+  @IsString()
+  productId: string;
+
+  @ApiProperty({
+    description: 'RevenueCat transaction/receipt identifier',
+    example: 'rc_transaction_123456',
+  })
+  @IsString()
+  transactionId: string;
+
+  @ApiPropertyOptional({
+    description: 'Original transaction ID for subscription',
+    example: 'original_transaction_123456',
+  })
+  @IsOptional()
+  @IsString()
+  originalTransactionId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Purchase receipt/token from app store',
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+  })
+  @IsOptional()
+  @IsString()
+  purchaseToken?: string;
+
+  @ApiPropertyOptional({
+    description: 'Price paid for the subscription',
+    example: 19.99,
+  })
+  @IsOptional()
+  @IsNumber()
+  price?: number;
+
+  @ApiPropertyOptional({
+    description: 'Currency code',
+    example: 'EUR',
+  })
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @ApiPropertyOptional({
+    description: 'Platform of purchase (ios, android)',
+    example: 'ios',
+  })
+  @IsOptional()
+  @IsString()
+  platform?: string;
+}

@@ -15,6 +15,7 @@ describe('RevenueCatController', () => {
     processWebhook: jest.fn(),
     getOfferings: jest.fn(),
     getSubscriptionStatus: jest.fn(),
+    validatePurchase: jest.fn(),
   };
 
   const mockLogger = {
@@ -250,6 +251,85 @@ describe('RevenueCatController', () => {
 
       await expect(
         controller.getSubscriptionStatus(mockRequest),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockLogger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('validatePurchase', () => {
+    const mockRequest = {
+      user: {
+        id: 'user-123',
+      },
+    } as any;
+
+    const mockPurchaseData = {
+      productId: 'goldwen_plus_monthly',
+      transactionId: 'rc_transaction_123456',
+      originalTransactionId: 'original_transaction_123456',
+      purchaseToken: 'purchase_token_123',
+      price: 19.99,
+      currency: 'EUR',
+      platform: 'ios',
+    };
+
+    it('should validate purchase successfully', async () => {
+      const mockResponse = {
+        success: true,
+        subscription: {
+          id: 'sub-123',
+          plan: SubscriptionPlan.GOLDWEN_PLUS,
+          expiresAt: new Date('2024-12-31'),
+          status: 'active',
+        },
+        message: 'Purchase validated and subscription activated successfully',
+      };
+
+      mockRevenueCatService.validatePurchase.mockResolvedValue(mockResponse);
+
+      const result = await controller.validatePurchase(
+        mockRequest,
+        mockPurchaseData,
+      );
+
+      expect(result).toEqual(mockResponse);
+      expect(mockRevenueCatService.validatePurchase).toHaveBeenCalledWith(
+        'user-123',
+        expect.objectContaining({
+          productId: 'goldwen_plus_monthly',
+          transactionId: 'rc_transaction_123456',
+          price: 19.99,
+          currency: 'EUR',
+          platform: 'ios',
+        }),
+      );
+    });
+
+    it('should handle validation failure', async () => {
+      const mockResponse = {
+        success: false,
+        message: 'Failed to validate purchase: Invalid transaction',
+      };
+
+      mockRevenueCatService.validatePurchase.mockResolvedValue(mockResponse);
+
+      const result = await controller.validatePurchase(
+        mockRequest,
+        mockPurchaseData,
+      );
+
+      expect(result).toEqual(mockResponse);
+      expect(result.success).toBe(false);
+    });
+
+    it('should handle errors when validating purchase', async () => {
+      mockRevenueCatService.validatePurchase.mockRejectedValue(
+        new Error('Service error'),
+      );
+
+      await expect(
+        controller.validatePurchase(mockRequest, mockPurchaseData),
       ).rejects.toThrow(BadRequestException);
 
       expect(mockLogger.error).toHaveBeenCalled();

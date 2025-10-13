@@ -20,7 +20,7 @@ import {
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RevenueCatService } from './revenuecat.service';
-import { RevenueCatWebhookDto } from './dto/subscription.dto';
+import { RevenueCatWebhookDto, PurchaseDto } from './dto/subscription.dto';
 import { CustomLoggerService } from '../../common/logger';
 
 @Controller()
@@ -237,6 +237,91 @@ export class RevenueCatController {
         'RevenueCatController',
       );
       throw new BadRequestException('Failed to retrieve subscription status');
+    }
+  }
+
+  /**
+   * Validate and process a purchase
+   */
+  @Post('subscriptions/purchase')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiTags('subscriptions')
+  @ApiOperation({
+    summary: 'Validate a purchase',
+    description:
+      'Validates a client-side purchase and activates the subscription',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Purchase validated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        subscription: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: 'sub_123' },
+            plan: { type: 'string', example: 'goldwen_plus' },
+            expiresAt: {
+              type: 'string',
+              format: 'date-time',
+              example: '2024-12-31T23:59:59Z',
+            },
+            status: { type: 'string', example: 'active' },
+          },
+        },
+        message: {
+          type: 'string',
+          example: 'Purchase validated and subscription activated successfully',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid purchase data',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  async validatePurchase(
+    @Req() req: any,
+    @Body() purchaseData: PurchaseDto,
+  ): Promise<{
+    success: boolean;
+    subscription?: any;
+    message: string;
+  }> {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const userId = req.user.id;
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      return await this.revenueCatService.validatePurchase(userId, {
+        productId: purchaseData.productId,
+        transactionId: purchaseData.transactionId,
+        originalTransactionId: purchaseData.originalTransactionId,
+        purchaseToken: purchaseData.purchaseToken,
+        price: purchaseData.price,
+        currency: purchaseData.currency,
+        platform: purchaseData.platform,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Error validating purchase: ${(error as Error).message}`,
+        (error as Error).stack,
+        'RevenueCatController',
+      );
+
+      // Re-throw HTTP exceptions
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      throw new BadRequestException('Failed to validate purchase');
     }
   }
 }
