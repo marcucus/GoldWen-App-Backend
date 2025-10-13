@@ -769,6 +769,19 @@ Cette documentation complète liste toutes les routes API disponibles dans le ba
 **Préfixe**: `/matching`  
 **Authentification**: Bearer Token (toutes les routes)
 
+### GET /matching/daily-selection/status
+**Description**: Obtenir le statut de la sélection quotidienne  
+**Authentification**: Bearer Token  
+**Réponse**:
+```json
+{
+  "hasNewSelection": "boolean",
+  "lastSelectionDate": "string (YYYY-MM-DD) | null",
+  "nextSelectionTime": "ISO date string",
+  "hoursUntilNext": "number"
+}
+```
+
 ### GET /matching/daily-selection
 **Description**: Obtenir la sélection quotidienne de profils  
 **Query Parameters**:

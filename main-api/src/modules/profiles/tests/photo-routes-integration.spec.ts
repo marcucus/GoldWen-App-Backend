@@ -133,7 +133,9 @@ describe('ProfilesService - Photo Management Routes Integration', () => {
         .mockReturnValue(queryBuilder as any);
 
       const updatedPhoto = { ...mockPhotos[2], order: 1 };
-      jest.spyOn(photoRepository, 'save').mockResolvedValue(updatedPhoto as any);
+      jest
+        .spyOn(photoRepository, 'save')
+        .mockResolvedValue(updatedPhoto as any);
 
       const result = await service.updatePhotoOrder('user-1', 'photo-3', 1);
 
@@ -203,7 +205,9 @@ describe('ProfilesService - Photo Management Routes Integration', () => {
       jest.spyOn(photoRepository, 'update').mockResolvedValue({} as any);
 
       const updatedPhoto = { ...mockPhotos[1], isPrimary: true };
-      jest.spyOn(photoRepository, 'save').mockResolvedValue(updatedPhoto as any);
+      jest
+        .spyOn(photoRepository, 'save')
+        .mockResolvedValue(updatedPhoto as any);
 
       const result = await service.setPrimaryPhoto('user-1', 'photo-2');
 

@@ -675,4 +675,177 @@ export class MatchingService {
 
     await this.matchRepository.remove(match);
   }
+
+  async getDailySelectionStatus(userId: string): Promise<{
+    hasNewSelection: boolean;
+    lastSelectionDate: string | null;
+    nextSelectionTime: string;
+    hoursUntilNext: number;
+  }> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const latestSelection = await this.dailySelectionRepository.findOne({
+      where: { userId },
+      order: { selectionDate: 'DESC' },
+    });
+
+    // Calculate next selection time (tomorrow at noon)
+    const nextSelection = new Date();
+    nextSelection.setDate(nextSelection.getDate() + 1);
+    nextSelection.setHours(12, 0, 0, 0);
+
+    const now = new Date();
+    const hoursUntilNext = Math.max(
+      0,
+      Math.ceil((nextSelection.getTime() - now.getTime()) / (1000 * 60 * 60)),
+    );
+
+    // Check if user has a selection for today
+    const hasNewSelection =
+      !latestSelection ||
+      latestSelection.selectionDate.getTime() < today.getTime();
+
+    return {
+      hasNewSelection,
+      lastSelectionDate: latestSelection
+        ? latestSelection.selectionDate.toISOString().split('T')[0]
+        : null,
+      nextSelectionTime: nextSelection.toISOString(),
+      hoursUntilNext,
+    };
+  }
+
+  async getHistory(
+    userId: string,
+    options: {
+      startDate?: Date;
+      endDate?: Date;
+      page?: number;
+      limit?: number;
+    },
+  ): Promise<{
+    history: Array<{
+      date: string;
+      profiles: Array<{
+        userId: string;
+        user: User;
+        choice: 'like' | 'pass';
+        wasMatch: boolean;
+      }>;
+    }>;
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+    };
+  }> {
+    const page = options.page || 1;
+    const limit = options.limit || 20;
+    const skip = (page - 1) * limit;
+
+    // Build where clause for date range
+    const whereClause: any = { userId };
+
+    if (options.startDate) {
+      whereClause.selectionDate = whereClause.selectionDate || {};
+      whereClause.selectionDate = { ...whereClause.selectionDate };
+    }
+
+    // Get total count for pagination
+    const totalSelections = await this.dailySelectionRepository.count({
+      where: whereClause,
+    });
+
+    // Get paginated selections
+    const selections = await this.dailySelectionRepository.find({
+      where: whereClause,
+      order: { selectionDate: 'DESC' },
+      skip,
+      take: limit,
+    });
+
+    // Build history with user profiles
+    const history = await Promise.all(
+      selections.map(async (selection) => {
+        const profilesData = await Promise.all(
+          selection.chosenProfileIds.map(async (profileId) => {
+            const user = await this.userRepository.findOne({
+              where: { id: profileId },
+              relations: ['profile', 'profile.photos'],
+            });
+
+            // Check if this was a match
+            const match = await this.matchRepository.findOne({
+              where: [
+                { user1Id: userId, user2Id: profileId },
+                { user1Id: profileId, user2Id: userId },
+              ],
+            });
+
+            return {
+              userId: profileId,
+              user,
+              choice: 'like' as const,
+              wasMatch: !!match,
+            };
+          }),
+        );
+
+        // Filter out null users
+        const profiles = profilesData.filter((p) => p.user !== null) as Array<{
+          userId: string;
+          user: User;
+          choice: 'like' | 'pass';
+          wasMatch: boolean;
+        }>;
+
+        return {
+          date: selection.selectionDate.toISOString().split('T')[0],
+          profiles,
+        };
+      }),
+    );
+
+    const totalPages = Math.ceil(totalSelections / limit);
+
+    return {
+      history,
+      pagination: {
+        page,
+        limit,
+        total: totalSelections,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      },
+    };
+  }
+
+  async getWhoLikedMe(userId: string): Promise<
+    Array<{
+      userId: string;
+      user: User;
+      likedAt: string;
+    }>
+  > {
+    // Find all matches where the current user is user2 (was chosen by user1)
+    const matches = await this.matchRepository.find({
+      where: {
+        user2Id: userId,
+        status: MatchStatus.MATCHED,
+      },
+      relations: ['user1', 'user1.profile', 'user1.profile.photos'],
+      order: { createdAt: 'DESC' },
+    });
+
+    return matches.map((match) => ({
+      userId: match.user1Id,
+      user: match.user1,
+      likedAt: match.matchedAt?.toISOString() || match.createdAt.toISOString(),
+    }));
+  }
 }
