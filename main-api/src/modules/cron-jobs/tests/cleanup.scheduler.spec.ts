@@ -96,7 +96,9 @@ describe('CleanupScheduler', () => {
         }),
       );
 
-      await expect(scheduler.cleanupOldData()).rejects.toThrow('Database error');
+      await expect(scheduler.cleanupOldData()).rejects.toThrow(
+        'Database error',
+      );
 
       expect(mockLogger.error).toHaveBeenCalledWith(
         expect.stringContaining('General data cleanup job failed'),
@@ -111,8 +113,10 @@ describe('CleanupScheduler', () => {
         where: jest.fn().mockReturnThis(),
         execute: jest.fn().mockResolvedValue({ affected: 15 }),
       };
-      
-      mockNotificationRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+
+      mockNotificationRepository.createQueryBuilder.mockReturnValue(
+        mockQueryBuilder,
+      );
 
       await scheduler.cleanupOldData();
 

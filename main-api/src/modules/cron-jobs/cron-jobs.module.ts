@@ -11,11 +11,11 @@ import { Notification } from '../../database/entities/notification.entity';
 
 /**
  * CronJobsModule
- * 
+ *
  * This module centralizes all scheduled tasks (cron jobs) in the application.
  * It imports and re-exports schedulers from other modules for better organization
  * and provides additional cleanup schedulers.
- * 
+ *
  * Scheduled Jobs:
  * - Daily Selection Generation (12:00 PM) - MatchingScheduler
  * - Chat Expiration (Every Hour) - ChatScheduler

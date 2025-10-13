@@ -131,6 +131,23 @@ export class NotificationsController {
     };
   }
 
+  @Get('settings')
+  @ApiOperation({ summary: 'Get notification settings' })
+  @ApiResponse({ status: 200, description: 'Notification settings retrieved' })
+  async getSettings(@Request() req: any) {
+    const userId = req.user.id;
+
+    this.logger.setContext({ userId, userEmail: req.user.email });
+
+    const settings =
+      await this.notificationsService.getNotificationSettings(userId);
+
+    return {
+      success: true,
+      settings,
+    };
+  }
+
   @Put('settings')
   @ApiOperation({ summary: 'Update notification settings' })
   @ApiResponse({ status: 200, description: 'Notification settings updated' })
