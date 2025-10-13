@@ -360,3 +360,64 @@ class CompatibilityCalculator:
             return 0.7
 
         return max(0.0, min(1.0, alignment_score))
+
+    @staticmethod
+    def generate_match_reasons(
+        breakdown: Dict[str, float],
+        shared_interests: List[str],
+        personality_details: Dict[str, float],
+    ) -> List[str]:
+        """
+        Generate human-readable match reasons based on compatibility breakdown.
+        
+        Args:
+            breakdown: Score breakdown (personality, interests, values)
+            shared_interests: List of shared interests
+            personality_details: Detailed personality category scores
+            
+        Returns:
+            List of match reason strings
+        """
+        reasons = []
+        
+        # Personality compatibility
+        personality_score = breakdown.get("personality", 0)
+        if personality_score >= 80:
+            reasons.append("Très forte compatibilité de personnalité")
+        elif personality_score >= 65:
+            reasons.append("Bonne compatibilité de personnalité")
+        elif personality_score >= 50:
+            reasons.append("Compatibilité de personnalité prometteuse")
+        
+        # Category-specific reasons
+        if personality_details.get("communication", 0) >= 0.75:
+            reasons.append("Style de communication compatible")
+        
+        if personality_details.get("values", 0) >= 0.75:
+            reasons.append("Valeurs de vie alignées")
+        
+        if personality_details.get("lifestyle", 0) >= 0.75:
+            reasons.append("Style de vie similaire")
+        
+        # Interests
+        interests_score = breakdown.get("interests", 0)
+        if interests_score >= 70 and shared_interests:
+            num_interests = min(len(shared_interests), 3)
+            interests_list = ", ".join(shared_interests[:num_interests])
+            reasons.append(f"Intérêts communs : {interests_list}")
+        elif interests_score >= 50 and shared_interests:
+            reasons.append(f"{len(shared_interests)} centres d'intérêt en commun")
+        
+        # Values
+        values_score = breakdown.get("values", 0)
+        if values_score >= 80:
+            reasons.append("Objectifs relationnels très compatibles")
+        elif values_score >= 65:
+            reasons.append("Objectifs relationnels compatibles")
+        
+        # If no specific reasons, add a general one
+        if not reasons:
+            reasons.append("Profil intéressant à découvrir")
+        
+        return reasons
+

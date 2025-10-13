@@ -182,3 +182,51 @@ class RecommendationsResponse(BaseModel):
     recommendations: List[RecommendationItem]
     totalAvailable: int
     generatedAt: str
+
+
+# New schemas for V1 specification endpoints
+class ScoreBreakdown(BaseModel):
+    """Score breakdown for personality, interests, and values."""
+    
+    personality: float = Field(ge=0, le=100, description="Personality compatibility score (0-100)")
+    interests: float = Field(ge=0, le=100, description="Interests compatibility score (0-100)")
+    values: float = Field(ge=0, le=100, description="Values compatibility score (0-100)")
+
+
+class SelectionProfile(BaseModel):
+    """Profile in the daily selection."""
+    
+    userId: str
+    compatibilityScore: float = Field(ge=0, le=100, description="Overall compatibility score (0-100)")
+    scoreBreakdown: ScoreBreakdown
+    matchReasons: List[str] = Field(default_factory=list, description="Reasons for the match")
+
+
+class GenerateSelectionRequest(BaseModel):
+    """Request model for generate-selection endpoint (V1 spec)."""
+    
+    userId: str
+    count: int = Field(ge=3, le=5, default=5, description="Number of profiles to return (3-5)")
+    excludeUserIds: List[str] = Field(default_factory=list, description="User IDs to exclude")
+
+
+class GenerateSelectionResponse(BaseModel):
+    """Response model for generate-selection endpoint (V1 spec)."""
+    
+    selection: List[SelectionProfile]
+    generatedAt: str
+
+
+class CalculateCompatibilityRequestV1(BaseModel):
+    """Request model for calculate-compatibility endpoint (V1 spec)."""
+    
+    userId1: str
+    userId2: str
+
+
+class CalculateCompatibilityResponseV1(BaseModel):
+    """Response model for calculate-compatibility endpoint (V1 spec)."""
+    
+    score: float = Field(ge=0, le=100, description="Overall compatibility score (0-100)")
+    breakdown: ScoreBreakdown
+    matchReasons: List[str] = Field(default_factory=list, description="Reasons for the match")
