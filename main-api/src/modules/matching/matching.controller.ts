@@ -36,7 +36,11 @@ export class MatchingController {
     description: 'User choices retrieved successfully',
   })
   async getUserChoices(@Request() req: any, @Query('date') date?: string) {
-    return this.matchingService.getUserChoices(req.user.id, date);
+    const data = await this.matchingService.getUserChoices(req.user.id, date);
+    return {
+      success: true,
+      data,
+    };
   }
 
   @Get('daily-selection/status')
@@ -59,7 +63,14 @@ export class MatchingController {
     @Request() req: any,
     @Query('preload') preload?: boolean,
   ) {
-    return this.matchingService.getDailySelection(req.user.id, preload);
+    const data = await this.matchingService.getDailySelection(
+      req.user.id,
+      preload,
+    );
+    return {
+      success: true,
+      data,
+    };
   }
 
   @Post('daily-selection/generate')
