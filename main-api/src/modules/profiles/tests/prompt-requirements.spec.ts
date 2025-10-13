@@ -12,6 +12,7 @@ import { Photo } from '../../../database/entities/photo.entity';
 import { Prompt } from '../../../database/entities/prompt.entity';
 import { PromptAnswer } from '../../../database/entities/prompt-answer.entity';
 import { SubmitPromptAnswersDto } from '../dto/profiles.dto';
+import { ModerationService } from '../../moderation/services/moderation.service';
 
 describe('ProfilesService - Dynamic Prompt Requirements', () => {
   let service: ProfilesService;
@@ -23,6 +24,14 @@ describe('ProfilesService - Dynamic Prompt Requirements', () => {
   const mockProfile = {
     id: 'profile-id',
     userId: 'user-id',
+  };
+
+  const mockModerationService = {
+    moderateTextContent: jest.fn().mockResolvedValue({ approved: true }),
+    moderatePhoto: jest.fn().mockResolvedValue({ approved: true }),
+    moderateTextContentBatch: jest
+      .fn()
+      .mockResolvedValue([{ approved: true }, { approved: true }]),
   };
 
   beforeEach(async () => {
@@ -56,6 +65,10 @@ describe('ProfilesService - Dynamic Prompt Requirements', () => {
         {
           provide: getRepositoryToken(Photo),
           useClass: Repository,
+        },
+        {
+          provide: ModerationService,
+          useValue: mockModerationService,
         },
       ],
     }).compile();

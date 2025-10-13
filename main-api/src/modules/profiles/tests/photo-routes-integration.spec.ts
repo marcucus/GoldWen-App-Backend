@@ -11,6 +11,7 @@ import { PersonalityQuestion } from '../../../database/entities/personality-ques
 import { PersonalityAnswer } from '../../../database/entities/personality-answer.entity';
 import { Prompt } from '../../../database/entities/prompt.entity';
 import { PromptAnswer } from '../../../database/entities/prompt-answer.entity';
+import { ModerationService } from '../../moderation/services/moderation.service';
 
 /**
  * Integration tests for the three photo management routes requested in the issue:
@@ -82,7 +83,7 @@ describe('ProfilesService - Photo Management Routes Integration', () => {
           useValue: {},
         },
         {
-          provide: 'ModerationService',
+          provide: ModerationService,
           useValue: mockModerationService,
         },
       ],
