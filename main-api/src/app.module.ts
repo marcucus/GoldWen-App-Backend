@@ -57,6 +57,7 @@ import { EmailModule } from './modules/email/email.module';
 import { ModerationModule } from './modules/moderation/moderation.module';
 import { GdprModule } from './modules/gdpr/gdpr.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { CronJobsModule } from './modules/cron-jobs/cron-jobs.module';
 
 @Module({
   imports: [
@@ -173,6 +174,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     ModerationModule,
     GdprModule,
     AnalyticsModule,
+    CronJobsModule,
   ],
   controllers: [AppController],
   providers: [
