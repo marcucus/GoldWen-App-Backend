@@ -582,8 +582,7 @@ export class ProfilesService {
         });
       });
 
-      const savedAnswers =
-        await this.promptAnswerRepository.save(answerEntities);
+      await this.promptAnswerRepository.save(answerEntities);
 
       // Check if profile is now complete
       await this.updateProfileCompletionStatus(userId);

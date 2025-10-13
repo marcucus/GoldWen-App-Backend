@@ -220,18 +220,24 @@ export class PromptAnswerDto {
   @IsUUID()
   promptId: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Answer text (max 150 characters)',
+    maxLength: 150,
+  })
   @IsString()
-  @MaxLength(300)
+  @MaxLength(150)
   answer: string;
 }
 
 export class SubmitPromptAnswersDto {
-  @ApiProperty({ type: [PromptAnswerDto] })
+  @ApiProperty({
+    type: [PromptAnswerDto],
+    description: 'Array of prompt answers (minimum 3 required)',
+  })
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => PromptAnswerDto)
-  @ArrayMinSize(1)
+  @ArrayMinSize(3)
   answers: PromptAnswerDto[];
 }
 

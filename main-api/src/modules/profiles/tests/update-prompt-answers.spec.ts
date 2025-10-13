@@ -192,9 +192,11 @@ describe('ProfilesService - Update Prompt Answers', () => {
 
       // Mock prompt answer repository
       jest.spyOn(promptAnswerRepository, 'delete').mockResolvedValue(null);
-      jest.spyOn(promptAnswerRepository, 'create').mockImplementation((data) => {
-        return { ...data, id: 'new-id' } as any;
-      });
+      jest
+        .spyOn(promptAnswerRepository, 'create')
+        .mockImplementation((data) => {
+          return { ...data, id: 'new-id' } as any;
+        });
       jest
         .spyOn(promptAnswerRepository, 'save')
         .mockResolvedValue(savedAnswers as any);
@@ -409,9 +411,11 @@ describe('ProfilesService - Update Prompt Answers', () => {
       });
 
       jest.spyOn(promptAnswerRepository, 'delete').mockResolvedValue(null);
-      jest.spyOn(promptAnswerRepository, 'create').mockImplementation((data) => {
-        return { ...data, id: 'new-id' } as any;
-      });
+      jest
+        .spyOn(promptAnswerRepository, 'create')
+        .mockImplementation((data) => {
+          return { ...data, id: 'new-id' } as any;
+        });
       jest
         .spyOn(promptAnswerRepository, 'save')
         .mockResolvedValue(savedAnswers as any);
