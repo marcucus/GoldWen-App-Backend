@@ -35,6 +35,8 @@ services:
       dockerfile: Dockerfile
     container_name: goldwen_matching_service
     environment:
+      API_KEY: matching-service-secret-key
+      DATABASE_URL: postgresql://goldwen:goldwen_password@postgres:5432/goldwen_db
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_DB: 0
@@ -44,6 +46,7 @@ services:
       - "8000:8000"
     depends_on:
       - redis
+      - postgres
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s

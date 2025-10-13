@@ -14,6 +14,7 @@ This guide covers different deployment scenarios for the GoldWen Matching Servic
 
 ### Requirements
 - Python 3.12+
+- PostgreSQL 15+ (optional, for V1 spec endpoints)
 - Redis (optional, for caching)
 
 ### Setup
@@ -24,12 +25,51 @@ cd matching-service
 pip install -r requirements.txt
 ```
 
-2. Run the service:
+2. Configure environment (optional):
 ```bash
+cp .env.example .env
+# Edit .env with your database credentials
+```
+
+3. Run the service:
+```bash
+# Without database (alternative endpoints only)
+python main.py
+
+# With database
+export DATABASE_URL=postgresql://user:password@localhost:5432/goldwen_db
 python main.py
 ```
 
 The service will be available at `http://localhost:8000`
+
+### Running with PostgreSQL
+
+If you want to test the V1 spec endpoints locally:
+
+1. Start PostgreSQL:
+```bash
+# Using Docker
+docker run -d \
+  --name postgres \
+  -e POSTGRES_DB=goldwen_db \
+  -e POSTGRES_USER=goldwen \
+  -e POSTGRES_PASSWORD=goldwen_password \
+  -p 5432:5432 \
+  postgres:15-alpine
+```
+
+2. Set DATABASE_URL:
+```bash
+export DATABASE_URL=postgresql://goldwen:goldwen_password@localhost:5432/goldwen_db
+```
+
+3. Run the service:
+```bash
+python main.py
+```
+
+**Note:** The database tables should be created by the main NestJS API. The matching service only reads from the database.
 
 ## Docker Deployment
 
