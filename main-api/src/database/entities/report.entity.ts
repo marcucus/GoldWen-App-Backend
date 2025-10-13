@@ -23,6 +23,13 @@ export class Report {
   @Index()
   reporterId: string;
 
+  @Column({
+    type: 'enum',
+    enum: ['user', 'message'],
+    default: 'user',
+  })
+  targetType: 'user' | 'message';
+
   @Column()
   @Index()
   reportedUserId: string;

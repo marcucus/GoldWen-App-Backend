@@ -5,9 +5,10 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThanOrEqual, LessThan } from 'typeorm';
 import { Report } from '../../database/entities/report.entity';
 import { User } from '../../database/entities/user.entity';
+import { Message } from '../../database/entities/message.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportStatusDto } from './dto/update-report-status.dto';
@@ -21,6 +22,8 @@ export class ReportsService {
     private reportRepository: Repository<Report>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Message)
+    private messageRepository: Repository<Message>,
     private notificationsService: NotificationsService,
   ) {}
 
@@ -31,47 +34,99 @@ export class ReportsService {
     reporterId: string,
     createReportDto: CreateReportDto,
   ): Promise<Report> {
-    const { targetUserId, evidence, messageId, chatId, ...reportData } =
-      createReportDto;
+    const { targetType, targetId, description, reason } = createReportDto;
 
-    // Validate that target user exists
-    const targetUser = await this.userRepository.findOne({
-      where: { id: targetUserId },
-    });
+    // Determine the reported user and related IDs based on target type
+    let reportedUserId: string;
+    let messageId: string | undefined;
+    let chatId: string | undefined;
 
-    if (!targetUser) {
-      throw new BadRequestException('Target user not found');
+    if (targetType === 'user') {
+      reportedUserId = targetId;
+
+      // Validate that target user exists
+      const targetUser = await this.userRepository.findOne({
+        where: { id: targetId },
+      });
+
+      if (!targetUser) {
+        throw new BadRequestException('Target user not found');
+      }
+
+      // Prevent self-reporting
+      if (reporterId === reportedUserId) {
+        throw new BadRequestException('You cannot report yourself');
+      }
+    } else if (targetType === 'message') {
+      // When reporting a message, fetch it to get the sender
+      messageId = targetId;
+
+      const message = await this.messageRepository.findOne({
+        where: { id: targetId },
+        relations: ['sender', 'chat'],
+      });
+
+      if (!message) {
+        throw new BadRequestException('Message not found');
+      }
+
+      reportedUserId = message.senderId;
+      chatId = message.chatId;
+
+      // Prevent self-reporting
+      if (reporterId === reportedUserId) {
+        throw new BadRequestException('You cannot report your own message');
+      }
+    } else {
+      throw new BadRequestException('Invalid target type');
     }
 
-    // Prevent self-reporting
-    if (reporterId === targetUserId) {
-      throw new BadRequestException('You cannot report yourself');
-    }
-
-    // Check for duplicate reports (same reporter, same target, same type, within last 24h)
+    // Check for duplicate reports (same reporter, same target, same reason, pending)
     const existingReport = await this.reportRepository.findOne({
       where: {
         reporterId,
-        reportedUserId: targetUserId,
-        type: reportData.type,
+        reportedUserId,
+        targetType,
+        type: reason,
         status: ReportStatus.PENDING,
       },
     });
 
     if (existingReport) {
       throw new BadRequestException(
-        'You have already submitted a similar report for this user',
+        'You have already submitted a similar report for this target',
+      );
+    }
+
+    // Check daily report limit (5 reports per day)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const reportsToday = await this.reportRepository.count({
+      where: {
+        reporterId,
+        createdAt: MoreThanOrEqual(today) as any,
+      },
+    });
+
+    if (reportsToday >= 5) {
+      throw new BadRequestException(
+        'You have reached the daily limit of 5 reports. Please try again tomorrow.',
       );
     }
 
     // Create the report
     const report = this.reportRepository.create({
       reporterId,
-      reportedUserId: targetUserId,
-      evidence: evidence ? JSON.stringify(evidence) : undefined,
+      reportedUserId,
+      targetType,
+      type: reason,
+      reason: reason, // Store the enum value as reason text for backward compatibility
+      description,
       messageId,
       chatId,
-      ...reportData,
     });
 
     const savedReport = await this.reportRepository.save(report);
