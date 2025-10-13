@@ -29,6 +29,7 @@ import {
   SubmitPersonalityAnswersDto,
   UploadPhotosDto,
   SubmitPromptAnswersDto,
+  UpdatePromptAnswersDto,
   UpdateProfileStatusDto,
   UpdatePhotoOrderDto,
 } from './dto/profiles.dto';
@@ -187,6 +188,24 @@ export class ProfilesController {
   })
   async getUserPromptAnswers(@Request() req: any) {
     return this.profilesService.getUserPromptAnswers(req.user.id);
+  }
+
+  @Put('me/prompt-answers')
+  @SkipProfileCompletion()
+  @ApiOperation({ summary: 'Update prompt answers' })
+  @ApiResponse({
+    status: 200,
+    description: 'Prompt answers updated successfully',
+  })
+  async updatePromptAnswers(
+    @Request() req: any,
+    @Body() updateDto: UpdatePromptAnswersDto,
+  ) {
+    const updated = await this.profilesService.updatePromptAnswers(
+      req.user.id,
+      updateDto,
+    );
+    return { success: true, promptAnswers: updated };
   }
 
   @Put('me/status')

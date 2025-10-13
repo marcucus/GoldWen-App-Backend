@@ -235,6 +235,39 @@ export class SubmitPromptAnswersDto {
   answers: PromptAnswerDto[];
 }
 
+export class UpdatePromptAnswerDto {
+  @ApiPropertyOptional({
+    description: 'ID of existing answer (optional for updates)',
+  })
+  @IsOptional()
+  @IsUUID()
+  id?: string;
+
+  @ApiProperty({ description: 'ID of the prompt being answered' })
+  @IsUUID()
+  promptId: string;
+
+  @ApiProperty({
+    description: 'Answer text (max 150 characters)',
+    maxLength: 150,
+  })
+  @IsString()
+  @MaxLength(150)
+  answer: string;
+}
+
+export class UpdatePromptAnswersDto {
+  @ApiProperty({
+    type: [UpdatePromptAnswerDto],
+    description: 'Array of prompt answers (exactly 3 required)',
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UpdatePromptAnswerDto)
+  @ArrayMinSize(3)
+  answers: UpdatePromptAnswerDto[];
+}
+
 export class UpdateProfileStatusDto {
   @ApiPropertyOptional()
   @IsOptional()
