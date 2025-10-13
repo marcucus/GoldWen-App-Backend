@@ -22,6 +22,7 @@ Cette documentation liste toutes les routes API disponibles pour le frontend et 
 - Chat functionality with real-time WebSocket support
 - Subscription management with RevenueCat integration
 - Notifications system with user preferences
+- Reports system with user and message reporting (anti-spam protection)
 
 **🔄 Enhanced Features**
 - Environment-based log levels (LOG_LEVEL=debug|info|warn|error)
@@ -616,6 +617,42 @@ Cette documentation liste toutes les routes API disponibles pour le frontend et 
   "data": {}
 }
 ```
+
+---
+
+## 🚨 Reports Routes
+
+### POST /reports
+**Description**: Submit a report for inappropriate content or behavior  
+**Headers**: `Authorization: Bearer <token>`  
+**Body**:
+```json
+{
+  "targetType": "user",
+  "targetId": "123e4567-e89b-12d3-a456-426614174000",
+  "reason": "inappropriate_content",
+  "description": "Optional additional details..."
+}
+```
+**Response**:
+```json
+{
+  "success": true,
+  "reportId": "report-uuid"
+}
+```
+
+**Notes**:
+- `targetType` can be either `"user"` or `"message"`
+- `reason` can be: `inappropriate_content`, `harassment`, `spam`, `fake_profile`, or `other`
+- Daily limit: 5 reports per user per day
+- Duplicate reports are blocked
+
+### GET /reports/me
+**Description**: Get current user's submitted reports  
+**Headers**: `Authorization: Bearer <token>`  
+**Query Parameters**: `page`, `limit`, `status`, `type`  
+**Response**: List of user's reports with pagination
 
 ---
 

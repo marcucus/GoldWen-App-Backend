@@ -63,9 +63,9 @@ describe('ReportsController', () => {
 
   describe('createReport', () => {
     const createReportDto: CreateReportDto = {
-      targetUserId: 'target-user-id',
-      type: ReportType.INAPPROPRIATE_CONTENT,
-      reason: 'This user posted inappropriate content',
+      targetType: 'user',
+      targetId: 'target-user-id',
+      reason: ReportType.INAPPROPRIATE_CONTENT,
       description: 'Additional details',
     };
 
@@ -73,7 +73,7 @@ describe('ReportsController', () => {
       id: 'report-id',
       type: ReportType.INAPPROPRIATE_CONTENT,
       status: ReportStatus.PENDING,
-      reason: 'This user posted inappropriate content',
+      reason: ReportType.INAPPROPRIATE_CONTENT,
       description: 'Additional details',
       createdAt: new Date(),
     };
@@ -93,15 +93,7 @@ describe('ReportsController', () => {
 
       expect(result).toEqual({
         success: true,
-        message: 'Report submitted successfully',
-        data: {
-          id: 'report-id',
-          type: ReportType.INAPPROPRIATE_CONTENT,
-          status: ReportStatus.PENDING,
-          reason: 'This user posted inappropriate content',
-          description: 'Additional details',
-          createdAt: mockCreatedReport.createdAt,
-        },
+        reportId: 'report-id',
       });
     });
   });

@@ -6,6 +6,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ReportsService } from '../reports.service';
 import { Report } from '../../../database/entities/report.entity';
 import { User } from '../../../database/entities/user.entity';
+import { Message } from '../../../database/entities/message.entity';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { ReportType, ReportStatus } from '../../../common/enums';
 import { CreateReportDto } from '../dto/create-report.dto';
@@ -14,6 +15,7 @@ describe('ReportsService', () => {
   let service: ReportsService;
   let reportRepository: Repository<Report>;
   let userRepository: Repository<User>;
+  let messageRepository: Repository<Message>;
   let notificationsService: NotificationsService;
 
   const mockReportRepository = {
@@ -25,6 +27,10 @@ describe('ReportsService', () => {
   };
 
   const mockUserRepository = {
+    findOne: jest.fn(),
+  };
+
+  const mockMessageRepository = {
     findOne: jest.fn(),
   };
 
@@ -45,6 +51,10 @@ describe('ReportsService', () => {
           useValue: mockUserRepository,
         },
         {
+          provide: getRepositoryToken(Message),
+          useValue: mockMessageRepository,
+        },
+        {
           provide: NotificationsService,
           useValue: mockNotificationsService,
         },
@@ -56,6 +66,9 @@ describe('ReportsService', () => {
       getRepositoryToken(Report),
     );
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
+    messageRepository = module.get<Repository<Message>>(
+      getRepositoryToken(Message),
+    );
     notificationsService =
       module.get<NotificationsService>(NotificationsService);
   });
@@ -66,9 +79,9 @@ describe('ReportsService', () => {
 
   describe('createReport', () => {
     const mockCreateReportDto: CreateReportDto = {
-      targetUserId: 'target-user-id',
-      type: ReportType.INAPPROPRIATE_CONTENT,
-      reason: 'This user posted inappropriate content',
+      targetType: 'user',
+      targetId: 'target-user-id',
+      reason: ReportType.INAPPROPRIATE_CONTENT,
       description: 'Additional details about the issue',
     };
 
@@ -81,16 +94,18 @@ describe('ReportsService', () => {
       id: 'report-id',
       reporterId: 'reporter-id',
       reportedUserId: 'target-user-id',
+      targetType: 'user',
       type: ReportType.INAPPROPRIATE_CONTENT,
       status: ReportStatus.PENDING,
-      reason: 'This user posted inappropriate content',
+      reason: ReportType.INAPPROPRIATE_CONTENT,
       description: 'Additional details about the issue',
       createdAt: new Date(),
     } as Report;
 
-    it('should create a report successfully', async () => {
+    it('should create a user report successfully', async () => {
       mockUserRepository.findOne.mockResolvedValue(mockTargetUser);
       mockReportRepository.findOne.mockResolvedValue(null); // No existing report
+      mockReportRepository.count.mockResolvedValue(0); // No reports today
       mockReportRepository.create.mockReturnValue(mockCreatedReport);
       mockReportRepository.save.mockResolvedValue(mockCreatedReport);
 
@@ -107,6 +122,7 @@ describe('ReportsService', () => {
         where: {
           reporterId: 'reporter-id',
           reportedUserId: 'target-user-id',
+          targetType: 'user',
           type: ReportType.INAPPROPRIATE_CONTENT,
           status: ReportStatus.PENDING,
         },
@@ -115,12 +131,12 @@ describe('ReportsService', () => {
       expect(mockReportRepository.create).toHaveBeenCalledWith({
         reporterId: 'reporter-id',
         reportedUserId: 'target-user-id',
-        evidence: undefined,
+        targetType: 'user',
+        type: ReportType.INAPPROPRIATE_CONTENT,
+        reason: ReportType.INAPPROPRIATE_CONTENT,
+        description: 'Additional details about the issue',
         messageId: undefined,
         chatId: undefined,
-        type: ReportType.INAPPROPRIATE_CONTENT,
-        reason: 'This user posted inappropriate content',
-        description: 'Additional details about the issue',
       });
 
       expect(mockReportRepository.save).toHaveBeenCalledWith(mockCreatedReport);
@@ -141,6 +157,7 @@ describe('ReportsService', () => {
 
     it('should throw BadRequestException for self-reporting', async () => {
       mockUserRepository.findOne.mockResolvedValue(mockTargetUser);
+      mockReportRepository.count.mockResolvedValue(0);
 
       await expect(
         service.createReport('target-user-id', mockCreateReportDto),
@@ -150,41 +167,99 @@ describe('ReportsService', () => {
     it('should throw BadRequestException for duplicate reports', async () => {
       mockUserRepository.findOne.mockResolvedValue(mockTargetUser);
       mockReportRepository.findOne.mockResolvedValue(mockCreatedReport); // Existing report
+      mockReportRepository.count.mockResolvedValue(0);
 
       await expect(
         service.createReport('reporter-id', mockCreateReportDto),
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should handle evidence array properly', async () => {
-      const dtoWithEvidence = {
-        ...mockCreateReportDto,
-        evidence: [
-          'https://example.com/image1.jpg',
-          'https://example.com/image2.jpg',
-        ],
-      };
-
+    it('should throw BadRequestException when daily limit is reached', async () => {
       mockUserRepository.findOne.mockResolvedValue(mockTargetUser);
       mockReportRepository.findOne.mockResolvedValue(null);
-      mockReportRepository.create.mockReturnValue(mockCreatedReport);
-      mockReportRepository.save.mockResolvedValue(mockCreatedReport);
+      mockReportRepository.count.mockResolvedValue(5); // Already 5 reports today
 
-      await service.createReport('reporter-id', dtoWithEvidence);
+      await expect(
+        service.createReport('reporter-id', mockCreateReportDto),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.createReport('reporter-id', mockCreateReportDto),
+      ).rejects.toThrow(
+        'You have reached the daily limit of 5 reports. Please try again tomorrow.',
+      );
+    });
+
+    it('should create a message report successfully', async () => {
+      const messageDto: CreateReportDto = {
+        targetType: 'message',
+        targetId: 'message-id',
+        reason: ReportType.HARASSMENT,
+        description: 'Harassing message',
+      };
+
+      const mockMessage = {
+        id: 'message-id',
+        senderId: 'sender-id',
+        chatId: 'chat-id',
+        content: 'Some harassing content',
+      } as Message;
+
+      const mockMessageReport = {
+        id: 'report-id',
+        reporterId: 'reporter-id',
+        reportedUserId: 'sender-id',
+        targetType: 'message',
+        type: ReportType.HARASSMENT,
+        status: ReportStatus.PENDING,
+        reason: ReportType.HARASSMENT,
+        description: 'Harassing message',
+        messageId: 'message-id',
+        chatId: 'chat-id',
+        createdAt: new Date(),
+      } as Report;
+
+      mockMessageRepository.findOne.mockResolvedValue(mockMessage);
+      mockReportRepository.findOne.mockResolvedValue(null);
+      mockReportRepository.count.mockResolvedValue(0);
+      mockReportRepository.create.mockReturnValue(mockMessageReport);
+      mockReportRepository.save.mockResolvedValue(mockMessageReport);
+
+      const result = await service.createReport('reporter-id', messageDto);
+
+      expect(mockMessageRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'message-id' },
+        relations: ['sender', 'chat'],
+      });
 
       expect(mockReportRepository.create).toHaveBeenCalledWith({
         reporterId: 'reporter-id',
-        reportedUserId: 'target-user-id',
-        evidence: JSON.stringify([
-          'https://example.com/image1.jpg',
-          'https://example.com/image2.jpg',
-        ]),
-        messageId: undefined,
-        chatId: undefined,
-        type: ReportType.INAPPROPRIATE_CONTENT,
-        reason: 'This user posted inappropriate content',
-        description: 'Additional details about the issue',
+        reportedUserId: 'sender-id',
+        targetType: 'message',
+        type: ReportType.HARASSMENT,
+        reason: ReportType.HARASSMENT,
+        description: 'Harassing message',
+        messageId: 'message-id',
+        chatId: 'chat-id',
       });
+
+      expect(result).toEqual(mockMessageReport);
+    });
+
+    it('should throw BadRequestException if message not found', async () => {
+      const messageDto: CreateReportDto = {
+        targetType: 'message',
+        targetId: 'non-existent-message-id',
+        reason: ReportType.HARASSMENT,
+      };
+
+      mockMessageRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.createReport('reporter-id', messageDto),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.createReport('reporter-id', messageDto),
+      ).rejects.toThrow('Message not found');
     });
   });
 

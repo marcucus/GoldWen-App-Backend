@@ -45,24 +45,17 @@ export class ReportsController {
     schema: {
       example: {
         success: true,
-        message: 'Report submitted successfully',
-        data: {
-          id: '123e4567-e89b-12d3-a456-426614174000',
-          type: 'inappropriate_content',
-          status: 'pending',
-          reason: 'This user posted inappropriate content',
-          createdAt: '2023-01-01T12:00:00Z',
-        },
+        reportId: '123e4567-e89b-12d3-a456-426614174000',
       },
     },
   })
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
-    description: 'Invalid input or duplicate report',
+    description: 'Invalid input, duplicate report, or daily limit reached',
     schema: {
       example: {
         success: false,
-        message: 'You have already submitted a similar report for this user',
+        message: 'You have already submitted a similar report for this target',
         error: 'BadRequestException',
       },
     },
@@ -80,15 +73,7 @@ export class ReportsController {
 
     return {
       success: true,
-      message: 'Report submitted successfully',
-      data: {
-        id: report.id,
-        type: report.type,
-        status: report.status,
-        reason: report.reason,
-        description: report.description,
-        createdAt: report.createdAt,
-      },
+      reportId: report.id,
     };
   }
 

@@ -43,7 +43,7 @@ describe('AnalyticsMiddleware', () => {
 
     const mockResponse = {
       statusCode: 200,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+
       on: jest.fn((event: string, callback: () => void) => {
         if (event === 'finish') {
           callback();
@@ -82,7 +82,7 @@ describe('AnalyticsMiddleware', () => {
 
     const mockResponse = {
       statusCode: 401,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+
       on: jest.fn((event: string, callback: () => void) => {
         if (event === 'finish') {
           callback();
@@ -110,7 +110,7 @@ describe('AnalyticsMiddleware', () => {
 
     const mockResponse = {
       statusCode: 200,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+
       on: jest.fn((event: string, callback: () => void) => {
         if (event === 'finish') {
           callback();
@@ -148,7 +148,7 @@ describe('AnalyticsMiddleware', () => {
 
     const mockResponse = {
       statusCode: 200,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+
       on: jest.fn((event: string, callback: () => void) => {
         if (event === 'finish') {
           callback();
@@ -176,7 +176,7 @@ describe('AnalyticsMiddleware', () => {
 
     const mockResponse = {
       statusCode: 200,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+
       on: jest.fn((event: string, callback: () => void) => {
         if (event === 'finish') {
           setTimeout(callback, 50);
