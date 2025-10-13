@@ -58,6 +58,7 @@ import { ModerationModule } from './modules/moderation/moderation.module';
 import { GdprModule } from './modules/gdpr/gdpr.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { CronJobsModule } from './modules/cron-jobs/cron-jobs.module';
+import { LegalModule } from './modules/legal/legal.module';
 
 @Module({
   imports: [
@@ -175,6 +176,7 @@ import { CronJobsModule } from './modules/cron-jobs/cron-jobs.module';
     GdprModule,
     AnalyticsModule,
     CronJobsModule,
+    LegalModule,
   ],
   controllers: [AppController],
   providers: [
