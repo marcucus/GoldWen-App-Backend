@@ -15,6 +15,8 @@ describe('RevenueCatService', () => {
     handleRevenueCatWebhook: jest.fn(),
     getPlans: jest.fn(),
     getActiveSubscription: jest.fn(),
+    createSubscription: jest.fn(),
+    activateSubscription: jest.fn(),
   };
 
   const mockConfigService = {
@@ -332,6 +334,115 @@ describe('RevenueCatService', () => {
       );
 
       expect(mockLogger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('validatePurchase', () => {
+    const mockPurchaseData = {
+      productId: 'goldwen_plus_monthly',
+      transactionId: 'rc_transaction_123456',
+      originalTransactionId: 'original_transaction_123456',
+      purchaseToken: 'purchase_token_123',
+      price: 19.99,
+      currency: 'EUR',
+      platform: 'ios',
+    };
+
+    it('should validate and process purchase successfully', async () => {
+      const mockSubscription = {
+        id: 'sub-123',
+        userId: 'user-123',
+        plan: SubscriptionPlan.GOLDWEN_PLUS,
+        status: 'active',
+        expiresAt: new Date('2024-12-31'),
+      };
+
+      mockSubscriptionsService.createSubscription.mockResolvedValue(
+        mockSubscription,
+      );
+      mockSubscriptionsService.activateSubscription.mockResolvedValue({
+        ...mockSubscription,
+        status: 'active',
+      });
+
+      const result = await service.validatePurchase(
+        'user-123',
+        mockPurchaseData,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.subscription).toBeDefined();
+      expect(result.subscription?.id).toBe('sub-123');
+      expect(result.subscription?.plan).toBe(SubscriptionPlan.GOLDWEN_PLUS);
+      expect(mockSubscriptionsService.createSubscription).toHaveBeenCalledWith(
+        'user-123',
+        expect.objectContaining({
+          plan: SubscriptionPlan.GOLDWEN_PLUS,
+          revenueCatSubscriptionId: 'rc_transaction_123456',
+          price: 19.99,
+          currency: 'EUR',
+          platform: 'ios',
+        }),
+      );
+      expect(
+        mockSubscriptionsService.activateSubscription,
+      ).toHaveBeenCalledWith('sub-123');
+      expect(mockLogger.logBusinessEvent).toHaveBeenCalledWith(
+        'purchase_validated',
+        expect.objectContaining({
+          userId: 'user-123',
+          productId: 'goldwen_plus_monthly',
+        }),
+      );
+    });
+
+    it('should handle validation errors gracefully', async () => {
+      const error = new Error('Database error');
+      mockSubscriptionsService.createSubscription.mockRejectedValue(error);
+
+      const result = await service.validatePurchase(
+        'user-123',
+        mockPurchaseData,
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Failed to validate purchase');
+      expect(mockLogger.error).toHaveBeenCalled();
+    });
+
+    it('should handle non-goldwen_plus products correctly', async () => {
+      const freePurchaseData = {
+        ...mockPurchaseData,
+        productId: 'some_free_product',
+      };
+
+      const mockSubscription = {
+        id: 'sub-123',
+        userId: 'user-123',
+        plan: 'free',
+        status: 'active',
+        expiresAt: new Date('2024-12-31'),
+      };
+
+      mockSubscriptionsService.createSubscription.mockResolvedValue(
+        mockSubscription,
+      );
+      mockSubscriptionsService.activateSubscription.mockResolvedValue(
+        mockSubscription,
+      );
+
+      const result = await service.validatePurchase(
+        'user-123',
+        freePurchaseData,
+      );
+
+      expect(result.success).toBe(true);
+      expect(mockSubscriptionsService.createSubscription).toHaveBeenCalledWith(
+        'user-123',
+        expect.objectContaining({
+          plan: SubscriptionPlan.FREE,
+        }),
+      );
     });
   });
 });

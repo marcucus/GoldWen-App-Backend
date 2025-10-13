@@ -697,13 +697,17 @@ export class ProfilesService {
         current: number;
         satisfied: boolean;
       };
-      promptAnswers: {
+      minimumPrompts: {
         required: number;
         current: number;
         satisfied: boolean;
         missing: Array<{ id: string; text: string }>;
       };
-      personalityQuestionnaire: boolean;
+      personalityQuestionnaire: {
+        required: boolean;
+        completed: boolean;
+        satisfied: boolean;
+      };
       basicInfo: boolean;
     };
     missingSteps: string[];
@@ -867,7 +871,7 @@ export class ProfilesService {
           current: photosCount,
           satisfied: hasPhotos,
         },
-        promptAnswers: {
+        minimumPrompts: {
           required: requiredPromptsCount,
           current: promptsCount,
           satisfied: hasPrompts,
@@ -876,7 +880,11 @@ export class ProfilesService {
             text: p.text,
           })),
         },
-        personalityQuestionnaire: hasPersonalityAnswers,
+        personalityQuestionnaire: {
+          required: true,
+          completed: hasPersonalityAnswers,
+          satisfied: hasPersonalityAnswers,
+        },
         basicInfo: hasRequiredProfileFields,
       },
       missingSteps,

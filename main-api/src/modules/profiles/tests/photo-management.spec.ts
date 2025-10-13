@@ -32,6 +32,11 @@ describe('ProfilesService - Photo Management', () => {
     personalityAnswers: [],
   };
 
+  const mockModerationService = {
+    moderateTextContent: jest.fn(),
+    moderatePhoto: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -63,6 +68,10 @@ describe('ProfilesService - Photo Management', () => {
         {
           provide: getRepositoryToken(PromptAnswer),
           useClass: Repository,
+        },
+        {
+          provide: 'ModerationService',
+          useValue: mockModerationService,
         },
       ],
     }).compile();
@@ -186,8 +195,12 @@ describe('ProfilesService - Photo Management', () => {
       expect(result.isComplete).toBe(true);
       expect(result.completionPercentage).toBe(100);
       expect(result.requirements.minimumPhotos.satisfied).toBe(true);
-      expect(result.requirements.promptAnswers.satisfied).toBe(true);
-      expect(result.requirements.personalityQuestionnaire).toBe(true);
+      expect(result.requirements.minimumPrompts.satisfied).toBe(true);
+      expect(result.requirements.personalityQuestionnaire).toEqual({
+        required: true,
+        completed: true,
+        satisfied: true,
+      });
       expect(result.requirements.basicInfo).toBe(true);
     });
 
