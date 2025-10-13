@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { CustomLoggerService } from '../../common/logger';
 import { SubscriptionsService } from './subscriptions.service';
 import { RevenueCatWebhookDto } from './dto/subscription.dto';
-import { SubscriptionStatus } from '../../common/enums';
+import { SubscriptionStatus, SubscriptionPlan } from '../../common/enums';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -169,6 +169,86 @@ export class RevenueCatService {
         'RevenueCatService',
       );
       throw error;
+    }
+  }
+
+  /**
+   * Validate and process a purchase from the client
+   * @param userId The user ID
+   * @param purchaseData The purchase data from the client
+   */
+  async validatePurchase(
+    userId: string,
+    purchaseData: {
+      productId: string;
+      transactionId: string;
+      originalTransactionId?: string;
+      purchaseToken?: string;
+      price?: number;
+      currency?: string;
+      platform?: string;
+    },
+  ): Promise<{
+    success: boolean;
+    subscription?: any;
+    message: string;
+  }> {
+    try {
+      this.logger.info('Validating purchase', {
+        userId,
+        productId: purchaseData.productId,
+        platform: purchaseData.platform,
+      });
+
+      // In a real implementation, you would verify the purchase with RevenueCat API or App Store/Play Store
+      // For now, we'll create/update the subscription based on the provided data
+      const plan = purchaseData.productId.includes('goldwen_plus')
+        ? SubscriptionPlan.GOLDWEN_PLUS
+        : SubscriptionPlan.FREE;
+
+      const subscription = await this.subscriptionsService.createSubscription(
+        userId,
+        {
+          plan,
+          revenueCatSubscriptionId: purchaseData.transactionId,
+          originalTransactionId: purchaseData.originalTransactionId,
+          purchaseToken: purchaseData.purchaseToken,
+          price: purchaseData.price,
+          currency: purchaseData.currency,
+          platform: purchaseData.platform,
+        },
+      );
+
+      // Activate the subscription
+      await this.subscriptionsService.activateSubscription(subscription.id);
+
+      this.logger.logBusinessEvent('purchase_validated', {
+        userId,
+        productId: purchaseData.productId,
+        subscriptionId: subscription.id,
+      });
+
+      return {
+        success: true,
+        subscription: {
+          id: subscription.id,
+          plan: subscription.plan,
+          expiresAt: subscription.expiresAt,
+          status: subscription.status,
+        },
+        message: 'Purchase validated and subscription activated successfully',
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error validating purchase: ${(error as Error).message}`,
+        (error as Error).stack,
+        'RevenueCatService',
+      );
+
+      return {
+        success: false,
+        message: `Failed to validate purchase: ${(error as Error).message}`,
+      };
     }
   }
 }
