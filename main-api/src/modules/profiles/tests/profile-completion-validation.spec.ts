@@ -31,6 +31,11 @@ describe('ProfilesService - Profile Completion Validation', () => {
     personalityAnswers: [],
   };
 
+  const mockModerationService = {
+    moderateTextContent: jest.fn(),
+    moderatePhoto: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -62,6 +67,10 @@ describe('ProfilesService - Profile Completion Validation', () => {
         {
           provide: getRepositoryToken(PromptAnswer),
           useValue: {},
+        },
+        {
+          provide: 'ModerationService',
+          useValue: mockModerationService,
         },
       ],
     }).compile();
@@ -241,6 +250,63 @@ describe('ProfilesService - Profile Completion Validation', () => {
 
       expect(result.nextStep).toBe('Profile is complete!');
       expect(result.isComplete).toBe(true);
+    });
+
+    it('should return requirements with correct structure for frontend', async () => {
+      const requiredPrompts = [
+        {
+          id: 'prompt-1',
+          text: 'What makes you happy?',
+          isActive: true,
+          isRequired: true,
+        },
+      ];
+
+      const userWithPartialCompletion = {
+        ...mockUser,
+        profile: {
+          ...mockProfile,
+          photos: [{ id: '1' }, { id: '2' }], // Only 2 photos (need 3)
+          promptAnswers: [], // No prompt answers
+        },
+        personalityAnswers: Array(10).fill({ id: 'answer' }), // Complete personality
+      };
+
+      jest
+        .spyOn(userRepository, 'findOne')
+        .mockResolvedValue(userWithPartialCompletion as any);
+      jest
+        .spyOn(promptRepository, 'find')
+        .mockResolvedValue(requiredPrompts as any);
+      jest.spyOn(personalityQuestionRepository, 'count').mockResolvedValue(10);
+
+      const result = await service.getProfileCompletion('user-id');
+
+      // Check minimumPhotos structure
+      expect(result.requirements.minimumPhotos).toEqual({
+        required: 3,
+        current: 2,
+        satisfied: false,
+      });
+
+      // Check minimumPrompts structure (should use this name, not promptAnswers)
+      expect(result.requirements.minimumPrompts).toBeDefined();
+      expect(result.requirements.minimumPrompts).toEqual({
+        required: 1,
+        current: 0,
+        satisfied: false,
+        missing: [{ id: 'prompt-1', text: 'What makes you happy?' }],
+      });
+
+      // Check personalityQuestionnaire structure (should be an object, not boolean)
+      expect(result.requirements.personalityQuestionnaire).toEqual({
+        required: true,
+        completed: true,
+        satisfied: true,
+      });
+
+      // Check basicInfo is present
+      expect(result.requirements.basicInfo).toBe(true);
     });
 
     it('should throw NotFoundException when profile not found', async () => {
