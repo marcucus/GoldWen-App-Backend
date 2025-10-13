@@ -281,6 +281,60 @@ export class NotificationsService {
   }
 
   /**
+   * Get notification settings for a user
+   */
+  async getNotificationSettings(userId: string): Promise<{
+    dailySelection: boolean;
+    newMatches: boolean;
+    newMessages: boolean;
+    chatExpiring: boolean;
+    subscriptionUpdates: boolean;
+    pushNotifications: boolean;
+    emailNotifications: boolean;
+    marketingEmails: boolean;
+  }> {
+    // Verify user exists
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Find notification preferences, or return defaults
+    let preferences = await this.notificationPreferencesRepository.findOne({
+      where: { userId },
+    });
+
+    if (!preferences) {
+      // Create default preferences for new users
+      preferences = this.notificationPreferencesRepository.create({
+        userId,
+        dailySelection: true,
+        newMatches: true,
+        newMessages: true,
+        chatExpiring: true,
+        subscriptionUpdates: true,
+        pushNotifications: true,
+        emailNotifications: true,
+        marketingEmails: false,
+      });
+      await this.notificationPreferencesRepository.save(preferences);
+    }
+
+    this.logger.logUserAction('get_notification_settings', { userId });
+
+    return {
+      dailySelection: preferences.dailySelection,
+      newMatches: preferences.newMatches,
+      newMessages: preferences.newMessages,
+      chatExpiring: preferences.chatExpiring,
+      subscriptionUpdates: preferences.subscriptionUpdates,
+      pushNotifications: preferences.pushNotifications,
+      emailNotifications: preferences.emailNotifications,
+      marketingEmails: preferences.marketingEmails,
+    };
+  }
+
+  /**
    * Check if a notification should be sent based on user preferences
    */
   private async shouldSendNotification(

@@ -70,6 +70,8 @@ describe('NotificationsService - Push Token Management', () => {
           provide: getRepositoryToken(NotificationPreferences),
           useValue: {
             findOne: jest.fn(),
+            create: jest.fn(),
+            save: jest.fn(),
           },
         },
         {
@@ -306,6 +308,126 @@ describe('NotificationsService - Push Token Management', () => {
           affected: 5,
           threshold: '90 days',
         }),
+      );
+    });
+  });
+
+  describe('getNotificationSettings', () => {
+    it('should return existing notification preferences', async () => {
+      const userId = 'user-123';
+      const mockUser = { id: userId, email: 'test@example.com' };
+      const mockPreferences = {
+        id: 'pref-123',
+        userId,
+        dailySelection: true,
+        newMatches: true,
+        newMessages: false,
+        chatExpiring: true,
+        subscriptionUpdates: true,
+        pushNotifications: true,
+        emailNotifications: false,
+        marketingEmails: false,
+      };
+
+      const userRepository = service['userRepository'];
+      const preferencesRepository =
+        service['notificationPreferencesRepository'];
+
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as any);
+      jest
+        .spyOn(preferencesRepository, 'findOne')
+        .mockResolvedValue(mockPreferences as any);
+
+      const result = await service.getNotificationSettings(userId);
+
+      expect(userRepository.findOne).toHaveBeenCalledWith({
+        where: { id: userId },
+      });
+      expect(preferencesRepository.findOne).toHaveBeenCalledWith({
+        where: { userId },
+      });
+      expect(result).toEqual({
+        dailySelection: true,
+        newMatches: true,
+        newMessages: false,
+        chatExpiring: true,
+        subscriptionUpdates: true,
+        pushNotifications: true,
+        emailNotifications: false,
+        marketingEmails: false,
+      });
+      expect(mockLogger.logUserAction).toHaveBeenCalledWith(
+        'get_notification_settings',
+        { userId },
+      );
+    });
+
+    it('should create and return default preferences for new users', async () => {
+      const userId = 'user-123';
+      const mockUser = { id: userId, email: 'test@example.com' };
+      const mockDefaultPreferences = {
+        id: 'pref-456',
+        userId,
+        dailySelection: true,
+        newMatches: true,
+        newMessages: true,
+        chatExpiring: true,
+        subscriptionUpdates: true,
+        pushNotifications: true,
+        emailNotifications: true,
+        marketingEmails: false,
+      };
+
+      const userRepository = service['userRepository'];
+      const preferencesRepository =
+        service['notificationPreferencesRepository'];
+
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as any);
+      jest.spyOn(preferencesRepository, 'findOne').mockResolvedValue(null);
+      jest
+        .spyOn(preferencesRepository, 'create')
+        .mockReturnValue(mockDefaultPreferences as any);
+      jest
+        .spyOn(preferencesRepository, 'save')
+        .mockResolvedValue(mockDefaultPreferences as any);
+
+      const result = await service.getNotificationSettings(userId);
+
+      expect(preferencesRepository.create).toHaveBeenCalledWith({
+        userId,
+        dailySelection: true,
+        newMatches: true,
+        newMessages: true,
+        chatExpiring: true,
+        subscriptionUpdates: true,
+        pushNotifications: true,
+        emailNotifications: true,
+        marketingEmails: false,
+      });
+      expect(preferencesRepository.save).toHaveBeenCalled();
+      expect(result).toEqual({
+        dailySelection: true,
+        newMatches: true,
+        newMessages: true,
+        chatExpiring: true,
+        subscriptionUpdates: true,
+        pushNotifications: true,
+        emailNotifications: true,
+        marketingEmails: false,
+      });
+    });
+
+    it('should throw NotFoundException if user does not exist', async () => {
+      const userId = 'nonexistent-user';
+      const userRepository = service['userRepository'];
+
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
+
+      await expect(service.getNotificationSettings(userId)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.getNotificationSettings(userId)).rejects.toThrow(
+        'User not found',
       );
     });
   });
