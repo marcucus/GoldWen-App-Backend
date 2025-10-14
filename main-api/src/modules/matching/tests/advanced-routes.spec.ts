@@ -298,6 +298,62 @@ describe('Advanced Matching Routes', () => {
       expect(result.pagination.hasNext).toBe(true);
       expect(result.pagination.hasPrev).toBe(true);
     });
+
+    it('should support date range filtering', async () => {
+      const mockSelection: Partial<DailySelection> = {
+        id: 'selection-1',
+        userId: 'user-1',
+        selectionDate: new Date('2025-01-15'),
+        selectedProfileIds: ['user-2'],
+        chosenProfileIds: ['user-2'],
+        choicesUsed: 1,
+        maxChoicesAllowed: 1,
+      };
+
+      const mockChoice: Partial<UserChoice> = {
+        id: 'choice-1',
+        userId: 'user-1',
+        targetUserId: 'user-2',
+        dailySelectionId: 'selection-1',
+        choiceType: ChoiceType.LIKE,
+        createdAt: new Date('2025-01-15T12:00:00'),
+      };
+
+      const mockUser2: Partial<User> = {
+        id: 'user-2',
+        email: 'user2@example.com',
+        profile: {
+          firstName: 'Jane',
+          lastName: 'Doe',
+        } as Profile,
+      };
+
+      jest.spyOn(dailySelectionRepository, 'count').mockResolvedValue(1);
+      jest
+        .spyOn(dailySelectionRepository, 'find')
+        .mockResolvedValue([mockSelection as DailySelection]);
+      jest
+        .spyOn(userChoiceRepository, 'find')
+        .mockResolvedValue([mockChoice as UserChoice]);
+      jest
+        .spyOn(userRepository, 'findOne')
+        .mockResolvedValue(mockUser2 as User);
+      jest.spyOn(matchRepository, 'findOne').mockResolvedValue(null);
+
+      const result = await controller.getMatchingHistory(
+        mockRequest,
+        '2025-01-01',
+        '2025-01-31',
+        '1',
+        '20',
+      );
+
+      expect(result.history).toBeDefined();
+      expect(result.history.length).toBe(1);
+      expect(result.history[0].date).toBe('2025-01-15');
+      expect(result.history[0].profiles.length).toBe(1);
+      expect(result.history[0].profiles[0].choice).toBe('like');
+    });
   });
 
   describe('GET /matching/who-liked-me', () => {

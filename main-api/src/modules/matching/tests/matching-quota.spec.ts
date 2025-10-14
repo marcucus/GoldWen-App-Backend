@@ -9,6 +9,7 @@ import { Profile } from '../../../database/entities/profile.entity';
 import { DailySelection } from '../../../database/entities/daily-selection.entity';
 import { PersonalityAnswer } from '../../../database/entities/personality-answer.entity';
 import { Subscription } from '../../../database/entities/subscription.entity';
+import { UserChoice } from '../../../database/entities/user-choice.entity';
 import { ChatService } from '../../chat/chat.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { MatchingIntegrationService } from '../matching-integration.service';
@@ -46,6 +47,12 @@ describe('MatchingService - Quota Enforcement', () => {
 
   const mockSubscriptionRepository = {
     findOne: jest.fn(),
+    find: jest.fn(),
+  };
+
+  const mockUserChoiceRepository = {
+    create: jest.fn(),
+    save: jest.fn(),
     find: jest.fn(),
   };
 
@@ -94,6 +101,10 @@ describe('MatchingService - Quota Enforcement', () => {
         {
           provide: getRepositoryToken(Subscription),
           useValue: mockSubscriptionRepository,
+        },
+        {
+          provide: getRepositoryToken(UserChoice),
+          useValue: mockUserChoiceRepository,
         },
         {
           provide: ChatService,
