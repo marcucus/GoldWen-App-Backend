@@ -10,6 +10,7 @@ import {
   Query,
   Param,
   Ip,
+  ForbiddenException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import {
@@ -38,6 +39,8 @@ import {
 import { DeleteAccountDto } from './dto/delete-account.dto';
 import { SuccessResponseDto } from '../../common/dto/response.dto';
 import { GdprService } from './gdpr.service';
+import { GdprService as GdprModuleService } from '../gdpr/gdpr.service';
+import { ExportStatus } from '../../database/entities/data-export-request.entity';
 import { Roles, RoleGuard } from '../auth/guards/role.guard';
 import { SkipConsentCheck } from '../auth/decorators/skip-consent.decorator';
 import { User } from '../../database/entities/user.entity';
@@ -57,6 +60,7 @@ export class UsersController {
     private usersService: UsersService,
     private profilesService: ProfilesService,
     private gdprService: GdprService,
+    private gdprModuleService: GdprModuleService,
     @InjectRepository(Profile)
     private profileRepository: Repository<Profile>,
     @InjectRepository(PromptAnswer)
@@ -369,7 +373,7 @@ export class UsersController {
     @Ip() ipAddress: string,
   ) {
     const user = req.user as User;
-    
+
     // Extract real IP from headers if behind proxy
     const realIp =
       (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
@@ -437,6 +441,95 @@ export class UsersController {
             createdAt: consent.createdAt,
           }
         : null,
+    };
+  }
+
+  @ApiOperation({
+    summary: 'Request user data export (RGPD Art. 20 - Data Portability)',
+    description:
+      'Create an asynchronous request to export all user data in JSON format. The export is processed in the background and can be retrieved using the exportId.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Export request created successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        exportId: { type: 'string', format: 'uuid' },
+        status: { type: 'string', example: 'processing' },
+        estimatedTime: { type: 'number', example: 300 },
+      },
+    },
+  })
+  @Post('me/export-data')
+  async requestDataExport(@Req() req: Request) {
+    const user = req.user as User;
+    const exportRequest = await this.gdprModuleService.requestDataExport(
+      user.id,
+      'json',
+    );
+
+    return {
+      exportId: exportRequest.id,
+      status: exportRequest.status,
+      estimatedTime: 300, // 5 minutes estimate
+    };
+  }
+
+  @ApiOperation({
+    summary: 'Get data export status and download URL (RGPD Art. 20)',
+    description:
+      'Retrieve the status of a data export request and get the download URL if ready. The download URL expires after 7 days.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Export status retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        status: {
+          type: 'string',
+          enum: ['processing', 'ready', 'failed'],
+          example: 'ready',
+        },
+        downloadUrl: {
+          type: 'string',
+          nullable: true,
+          example: 'https://example.com/exports/user-data.json',
+        },
+        expiresAt: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
+  @Get('me/export-data/:exportId')
+  async getDataExport(
+    @Param('exportId') exportId: string,
+    @Req() req: Request,
+  ) {
+    const user = req.user as User;
+    const exportData = await this.gdprModuleService.getExportRequestStatus(
+      user.id,
+      exportId,
+    );
+
+    // Verify user owns this export
+    if (exportData.userId !== user.id) {
+      throw new ForbiddenException('Access denied to this export request');
+    }
+
+    // Map status to frontend expected values
+    const status =
+      exportData.status === ExportStatus.COMPLETED
+        ? 'ready'
+        : exportData.status === ExportStatus.PENDING ||
+            exportData.status === ExportStatus.PROCESSING
+          ? 'processing'
+          : 'failed';
+
+    return {
+      status,
+      downloadUrl: status === 'ready' ? exportData.fileUrl : null,
+      expiresAt: exportData.expiresAt,
     };
   }
 

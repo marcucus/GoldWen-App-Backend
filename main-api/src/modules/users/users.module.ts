@@ -5,6 +5,7 @@ import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { UserGdprController } from './user-gdpr.controller';
 import { ProfilesModule } from '../profiles/profiles.module';
+import { GdprModule } from '../gdpr/gdpr.module';
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
 import { Match } from '../../database/entities/match.entity';
@@ -36,6 +37,7 @@ import { GdprService } from './gdpr.service';
       Report,
     ]),
     ProfilesModule,
+    GdprModule,
   ],
   providers: [UsersService, GdprService],
   controllers: [UsersController, UserGdprController],
