@@ -341,9 +341,12 @@ export class ProfilesService {
   }
 
   async getPrompts(): Promise<Prompt[]> {
+    // Return only 3 prompts (required prompts first, then optional if needed)
+    // This aligns with frontend limitation of 3 prompts selection
     return this.promptRepository.find({
       where: { isActive: true },
-      order: { order: 'ASC' },
+      order: { isRequired: 'DESC', order: 'ASC' },
+      take: 3,
     });
   }
 
@@ -385,62 +388,17 @@ export class ProfilesService {
       );
     }
 
-    // Get required prompts to validate answers
-    const requiredPrompts = await this.promptRepository.find({
-      where: { isActive: true, isRequired: true },
-    });
-    console.log(
-      '[submitPromptAnswers] Required prompts:',
-      requiredPrompts.map((p) => ({ id: p.id, text: p.text })),
-    );
-
-    console.log('[submitPromptAnswers] Answers received:', answers);
-
-    // Validate that all required prompts are answered
-    const answeredPromptIds = new Set(answers.map((a) => a.promptId));
-    console.log(
-      '[submitPromptAnswers] Answered prompt IDs:',
-      Array.from(answeredPromptIds),
-    );
-    const missingRequired = requiredPrompts.filter(
-      (p) => !answeredPromptIds.has(p.id),
-    );
-    console.log(
-      '[submitPromptAnswers] Missing required prompts:',
-      missingRequired.map((p) => ({ id: p.id, text: p.text })),
-    );
-
-    if (missingRequired.length > 0) {
-      console.warn(
-        '[submitPromptAnswers] ERROR: Missing answers for required prompts:',
-        missingRequired.map((p) => p.text),
-      );
-      throw new BadRequestException({
-        message: `Missing answers for required prompts: ${missingRequired.map((p) => p.text).join(', ')}`,
-        missingPrompts: missingRequired.map((p) => p.id),
-      });
-    }
-
     // Validate that answered prompts exist and are active
     const allPrompts = await this.promptRepository.find({
       where: { isActive: true },
     });
     const activePromptIds = new Set(allPrompts.map((p) => p.id));
-    console.log(
-      '[submitPromptAnswers] All active prompt IDs:',
-      Array.from(activePromptIds),
-    );
 
     const invalidAnswers = answers.filter(
       (a) => !activePromptIds.has(a.promptId),
     );
-    console.log('[submitPromptAnswers] Invalid answers:', invalidAnswers);
 
     if (invalidAnswers.length > 0) {
-      console.warn(
-        '[submitPromptAnswers] ERROR: Some prompts are invalid or inactive:',
-        invalidAnswers.map((a) => a.promptId),
-      );
       throw new BadRequestException(
         'Some prompts are invalid or inactive: ' +
           invalidAnswers.map((a) => a.promptId).join(', '),
@@ -452,19 +410,11 @@ export class ProfilesService {
     });
 
     if (!profile) {
-      console.error(
-        '[submitPromptAnswers] ERROR: Profile not found for user',
-        userId,
-      );
       throw new NotFoundException('Profile not found');
     }
 
     try {
       // Delete existing prompt answers
-      console.log(
-        '[submitPromptAnswers] Deleting existing prompt answers for profileId:',
-        profile.id,
-      );
       await this.promptAnswerRepository.delete({ profileId: profile.id });
 
       // Create new prompt answers
@@ -477,24 +427,7 @@ export class ProfilesService {
         });
       });
 
-      console.log('[submitPromptAnswers] Saving prompt answers:', {
-        userId,
-        profileId: profile.id,
-        answersCount: answerEntities.length,
-        answers: answerEntities.map((a) => ({
-          promptId: a.promptId,
-          answer: a.answer,
-        })),
-      });
-
-      const savedAnswers =
-        await this.promptAnswerRepository.save(answerEntities);
-
-      console.log('[submitPromptAnswers] Prompt answers saved successfully:', {
-        userId,
-        savedCount: savedAnswers.length,
-        savedIds: savedAnswers.map((a) => a.id),
-      });
+      await this.promptAnswerRepository.save(answerEntities);
 
       // Check if profile is now complete
       await this.updateProfileCompletionStatus(userId);
@@ -635,25 +568,14 @@ export class ProfilesService {
 
     // Check completion criteria from specifications:
     // 1. Minimum 3 photos
-    // 2. All required prompt answers
+    // 2. Exactly 3 prompt answers (aligned with frontend limitation)
     // 3. All required personality questions answered
-    // 4. Required profile fields: birthDate (gender and interestedInGenders are optional for now)
+    // 4. Required profile fields: birthDate and bio
     const hasMinPhotos = (user.profile.photos?.length || 0) >= 3;
 
-    // Get required prompts count and validate answers
-    const requiredPrompts = await this.promptRepository.find({
-      where: { isActive: true, isRequired: true },
-    });
-
-    const answeredPromptIds = new Set(
-      (user.profile.promptAnswers || []).map((a) => a.promptId),
-    );
-
-    const missingRequiredPrompts = requiredPrompts.filter(
-      (p) => !answeredPromptIds.has(p.id),
-    );
-
-    const hasPromptAnswers = missingRequiredPrompts.length === 0;
+    // Check if user has answered exactly 3 prompts (required for completion)
+    const promptsCount = user.profile.promptAnswers?.length || 0;
+    const hasPromptAnswers = promptsCount >= 3;
 
     const hasRequiredProfileFields = !!(
       user.profile.birthDate && user.profile.bio
@@ -741,57 +663,33 @@ export class ProfilesService {
       user.profile.birthDate && user.profile.bio
     );
 
-    // Get required prompts and check if user has answered all of them
-    const requiredPrompts = await this.promptRepository.find({
-      where: { isActive: true, isRequired: true },
-    });
+    // Check if user has answered exactly 3 prompts (required for completion)
+    const promptsCount = user.profile.promptAnswers?.length || 0;
+    const hasPrompts = promptsCount >= 3;
 
-    // Debug: Log all prompts for verification
-    const allPrompts = await this.promptRepository.find({
+    // Get available prompts for missing information (only the 3 prompts we offer)
+    const availablePrompts = await this.promptRepository.find({
       where: { isActive: true },
-    });
-
-    console.log('All active prompts in database:', {
-      totalActive: allPrompts.length,
-      requiredPrompts: allPrompts
-        .filter((p) => p.isRequired)
-        .map((p) => ({
-          id: p.id,
-          text: p.text,
-          isRequired: p.isRequired,
-          order: p.order,
-        })),
-      optionalPrompts: allPrompts
-        .filter((p) => !p.isRequired)
-        .map((p) => ({
-          id: p.id,
-          text: p.text,
-          isRequired: p.isRequired,
-          order: p.order,
-        })),
-      totalRequired: requiredPrompts.length,
+      order: { isRequired: 'DESC', order: 'ASC' },
+      take: 3,
     });
 
     const answeredPromptIds = new Set(
       (user.profile.promptAnswers || []).map((a) => a.promptId),
     );
 
-    const missingRequiredPrompts = requiredPrompts.filter(
+    const missingPrompts = availablePrompts.filter(
       (p) => !answeredPromptIds.has(p.id),
     );
-
-    const hasPrompts = missingRequiredPrompts.length === 0;
-    const promptsCount = user.profile.promptAnswers?.length || 0;
-    const requiredPromptsCount = requiredPrompts.length;
 
     // Debug: Log prompts validation
     console.log('Prompts validation debug:', {
       userId: user.id,
-      requiredPromptsCount,
+      requiredPromptsCount: 3,
       promptsCount,
       answeredPromptIds: Array.from(answeredPromptIds),
-      requiredPromptIds: requiredPrompts.map((p) => p.id),
-      missingRequiredPrompts: missingRequiredPrompts.map((p) => ({
+      availablePromptIds: availablePrompts.map((p) => p.id),
+      missingPrompts: missingPrompts.map((p) => ({
         id: p.id,
         text: p.text,
       })),
@@ -809,15 +707,8 @@ export class ProfilesService {
     const missingSteps: string[] = [];
     if (!hasPhotos) missingSteps.push('Upload at least 3 photos');
     if (!hasPrompts) {
-      const missingPromptTexts = missingRequiredPrompts
-        .map((p) => p.text)
-        .slice(0, 3) // Show max 3 for readability
-        .join(', ');
-      const moreCount = missingRequiredPrompts.length - 3;
-      const moreText = moreCount > 0 ? ` and ${moreCount} more` : '';
-      missingSteps.push(
-        `Answer required prompts: ${missingPromptTexts}${moreText}`,
-      );
+      const missingCount = 3 - promptsCount;
+      missingSteps.push(`Answer ${missingCount} more prompt${missingCount > 1 ? 's' : ''} (${promptsCount}/3)`);
     }
     if (!hasPersonalityAnswers)
       missingSteps.push('Complete personality questionnaire');
@@ -856,8 +747,8 @@ export class ProfilesService {
     } else if (!hasPhotos) {
       nextStep = 'Upload at least 3 photos';
     } else if (!hasPrompts) {
-      const missingCount = missingRequiredPrompts.length;
-      nextStep = `Answer ${missingCount} required prompt${missingCount > 1 ? 's' : ''}`;
+      const missingCount = 3 - promptsCount;
+      nextStep = `Answer ${missingCount} more prompt${missingCount > 1 ? 's' : ''}`;
     } else {
       nextStep = 'Profile is complete!';
     }
@@ -872,10 +763,10 @@ export class ProfilesService {
           satisfied: hasPhotos,
         },
         minimumPrompts: {
-          required: requiredPromptsCount,
+          required: 3,
           current: promptsCount,
           satisfied: hasPrompts,
-          missing: missingRequiredPrompts.map((p) => ({
+          missing: missingPrompts.map((p) => ({
             id: p.id,
             text: p.text,
           })),
@@ -924,20 +815,9 @@ export class ProfilesService {
       // Check all completion requirements
       const hasMinPhotos = (user.profile.photos?.length || 0) >= 3;
 
-      // Get required prompts and validate answers
-      const requiredPrompts = await this.promptRepository.find({
-        where: { isActive: true, isRequired: true },
-      });
-
-      const answeredPromptIds = new Set(
-        (user.profile.promptAnswers || []).map((a) => a.promptId),
-      );
-
-      const missingRequiredPrompts = requiredPrompts.filter(
-        (p) => !answeredPromptIds.has(p.id),
-      );
-
-      const hasPromptAnswers = missingRequiredPrompts.length === 0;
+      // Check if user has exactly 3 prompt answers (required for completion)
+      const promptsCount = user.profile.promptAnswers?.length || 0;
+      const hasPromptAnswers = promptsCount >= 3;
 
       const hasRequiredProfileFields = !!(
         user.profile.birthDate && user.profile.bio
@@ -967,8 +847,9 @@ export class ProfilesService {
           );
         }
         if (!hasPromptAnswers) {
+          const missingCount = 3 - promptsCount;
           missingRequirements.push(
-            `Need to answer ${missingRequiredPrompts.length} required prompt(s)`,
+            `Need to answer ${missingCount} more prompt${missingCount > 1 ? 's' : ''} (${promptsCount}/3)`,
           );
         }
         if (!hasPersonalityAnswers) {
