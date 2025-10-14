@@ -35,6 +35,7 @@ import {
   UpdateUserRoleDto,
   UserRolesListResponseDto,
 } from './dto/role-management.dto';
+import { DeleteAccountDto } from './dto/delete-account.dto';
 import { SuccessResponseDto } from '../../common/dto/response.dto';
 import { GdprService } from './gdpr.service';
 import { Roles, RoleGuard } from '../auth/guards/role.guard';
@@ -44,6 +45,8 @@ import { Profile } from '../../database/entities/profile.entity';
 import { PromptAnswer } from '../../database/entities/prompt-answer.entity';
 import { SubmitPromptAnswersDto } from '../profiles/dto/profiles.dto';
 import { UserRole } from '../../common/enums';
+import { PasswordUtil } from '../../common/utils';
+import { UnauthorizedException, BadRequestException } from '@nestjs/common';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -215,18 +218,67 @@ export class UsersController {
     };
   }
 
-  @ApiOperation({ summary: 'Delete user account' })
-  @ApiResponse({ status: 200, description: 'Account deleted' })
+  @ApiOperation({
+    summary: 'Delete user account',
+    description:
+      'Permanently delete user account with password verification and double confirmation (GDPR)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Account deleted successfully with complete anonymization',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: {
+          type: 'string',
+          example: 'Account deleted successfully',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid confirmation text',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid password',
+  })
   @Delete('me')
-  async deleteAccount(@Req() req: Request) {
+  async deleteAccount(
+    @Req() req: Request,
+    @Body() deleteAccountDto: DeleteAccountDto,
+  ) {
     const user = req.user as User;
+
+    // Validate confirmation text (must be exactly "DELETE")
+    if (deleteAccountDto.confirmationText !== 'DELETE') {
+      throw new BadRequestException(
+        'Invalid confirmation text. Must be exactly "DELETE"',
+      );
+    }
+
+    // Get user with password hash for verification
+    const userWithPassword = await this.usersService.findById(user.id);
+
+    // Verify password
+    const isPasswordValid = await PasswordUtil.compare(
+      deleteAccountDto.password,
+      userWithPassword.passwordHash,
+    );
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid password');
+    }
 
     // Use GDPR service for complete deletion with anonymization
     await this.gdprService.deleteUserCompletely(user.id);
 
-    return new SuccessResponseDto(
-      'Account deleted successfully with complete anonymization',
-    );
+    return {
+      success: true,
+      message: 'Account deleted successfully',
+    };
   }
 
   @ApiOperation({ summary: 'Register device push token' })
