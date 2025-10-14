@@ -210,7 +210,9 @@ describe('Advanced Matching Routes', () => {
       jest
         .spyOn(userRepository, 'findOne')
         .mockResolvedValue(mockUser2 as User);
-      jest.spyOn(matchRepository, 'findOne').mockResolvedValue(mockMatch as Match);
+      jest
+        .spyOn(matchRepository, 'findOne')
+        .mockResolvedValue(mockMatch as Match);
 
       const result = await controller.getMatchingHistory(mockRequest);
 
