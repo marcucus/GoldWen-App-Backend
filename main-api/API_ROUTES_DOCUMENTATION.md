@@ -4,6 +4,37 @@ Cette documentation complète liste toutes les routes API disponibles dans le ba
 
 **Base URL**: `http://localhost:3000/api/v1`
 
+## ⚠️ Conformité RGPD - Consentement Requis
+
+**Important**: La plupart des routes nécessitent un consentement RGPD valide en plus de l'authentification.
+
+### Consentement Requis
+Les utilisateurs doivent accepter la politique de confidentialité et fournir leur consentement pour le traitement des données avant d'accéder aux fonctionnalités principales de l'application.
+
+**Routes exemptées de consentement:**
+- Toutes les routes d'authentification (`/auth/*`)
+- Routes de consentement (`/users/consent`)
+- Routes légales (`/legal/*`)
+- Routes de santé (`/health`)
+
+**Erreur de consentement manquant:**
+```json
+{
+  "statusCode": 403,
+  "message": "Valid consent required. You must accept the privacy policy and data processing terms to use this feature.",
+  "code": "CONSENT_REQUIRED",
+  "nextStep": "/consent",
+  "details": {
+    "hasConsent": false,
+    "dataProcessingConsent": false
+  }
+}
+```
+
+Pour enregistrer le consentement, utilisez `POST /users/consent`.
+
+---
+
 ## Index des Routes
 
 - [Routes d'Application](#routes-dapplication)
@@ -337,17 +368,39 @@ Cette documentation complète liste toutes les routes API disponibles dans le ba
 ```
 
 ### POST /users/consent
-**Description**: Enregistrer le consentement RGPD utilisateur  
+**Description**: Enregistrer le consentement RGPD utilisateur (Art. 7 RGPD)  
 **Authentification**: Bearer Token  
+**Note**: Cette route est exemptée de la vérification de consentement  
 **Body**:
 ```json
 {
-  "dataProcessing": "boolean",
-  "marketing": "boolean (optionnel)",
-  "analytics": "boolean (optionnel)",
-  "consentedAt": "ISO date string"
+  "dataProcessing": "boolean (requis - consentement traitement données)",
+  "marketing": "boolean (optionnel - communications marketing)",
+  "analytics": "boolean (optionnel - tracking analytics)",
+  "consentedAt": "ISO date string (requis)"
 }
 ```
+**Réponse**:
+```json
+{
+  "success": true,
+  "message": "Consent recorded successfully",
+  "data": {
+    "id": "string (UUID)",
+    "dataProcessing": "boolean",
+    "marketing": "boolean",
+    "analytics": "boolean",
+    "consentedAt": "ISO date string",
+    "ipAddress": "string (adresse IP enregistrée)",
+    "createdAt": "ISO date string"
+  }
+}
+```
+**Notes importantes**:
+- L'adresse IP est automatiquement capturée pour traçabilité RGPD
+- Support des proxies (headers X-Forwarded-For, X-Real-IP)
+- Les consentements précédents sont automatiquement révoqués
+- Le consentement `dataProcessing` est **obligatoire** pour accéder aux fonctionnalités
 
 ### GET /users/me/export-data
 **Description**: Exporter toutes les données utilisateur (RGPD)  
@@ -359,6 +412,7 @@ Cette documentation complète liste toutes les routes API disponibles dans le ba
 ### GET /users/consent
 **Description**: Obtenir le statut de consentement RGPD actuel  
 **Authentification**: Bearer Token  
+**Note**: Cette route est exemptée de la vérification de consentement  
 **Réponse**:
 ```json
 {
@@ -374,6 +428,7 @@ Cette documentation complète liste toutes les routes API disponibles dans le ba
   }
 }
 ```
+**Note**: Retourne `null` dans `data` si aucun consentement actif
 
 ### GET /users/me/export
 **Description**: Exporter toutes les données utilisateur pour portabilité RGPD  
@@ -1392,10 +1447,41 @@ Cette documentation complète liste toutes les routes API disponibles dans le ba
 **Authentification**: Aucune
 
 ### GET /legal/privacy-policy
-**Description**: Obtenir la politique de confidentialité  
+**Description**: Obtenir la politique de confidentialité (RGPD conforme)  
+**Authentification**: Aucune  
 **Query Parameters**:
-- `version?`: string (version spécifique, optionnel)
+- `version?`: string (version spécifique ou 'latest', défaut: 'latest')
 - `format?`: string (html|json, défaut: json)
+
+**Réponse (format JSON)**:
+```json
+{
+  "version": "1.0.0",
+  "content": {
+    "sections": [
+      {
+        "title": "Collecte des Données",
+        "content": "..."
+      },
+      {
+        "title": "Utilisation des Données",
+        "content": "..."
+      }
+    ]
+  },
+  "lastUpdated": "2024-01-15T10:30:00.000Z",
+  "effectiveDate": "2024-01-15T10:30:00.000Z"
+}
+```
+
+**Réponse (format HTML)**:  
+Retourne le contenu HTML de la politique de confidentialité directement.
+
+**Notes**:
+- Contient les informations RGPD complètes (Articles 7, 13, 14)
+- Disponible en français
+- Versionné pour traçabilité
+- Accessible sans authentification
 
 ### GET /legal/terms-of-service
 **Description**: Obtenir les conditions d'utilisation  

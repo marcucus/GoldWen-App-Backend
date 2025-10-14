@@ -30,6 +30,9 @@ export class UserConsent {
   consentedAt: Date;
 
   @Column({ nullable: true })
+  ipAddress?: string;
+
+  @Column({ nullable: true })
   revokedAt?: Date;
 
   @Column({ default: true })

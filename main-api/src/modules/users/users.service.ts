@@ -306,6 +306,7 @@ export class UsersService {
   async recordConsent(
     userId: string,
     consentDto: ConsentDto,
+    ipAddress?: string,
   ): Promise<UserConsent> {
     // Deactivate previous consents
     await this.userConsentRepository.update(
@@ -320,6 +321,7 @@ export class UsersService {
       marketing: consentDto.marketing ?? false,
       analytics: consentDto.analytics ?? false,
       consentedAt: new Date(consentDto.consentedAt),
+      ipAddress,
       isActive: true,
     });
 

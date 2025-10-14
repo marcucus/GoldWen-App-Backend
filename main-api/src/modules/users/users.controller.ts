@@ -9,6 +9,7 @@ import {
   Delete,
   Query,
   Param,
+  Ip,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import {
@@ -37,6 +38,7 @@ import {
 import { SuccessResponseDto } from '../../common/dto/response.dto';
 import { GdprService } from './gdpr.service';
 import { Roles, RoleGuard } from '../auth/guards/role.guard';
+import { SkipConsentCheck } from '../auth/decorators/skip-consent.decorator';
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
 import { PromptAnswer } from '../../database/entities/prompt-answer.entity';
@@ -307,10 +309,26 @@ export class UsersController {
 
   @ApiOperation({ summary: 'Record user consent for GDPR compliance' })
   @ApiResponse({ status: 201, description: 'Consent recorded successfully' })
+  @SkipConsentCheck()
   @Post('consent')
-  async recordConsent(@Req() req: Request, @Body() consentDto: ConsentDto) {
+  async recordConsent(
+    @Req() req: Request,
+    @Body() consentDto: ConsentDto,
+    @Ip() ipAddress: string,
+  ) {
     const user = req.user as User;
-    const consent = await this.usersService.recordConsent(user.id, consentDto);
+    
+    // Extract real IP from headers if behind proxy
+    const realIp =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+      (req.headers['x-real-ip'] as string) ||
+      ipAddress;
+
+    const consent = await this.usersService.recordConsent(
+      user.id,
+      consentDto,
+      realIp,
+    );
 
     return {
       success: true,
@@ -321,6 +339,7 @@ export class UsersController {
         marketing: consent.marketing,
         analytics: consent.analytics,
         consentedAt: consent.consentedAt,
+        ipAddress: consent.ipAddress,
         createdAt: consent.createdAt,
       },
     };
@@ -347,6 +366,7 @@ export class UsersController {
 
   @ApiOperation({ summary: 'Get current user consent status' })
   @ApiResponse({ status: 200, description: 'Current consent status retrieved' })
+  @SkipConsentCheck()
   @Get('consent')
   async getCurrentConsent(@Req() req: Request) {
     const user = req.user as User;
