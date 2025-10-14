@@ -6,7 +6,14 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, In, MoreThanOrEqual, LessThanOrEqual, Between } from 'typeorm';
+import {
+  Repository,
+  Not,
+  In,
+  MoreThanOrEqual,
+  LessThanOrEqual,
+  Between,
+} from 'typeorm';
 
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
@@ -14,7 +21,10 @@ import { DailySelection } from '../../database/entities/daily-selection.entity';
 import { Match } from '../../database/entities/match.entity';
 import { PersonalityAnswer } from '../../database/entities/personality-answer.entity';
 import { Subscription } from '../../database/entities/subscription.entity';
-import { UserChoice, ChoiceType } from '../../database/entities/user-choice.entity';
+import {
+  UserChoice,
+  ChoiceType,
+} from '../../database/entities/user-choice.entity';
 import { CustomLoggerService } from '../../common/logger';
 
 import {

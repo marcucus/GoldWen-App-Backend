@@ -12,7 +12,10 @@ import { DailySelection } from '../../../database/entities/daily-selection.entit
 import { Match } from '../../../database/entities/match.entity';
 import { PersonalityAnswer } from '../../../database/entities/personality-answer.entity';
 import { Subscription } from '../../../database/entities/subscription.entity';
-import { UserChoice, ChoiceType } from '../../../database/entities/user-choice.entity';
+import {
+  UserChoice,
+  ChoiceType,
+} from '../../../database/entities/user-choice.entity';
 import { ChatService } from '../../chat/chat.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { MatchingIntegrationService } from '../matching-integration.service';
