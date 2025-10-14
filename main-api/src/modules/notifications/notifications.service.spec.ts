@@ -312,6 +312,253 @@ describe('NotificationsService - Push Token Management', () => {
     });
   });
 
+  describe('updateNotificationSettings', () => {
+    it('should update existing notification preferences', async () => {
+      const userId = 'user-123';
+      const mockUser = { id: userId, email: 'test@example.com' };
+      const existingPreferences = {
+        id: 'pref-123',
+        userId,
+        dailySelection: true,
+        newMatches: true,
+        newMessages: true,
+        chatExpiring: true,
+        subscriptionUpdates: true,
+        pushNotifications: true,
+        emailNotifications: true,
+        marketingEmails: false,
+      };
+
+      const updateDto = {
+        dailySelection: false,
+        newMatches: false,
+        chatExpiring: false,
+      };
+
+      const updatedPreferences = {
+        ...existingPreferences,
+        ...updateDto,
+      };
+
+      const userRepository = service['userRepository'];
+      const preferencesRepository =
+        service['notificationPreferencesRepository'];
+
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as any);
+      jest
+        .spyOn(preferencesRepository, 'findOne')
+        .mockResolvedValue(existingPreferences as any);
+      jest
+        .spyOn(preferencesRepository, 'save')
+        .mockResolvedValue(updatedPreferences as any);
+
+      const result = await service.updateNotificationSettings(
+        userId,
+        updateDto,
+      );
+
+      expect(userRepository.findOne).toHaveBeenCalledWith({
+        where: { id: userId },
+      });
+      expect(preferencesRepository.findOne).toHaveBeenCalledWith({
+        where: { userId },
+      });
+      expect(preferencesRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          dailySelection: false,
+          newMatches: false,
+          chatExpiring: false,
+        }),
+      );
+      expect(result).toEqual({
+        message: 'Notification settings updated successfully',
+        settings: updateDto,
+      });
+      expect(mockLogger.logUserAction).toHaveBeenCalledWith(
+        'update_notification_settings',
+        expect.objectContaining({
+          userId,
+          ...updateDto,
+        }),
+      );
+    });
+
+    it('should create new preferences if none exist', async () => {
+      const userId = 'user-123';
+      const mockUser = { id: userId, email: 'test@example.com' };
+      const updateDto = {
+        dailySelection: false,
+        newMatches: true,
+        newMessages: false,
+        chatExpiring: true,
+      };
+
+      const newPreferences = {
+        id: 'pref-456',
+        userId,
+        ...updateDto,
+      };
+
+      const userRepository = service['userRepository'];
+      const preferencesRepository =
+        service['notificationPreferencesRepository'];
+
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as any);
+      jest.spyOn(preferencesRepository, 'findOne').mockResolvedValue(null);
+      jest
+        .spyOn(preferencesRepository, 'create')
+        .mockReturnValue(newPreferences as any);
+      jest
+        .spyOn(preferencesRepository, 'save')
+        .mockResolvedValue(newPreferences as any);
+
+      const result = await service.updateNotificationSettings(
+        userId,
+        updateDto,
+      );
+
+      expect(preferencesRepository.create).toHaveBeenCalledWith({
+        userId,
+        ...updateDto,
+      });
+      expect(preferencesRepository.save).toHaveBeenCalled();
+      expect(result).toEqual({
+        message: 'Notification settings updated successfully',
+        settings: updateDto,
+      });
+    });
+
+    it('should update only the four core notification types', async () => {
+      const userId = 'user-123';
+      const mockUser = { id: userId, email: 'test@example.com' };
+      const existingPreferences = {
+        id: 'pref-123',
+        userId,
+        dailySelection: true,
+        newMatches: true,
+        newMessages: true,
+        chatExpiring: true,
+        subscriptionUpdates: true,
+        pushNotifications: true,
+        emailNotifications: true,
+        marketingEmails: false,
+      };
+
+      // Only updating the 4 core notification types
+      const updateDto = {
+        dailySelection: false,
+        newMatches: false,
+        newMessages: false,
+        chatExpiring: false,
+      };
+
+      const userRepository = service['userRepository'];
+      const preferencesRepository =
+        service['notificationPreferencesRepository'];
+
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as any);
+      jest
+        .spyOn(preferencesRepository, 'findOne')
+        .mockResolvedValue(existingPreferences as any);
+      jest
+        .spyOn(preferencesRepository, 'save')
+        .mockResolvedValue({ ...existingPreferences, ...updateDto } as any);
+
+      const result = await service.updateNotificationSettings(
+        userId,
+        updateDto,
+      );
+
+      expect(preferencesRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          dailySelection: false,
+          newMatches: false,
+          newMessages: false,
+          chatExpiring: false,
+          // Other fields should remain unchanged
+          subscriptionUpdates: true,
+          pushNotifications: true,
+          emailNotifications: true,
+          marketingEmails: false,
+        }),
+      );
+      expect(result).toEqual({
+        message: 'Notification settings updated successfully',
+        settings: updateDto,
+      });
+    });
+
+    it('should throw NotFoundException if user does not exist', async () => {
+      const userId = 'nonexistent-user';
+      const updateDto = {
+        dailySelection: false,
+      };
+
+      const userRepository = service['userRepository'];
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
+
+      await expect(
+        service.updateNotificationSettings(userId, updateDto),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        service.updateNotificationSettings(userId, updateDto),
+      ).rejects.toThrow('User not found');
+    });
+
+    it('should handle partial updates correctly', async () => {
+      const userId = 'user-123';
+      const mockUser = { id: userId, email: 'test@example.com' };
+      const existingPreferences = {
+        id: 'pref-123',
+        userId,
+        dailySelection: true,
+        newMatches: true,
+        newMessages: true,
+        chatExpiring: true,
+        subscriptionUpdates: true,
+        pushNotifications: true,
+        emailNotifications: true,
+        marketingEmails: false,
+      };
+
+      // Updating only one field
+      const updateDto = {
+        dailySelection: false,
+      };
+
+      const userRepository = service['userRepository'];
+      const preferencesRepository =
+        service['notificationPreferencesRepository'];
+
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as any);
+      jest
+        .spyOn(preferencesRepository, 'findOne')
+        .mockResolvedValue(existingPreferences as any);
+      jest
+        .spyOn(preferencesRepository, 'save')
+        .mockResolvedValue({ ...existingPreferences, ...updateDto } as any);
+
+      const result = await service.updateNotificationSettings(
+        userId,
+        updateDto,
+      );
+
+      expect(result).toEqual({
+        message: 'Notification settings updated successfully',
+        settings: updateDto,
+      });
+      expect(preferencesRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          dailySelection: false,
+          // All other fields remain unchanged
+          newMatches: true,
+          newMessages: true,
+          chatExpiring: true,
+        }),
+      );
+    });
+  });
+
   describe('getNotificationSettings', () => {
     it('should return existing notification preferences', async () => {
       const userId = 'user-123';
