@@ -12,6 +12,7 @@ import { DailySelection } from '../../../database/entities/daily-selection.entit
 import { Match } from '../../../database/entities/match.entity';
 import { PersonalityAnswer } from '../../../database/entities/personality-answer.entity';
 import { Subscription } from '../../../database/entities/subscription.entity';
+import { UserChoice, ChoiceType } from '../../../database/entities/user-choice.entity';
 import { ChatService } from '../../chat/chat.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { MatchingIntegrationService } from '../matching-integration.service';
@@ -30,6 +31,7 @@ describe('Advanced Matching Routes', () => {
   let dailySelectionRepository: Repository<DailySelection>;
   let matchRepository: Repository<Match>;
   let subscriptionRepository: Repository<Subscription>;
+  let userChoiceRepository: Repository<UserChoice>;
 
   const mockUser: Partial<User> = {
     id: 'user-1',
@@ -92,6 +94,14 @@ describe('Advanced Matching Routes', () => {
           },
         },
         {
+          provide: getRepositoryToken(UserChoice),
+          useValue: {
+            find: jest.fn(),
+            create: jest.fn(),
+            save: jest.fn(),
+          },
+        },
+        {
           provide: ChatService,
           useValue: {
             createChat: jest.fn(),
@@ -131,6 +141,9 @@ describe('Advanced Matching Routes', () => {
     matchRepository = module.get<Repository<Match>>(getRepositoryToken(Match));
     subscriptionRepository = module.get<Repository<Subscription>>(
       getRepositoryToken(Subscription),
+    );
+    userChoiceRepository = module.get<Repository<UserChoice>>(
+      getRepositoryToken(UserChoice),
     );
   });
 
@@ -174,16 +187,34 @@ describe('Advanced Matching Routes', () => {
   });
 
   describe('GET /matching/history', () => {
-    it('should return paginated history', async () => {
-      const mockSelections: Partial<DailySelection>[] = [
+    it('should return paginated history with like and pass choices', async () => {
+      const mockSelection: Partial<DailySelection> = {
+        id: 'selection-1',
+        userId: 'user-1',
+        selectionDate: new Date('2025-01-15'),
+        selectedProfileIds: ['user-2', 'user-3'],
+        chosenProfileIds: ['user-2', 'user-3'],
+        choicesUsed: 2,
+        maxChoicesAllowed: 2,
+        updatedAt: new Date('2025-01-15T14:00:00'),
+      };
+
+      const mockChoices: Partial<UserChoice>[] = [
         {
+          id: 'choice-1',
           userId: 'user-1',
-          selectionDate: new Date('2025-01-15'),
-          selectedProfileIds: ['user-2', 'user-3'],
-          chosenProfileIds: ['user-2'],
-          choicesUsed: 1,
-          maxChoicesAllowed: 1,
-          updatedAt: new Date('2025-01-15T14:00:00'),
+          targetUserId: 'user-2',
+          dailySelectionId: 'selection-1',
+          choiceType: ChoiceType.LIKE,
+          createdAt: new Date('2025-01-15T12:00:00'),
+        },
+        {
+          id: 'choice-2',
+          userId: 'user-1',
+          targetUserId: 'user-3',
+          dailySelectionId: 'selection-1',
+          choiceType: ChoiceType.PASS,
+          createdAt: new Date('2025-01-15T12:05:00'),
         },
       ];
 
@@ -193,6 +224,15 @@ describe('Advanced Matching Routes', () => {
         profile: {
           firstName: 'Jane',
           lastName: 'Doe',
+        } as Profile,
+      };
+
+      const mockUser3: Partial<User> = {
+        id: 'user-3',
+        email: 'user3@example.com',
+        profile: {
+          firstName: 'John',
+          lastName: 'Smith',
         } as Profile,
       };
 
@@ -206,10 +246,17 @@ describe('Advanced Matching Routes', () => {
       jest.spyOn(dailySelectionRepository, 'count').mockResolvedValue(1);
       jest
         .spyOn(dailySelectionRepository, 'find')
-        .mockResolvedValue(mockSelections as DailySelection[]);
+        .mockResolvedValue([mockSelection as DailySelection]);
+      jest
+        .spyOn(userChoiceRepository, 'find')
+        .mockResolvedValue(mockChoices as UserChoice[]);
       jest
         .spyOn(userRepository, 'findOne')
-        .mockResolvedValue(mockUser2 as User);
+        .mockImplementation(async ({ where }) => {
+          if ((where as any).id === 'user-2') return mockUser2 as User;
+          if ((where as any).id === 'user-3') return mockUser3 as User;
+          return null;
+        });
       jest
         .spyOn(matchRepository, 'findOne')
         .mockResolvedValue(mockMatch as Match);
@@ -218,9 +265,13 @@ describe('Advanced Matching Routes', () => {
 
       expect(result.history).toBeDefined();
       expect(result.history.length).toBe(1);
-      expect(result.history[0].profiles.length).toBe(1);
+      expect(result.history[0].profiles.length).toBe(2);
       expect(result.history[0].profiles[0].userId).toBe('user-2');
+      expect(result.history[0].profiles[0].choice).toBe('like');
       expect(result.history[0].profiles[0].wasMatch).toBe(true);
+      expect(result.history[0].profiles[1].userId).toBe('user-3');
+      expect(result.history[0].profiles[1].choice).toBe('pass');
+      expect(result.history[0].profiles[1].wasMatch).toBe(false);
       expect(result.pagination).toBeDefined();
       expect(result.pagination.page).toBe(1);
       expect(result.pagination.limit).toBe(20);
@@ -230,6 +281,7 @@ describe('Advanced Matching Routes', () => {
     it('should handle pagination parameters', async () => {
       jest.spyOn(dailySelectionRepository, 'count').mockResolvedValue(50);
       jest.spyOn(dailySelectionRepository, 'find').mockResolvedValue([]);
+      jest.spyOn(userChoiceRepository, 'find').mockResolvedValue([]);
 
       const result = await controller.getMatchingHistory(
         mockRequest,

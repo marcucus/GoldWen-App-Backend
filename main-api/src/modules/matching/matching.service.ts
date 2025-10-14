@@ -6,7 +6,7 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, In } from 'typeorm';
+import { Repository, Not, In, MoreThanOrEqual, LessThanOrEqual, Between } from 'typeorm';
 
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
@@ -14,6 +14,7 @@ import { DailySelection } from '../../database/entities/daily-selection.entity';
 import { Match } from '../../database/entities/match.entity';
 import { PersonalityAnswer } from '../../database/entities/personality-answer.entity';
 import { Subscription } from '../../database/entities/subscription.entity';
+import { UserChoice, ChoiceType } from '../../database/entities/user-choice.entity';
 import { CustomLoggerService } from '../../common/logger';
 
 import {
@@ -41,6 +42,8 @@ export class MatchingService {
     private personalityAnswerRepository: Repository<PersonalityAnswer>,
     @InjectRepository(Subscription)
     private subscriptionRepository: Repository<Subscription>,
+    @InjectRepository(UserChoice)
+    private userChoiceRepository: Repository<UserChoice>,
     @Inject(forwardRef(() => ChatService))
     private chatService: ChatService,
     @Inject(forwardRef(() => NotificationsService))
@@ -318,6 +321,15 @@ export class MatchingService {
     dailySelection.chosenProfileIds.push(targetUserId);
     dailySelection.choicesUsed += 1;
     await this.dailySelectionRepository.save(dailySelection);
+
+    // Record the choice in UserChoice entity
+    const userChoice = this.userChoiceRepository.create({
+      userId,
+      targetUserId,
+      dailySelectionId: dailySelection.id,
+      choiceType: choice === 'like' ? ChoiceType.LIKE : ChoiceType.PASS,
+    });
+    await this.userChoiceRepository.save(userChoice);
 
     const choicesRemaining =
       dailySelection.maxChoicesAllowed - dailySelection.choicesUsed;
@@ -750,9 +762,20 @@ export class MatchingService {
     // Build where clause for date range
     const whereClause: any = { userId };
 
-    if (options.startDate) {
-      whereClause.selectionDate = whereClause.selectionDate || {};
-      whereClause.selectionDate = { ...whereClause.selectionDate };
+    if (options.startDate && options.endDate) {
+      const startDate = new Date(options.startDate);
+      startDate.setHours(0, 0, 0, 0);
+      const endDate = new Date(options.endDate);
+      endDate.setHours(23, 59, 59, 999);
+      whereClause.selectionDate = Between(startDate, endDate);
+    } else if (options.startDate) {
+      const startDate = new Date(options.startDate);
+      startDate.setHours(0, 0, 0, 0);
+      whereClause.selectionDate = MoreThanOrEqual(startDate);
+    } else if (options.endDate) {
+      const endDate = new Date(options.endDate);
+      endDate.setHours(23, 59, 59, 999);
+      whereClause.selectionDate = LessThanOrEqual(endDate);
     }
 
     // Get total count for pagination
@@ -771,32 +794,46 @@ export class MatchingService {
     // Build history with user profiles
     const history = await Promise.all(
       selections.map(async (selection) => {
+        // Get all choices for this daily selection
+        const choices = await this.userChoiceRepository.find({
+          where: { dailySelectionId: selection.id },
+          order: { createdAt: 'ASC' },
+        });
+
         const profilesData = await Promise.all(
-          selection.chosenProfileIds.map(async (profileId) => {
+          choices.map(async (userChoice) => {
             const user = await this.userRepository.findOne({
-              where: { id: profileId },
+              where: { id: userChoice.targetUserId },
               relations: ['profile', 'profile.photos'],
             });
 
-            // Check if this was a match
-            const match = await this.matchRepository.findOne({
-              where: [
-                { user1Id: userId, user2Id: profileId },
-                { user1Id: profileId, user2Id: userId },
-              ],
-            });
+            // Skip if user no longer exists
+            if (!user) {
+              return null;
+            }
+
+            // Check if this was a match (only relevant for 'like' choices)
+            const match =
+              userChoice.choiceType === ChoiceType.LIKE
+                ? await this.matchRepository.findOne({
+                    where: [
+                      { user1Id: userId, user2Id: userChoice.targetUserId },
+                      { user1Id: userChoice.targetUserId, user2Id: userId },
+                    ],
+                  })
+                : null;
 
             return {
-              userId: profileId,
+              userId: userChoice.targetUserId,
               user,
-              choice: 'like' as const,
+              choice: userChoice.choiceType as 'like' | 'pass',
               wasMatch: !!match,
             };
           }),
         );
 
         // Filter out null users
-        const profiles = profilesData.filter((p) => p.user !== null) as Array<{
+        const profiles = profilesData.filter((p) => p !== null) as Array<{
           userId: string;
           user: User;
           choice: 'like' | 'pass';

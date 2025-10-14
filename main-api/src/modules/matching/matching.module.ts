@@ -17,6 +17,7 @@ import { DailySelection } from '../../database/entities/daily-selection.entity';
 import { Match } from '../../database/entities/match.entity';
 import { PersonalityAnswer } from '../../database/entities/personality-answer.entity';
 import { Subscription } from '../../database/entities/subscription.entity';
+import { UserChoice } from '../../database/entities/user-choice.entity';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { Subscription } from '../../database/entities/subscription.entity';
       Match,
       PersonalityAnswer,
       Subscription,
+      UserChoice,
     ]),
     forwardRef(() => ChatModule),
     forwardRef(() => NotificationsModule),
