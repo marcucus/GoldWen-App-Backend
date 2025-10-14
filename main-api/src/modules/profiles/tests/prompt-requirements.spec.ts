@@ -87,34 +87,25 @@ describe('ProfilesService - Dynamic Prompt Requirements', () => {
   });
 
   describe('submitPromptAnswers with dynamic validation', () => {
-    it('should accept answers for all required prompts', async () => {
-      const requiredPrompts = [
+    it('should accept exactly 3 prompt answers', async () => {
+      const allPrompts = [
         { id: 'prompt-1', isActive: true, isRequired: true, text: 'Prompt 1' },
         { id: 'prompt-2', isActive: true, isRequired: true, text: 'Prompt 2' },
-      ];
-
-      const allPrompts = [
-        ...requiredPrompts,
-        { id: 'prompt-3', isActive: true, isRequired: false, text: 'Prompt 3' },
+        { id: 'prompt-3', isActive: true, isRequired: true, text: 'Prompt 3' },
       ];
 
       const promptAnswersDto: SubmitPromptAnswersDto = {
         answers: [
           { promptId: 'prompt-1', answer: 'Answer 1' },
           { promptId: 'prompt-2', answer: 'Answer 2' },
-          { promptId: 'prompt-3', answer: 'Answer 3' }, // Optional prompt
+          { promptId: 'prompt-3', answer: 'Answer 3' },
         ],
       };
 
       // Mock repository calls
       jest
         .spyOn(promptRepository, 'find')
-        .mockImplementation((options: any) => {
-          if (options.where.isRequired) {
-            return Promise.resolve(requiredPrompts as any);
-          }
-          return Promise.resolve(allPrompts as any);
-        });
+        .mockResolvedValue(allPrompts as any);
 
       jest
         .spyOn(profileRepository, 'findOne')
@@ -134,38 +125,6 @@ describe('ProfilesService - Dynamic Prompt Requirements', () => {
 
       expect(promptAnswerRepository.save).toHaveBeenCalled();
       expect(updateSpy).toHaveBeenCalledWith('user-id');
-    });
-
-    it('should reject when missing required prompt answers', async () => {
-      const requiredPrompts = [
-        { id: 'prompt-1', isActive: true, isRequired: true, text: 'Prompt 1' },
-        { id: 'prompt-2', isActive: true, isRequired: true, text: 'Prompt 2' },
-      ];
-
-      const allPrompts = [
-        ...requiredPrompts,
-        { id: 'prompt-3', isActive: true, isRequired: false, text: 'Prompt 3' },
-      ];
-
-      const promptAnswersDto: SubmitPromptAnswersDto = {
-        answers: [
-          { promptId: 'prompt-1', answer: 'Answer 1' },
-          // Missing prompt-2 (required)
-        ],
-      };
-
-      jest
-        .spyOn(promptRepository, 'find')
-        .mockImplementation((options: any) => {
-          if (options.where.isRequired) {
-            return Promise.resolve(requiredPrompts as any);
-          }
-          return Promise.resolve(allPrompts as any);
-        });
-
-      await expect(
-        service.submitPromptAnswers('user-id', promptAnswersDto),
-      ).rejects.toThrow(BadRequestException);
     });
 
     it('should reject answers to inactive prompts', async () => {

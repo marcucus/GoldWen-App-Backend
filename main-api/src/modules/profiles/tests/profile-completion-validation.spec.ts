@@ -181,7 +181,7 @@ describe('ProfilesService - Profile Completion Validation', () => {
     });
 
     it('should return correct nextStep for missing prompts', async () => {
-      const requiredPrompts = [
+      const availablePrompts = [
         {
           id: 'prompt-1',
           text: 'What makes you happy?',
@@ -191,6 +191,12 @@ describe('ProfilesService - Profile Completion Validation', () => {
         {
           id: 'prompt-2',
           text: 'Describe yourself',
+          isActive: true,
+          isRequired: true,
+        },
+        {
+          id: 'prompt-3',
+          text: 'Your passion',
           isActive: true,
           isRequired: true,
         },
@@ -211,19 +217,31 @@ describe('ProfilesService - Profile Completion Validation', () => {
         .mockResolvedValue(userWithoutPrompts as any);
       jest
         .spyOn(promptRepository, 'find')
-        .mockResolvedValue(requiredPrompts as any);
+        .mockResolvedValue(availablePrompts as any);
       jest.spyOn(personalityQuestionRepository, 'count').mockResolvedValue(10);
 
       const result = await service.getProfileCompletion('user-id');
 
-      expect(result.nextStep).toBe('Answer 2 required prompts');
+      expect(result.nextStep).toBe('Answer 3 more prompts');
     });
 
     it('should return completion message when profile is complete', async () => {
-      const requiredPrompts = [
+      const availablePrompts = [
         {
           id: 'prompt-1',
           text: 'What makes you happy?',
+          isActive: true,
+          isRequired: true,
+        },
+        {
+          id: 'prompt-2',
+          text: 'Describe yourself',
+          isActive: true,
+          isRequired: true,
+        },
+        {
+          id: 'prompt-3',
+          text: 'Your passion',
           isActive: true,
           isRequired: true,
         },
@@ -234,7 +252,11 @@ describe('ProfilesService - Profile Completion Validation', () => {
         profile: {
           ...mockProfile,
           photos: [{ id: '1' }, { id: '2' }, { id: '3' }], // Has photos
-          promptAnswers: [{ promptId: 'prompt-1' }], // Has prompt answers
+          promptAnswers: [
+            { promptId: 'prompt-1' },
+            { promptId: 'prompt-2' },
+            { promptId: 'prompt-3' },
+          ], // Has 3 prompt answers
         },
         personalityAnswers: Array(10).fill({ id: 'answer' }), // Complete personality
       };
@@ -244,7 +266,7 @@ describe('ProfilesService - Profile Completion Validation', () => {
         .mockResolvedValue(completeUser as any);
       jest
         .spyOn(promptRepository, 'find')
-        .mockResolvedValue(requiredPrompts as any);
+        .mockResolvedValue(availablePrompts as any);
       jest.spyOn(personalityQuestionRepository, 'count').mockResolvedValue(10);
 
       const result = await service.getProfileCompletion('user-id');
@@ -254,10 +276,22 @@ describe('ProfilesService - Profile Completion Validation', () => {
     });
 
     it('should return requirements with correct structure for frontend', async () => {
-      const requiredPrompts = [
+      const availablePrompts = [
         {
           id: 'prompt-1',
           text: 'What makes you happy?',
+          isActive: true,
+          isRequired: true,
+        },
+        {
+          id: 'prompt-2',
+          text: 'Describe yourself',
+          isActive: true,
+          isRequired: true,
+        },
+        {
+          id: 'prompt-3',
+          text: 'Your passion',
           isActive: true,
           isRequired: true,
         },
@@ -278,7 +312,7 @@ describe('ProfilesService - Profile Completion Validation', () => {
         .mockResolvedValue(userWithPartialCompletion as any);
       jest
         .spyOn(promptRepository, 'find')
-        .mockResolvedValue(requiredPrompts as any);
+        .mockResolvedValue(availablePrompts as any);
       jest.spyOn(personalityQuestionRepository, 'count').mockResolvedValue(10);
 
       const result = await service.getProfileCompletion('user-id');
@@ -293,10 +327,14 @@ describe('ProfilesService - Profile Completion Validation', () => {
       // Check minimumPrompts structure (should use this name, not promptAnswers)
       expect(result.requirements.minimumPrompts).toBeDefined();
       expect(result.requirements.minimumPrompts).toEqual({
-        required: 1,
+        required: 3,
         current: 0,
         satisfied: false,
-        missing: [{ id: 'prompt-1', text: 'What makes you happy?' }],
+        missing: [
+          { id: 'prompt-1', text: 'What makes you happy?' },
+          { id: 'prompt-2', text: 'Describe yourself' },
+          { id: 'prompt-3', text: 'Your passion' },
+        ],
       });
 
       // Check personalityQuestionnaire structure (should be an object, not boolean)

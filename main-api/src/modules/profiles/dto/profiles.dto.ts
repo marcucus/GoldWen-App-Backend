@@ -8,6 +8,7 @@ import {
   IsUUID,
   IsUrl,
   ArrayMinSize,
+  ArrayMaxSize,
   MaxLength,
   IsEnum,
   IsDateString,
@@ -232,12 +233,13 @@ export class PromptAnswerDto {
 export class SubmitPromptAnswersDto {
   @ApiProperty({
     type: [PromptAnswerDto],
-    description: 'Array of prompt answers (minimum 3 required)',
+    description: 'Array of prompt answers (exactly 3 required)',
   })
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => PromptAnswerDto)
   @ArrayMinSize(3)
+  @ArrayMaxSize(3)
   answers: PromptAnswerDto[];
 }
 
@@ -271,6 +273,7 @@ export class UpdatePromptAnswersDto {
   @ValidateNested({ each: true })
   @Type(() => UpdatePromptAnswerDto)
   @ArrayMinSize(3)
+  @ArrayMaxSize(3)
   answers: UpdatePromptAnswerDto[];
 }
 

@@ -247,7 +247,7 @@ describe('ProfilesService - updateProfileStatus Strict Validation', () => {
       } catch (error) {
         expect(error.response.code).toBe('PROFILE_INCOMPLETE');
         expect(error.response.missingRequirements).toContain(
-          'Need to answer 2 required prompt(s)',
+          'Need to answer 2 more prompts (1/3)',
         );
       }
     });
@@ -425,7 +425,7 @@ describe('ProfilesService - updateProfileStatus Strict Validation', () => {
           'Need 2 more photo(s)',
         );
         expect(error.response.missingRequirements).toContain(
-          'Need to answer 3 required prompt(s)',
+          'Need to answer 3 more prompts (0/3)',
         );
         expect(error.response.missingRequirements).toContain(
           'Need to complete personality questionnaire',
