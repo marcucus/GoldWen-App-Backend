@@ -72,7 +72,7 @@ export class LegalService {
         {
           title: 'Traitement des Données (RGPD Art. 6)',
           content:
-            'Le traitement de vos données personnelles est basé sur votre consentement explicite (Art. 6(1)(a) RGPD) et sur la nécessité d\'exécuter le contrat de service (Art. 6(1)(b) RGPD).',
+            "Le traitement de vos données personnelles est basé sur votre consentement explicite (Art. 6(1)(a) RGPD) et sur la nécessité d'exécuter le contrat de service (Art. 6(1)(b) RGPD).",
         },
         {
           title: 'Vos Droits',

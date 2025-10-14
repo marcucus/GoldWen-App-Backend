@@ -352,7 +352,10 @@ describe('NotificationsService - Push Token Management', () => {
         .spyOn(preferencesRepository, 'save')
         .mockResolvedValue(updatedPreferences as any);
 
-      const result = await service.updateNotificationSettings(userId, updateDto);
+      const result = await service.updateNotificationSettings(
+        userId,
+        updateDto,
+      );
 
       expect(userRepository.findOne).toHaveBeenCalledWith({
         where: { id: userId },
@@ -409,7 +412,10 @@ describe('NotificationsService - Push Token Management', () => {
         .spyOn(preferencesRepository, 'save')
         .mockResolvedValue(newPreferences as any);
 
-      const result = await service.updateNotificationSettings(userId, updateDto);
+      const result = await service.updateNotificationSettings(
+        userId,
+        updateDto,
+      );
 
       expect(preferencesRepository.create).toHaveBeenCalledWith({
         userId,
@@ -458,7 +464,10 @@ describe('NotificationsService - Push Token Management', () => {
         .spyOn(preferencesRepository, 'save')
         .mockResolvedValue({ ...existingPreferences, ...updateDto } as any);
 
-      const result = await service.updateNotificationSettings(userId, updateDto);
+      const result = await service.updateNotificationSettings(
+        userId,
+        updateDto,
+      );
 
       expect(preferencesRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -529,7 +538,10 @@ describe('NotificationsService - Push Token Management', () => {
         .spyOn(preferencesRepository, 'save')
         .mockResolvedValue({ ...existingPreferences, ...updateDto } as any);
 
-      const result = await service.updateNotificationSettings(userId, updateDto);
+      const result = await service.updateNotificationSettings(
+        userId,
+        updateDto,
+      );
 
       expect(result).toEqual({
         message: 'Notification settings updated successfully',

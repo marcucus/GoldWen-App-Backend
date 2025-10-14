@@ -140,9 +140,8 @@ describe('Notification Settings Integration Tests', () => {
     app.useGlobalPipes(new ValidationPipe({ transform: true }));
     await app.init();
 
-    notificationsService = moduleFixture.get<NotificationsService>(
-      NotificationsService,
-    );
+    notificationsService =
+      moduleFixture.get<NotificationsService>(NotificationsService);
   });
 
   afterAll(async () => {
@@ -249,17 +248,19 @@ describe('Notification Settings Integration Tests', () => {
         },
       });
 
-      expect(mockNotificationPreferencesRepository.create).toHaveBeenCalledWith({
-        userId: mockUser.id,
-        dailySelection: true,
-        newMatches: true,
-        newMessages: true,
-        chatExpiring: true,
-        subscriptionUpdates: true,
-        pushNotifications: true,
-        emailNotifications: true,
-        marketingEmails: false,
-      });
+      expect(mockNotificationPreferencesRepository.create).toHaveBeenCalledWith(
+        {
+          userId: mockUser.id,
+          dailySelection: true,
+          newMatches: true,
+          newMessages: true,
+          chatExpiring: true,
+          subscriptionUpdates: true,
+          pushNotifications: true,
+          emailNotifications: true,
+          marketingEmails: false,
+        },
+      );
       expect(mockNotificationPreferencesRepository.save).toHaveBeenCalled();
     });
 
@@ -382,7 +383,8 @@ describe('Notification Settings Integration Tests', () => {
       // The service uses Object.assign which updates the object in place
       // So we check that save was called with an object containing dailySelection: false
       expect(mockNotificationPreferencesRepository.save).toHaveBeenCalled();
-      const savedObject = mockNotificationPreferencesRepository.save.mock.calls[0][0];
+      const savedObject =
+        mockNotificationPreferencesRepository.save.mock.calls[0][0];
       expect(savedObject.dailySelection).toBe(false);
       expect(savedObject.userId).toBe(mockUser.id);
     });
@@ -478,10 +480,12 @@ describe('Notification Settings Integration Tests', () => {
         },
       });
 
-      expect(mockNotificationPreferencesRepository.create).toHaveBeenCalledWith({
-        userId: mockUser.id,
-        ...updateDto,
-      });
+      expect(mockNotificationPreferencesRepository.create).toHaveBeenCalledWith(
+        {
+          userId: mockUser.id,
+          ...updateDto,
+        },
+      );
       expect(mockNotificationPreferencesRepository.save).toHaveBeenCalled();
     });
 

@@ -369,7 +369,7 @@ export class UsersController {
     @Ip() ipAddress: string,
   ) {
     const user = req.user as User;
-    
+
     // Extract real IP from headers if behind proxy
     const realIp =
       (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
