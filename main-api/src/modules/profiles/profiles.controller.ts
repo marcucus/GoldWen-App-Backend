@@ -25,6 +25,7 @@ import { ProfilesService } from './profiles.service';
 import { CacheControl } from '../../common/interceptors/cache.interceptor';
 import { CacheStrategy } from '../../common/enums/cache-strategy.enum';
 import {
+  ProfileResponseDto,
   UpdateProfileDto,
   SubmitPersonalityAnswersDto,
   UploadPhotosDto,
@@ -45,7 +46,12 @@ export class ProfilesController {
   @CacheControl(CacheStrategy.SHORT_CACHE)
   @SkipProfileCompletion()
   @ApiOperation({ summary: 'Get current user profile' })
-  @ApiResponse({ status: 200, description: 'Profile retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Profile retrieved successfully. The response includes the pseudo field (username).',
+    type: ProfileResponseDto,
+  })
   async getProfile(@Request() req: any) {
     return this.profilesService.getProfile(req.user.id);
   }
@@ -53,7 +59,12 @@ export class ProfilesController {
   @Put('me')
   @SkipProfileCompletion()
   @ApiOperation({ summary: 'Update current user profile' })
-  @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Profile updated successfully. You can update the pseudo field (username) using this endpoint.',
+    type: ProfileResponseDto,
+  })
   async updateProfile(
     @Request() req: any,
     @Body() updateProfileDto: UpdateProfileDto,
@@ -63,9 +74,10 @@ export class ProfilesController {
 
   @Get('completion')
   @SkipProfileCompletion()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get profile completion status',
-    description: 'Returns detailed profile completion status including requirements: 3 photos, exactly 3 prompts, personality questionnaire, and basic info (birthDate, bio).'
+    description:
+      'Returns detailed profile completion status including requirements: 3 photos, exactly 3 prompts, personality questionnaire, and basic info (birthDate, bio).',
   })
   @ApiResponse({ status: 200, description: 'Profile completion status' })
   async getProfileCompletion(@Request() req: any) {
@@ -158,9 +170,10 @@ export class ProfilesController {
   @Get('prompts')
   @CacheControl(CacheStrategy.LONG_CACHE)
   @SkipProfileCompletion()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get available prompts',
-    description: 'Returns exactly 3 active prompts that users can answer. Required prompts are prioritized first, then ordered by their order field.'
+    description:
+      'Returns exactly 3 active prompts that users can answer. Required prompts are prioritized first, then ordered by their order field.',
   })
   @ApiResponse({ status: 200, description: 'Prompts retrieved successfully' })
   async getPrompts() {
@@ -169,9 +182,10 @@ export class ProfilesController {
 
   @Post('me/prompt-answers')
   @SkipProfileCompletion()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Submit prompt answers',
-    description: 'Submit exactly 3 prompt answers. This is required for profile completion. Each answer must be max 150 characters and will be moderated for inappropriate content.'
+    description:
+      'Submit exactly 3 prompt answers. This is required for profile completion. Each answer must be max 150 characters and will be moderated for inappropriate content.',
   })
   @ApiResponse({
     status: 201,
@@ -179,7 +193,8 @@ export class ProfilesController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Invalid request - must provide exactly 3 answers, or content moderation failed',
+    description:
+      'Invalid request - must provide exactly 3 answers, or content moderation failed',
   })
   async submitPromptAnswers(
     @Request() req: any,
@@ -205,9 +220,10 @@ export class ProfilesController {
 
   @Put('me/prompt-answers')
   @SkipProfileCompletion()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Update prompt answers',
-    description: 'Update all prompt answers at once. Must provide exactly 3 answers. Each answer must be max 150 characters and will be moderated for inappropriate content.'
+    description:
+      'Update all prompt answers at once. Must provide exactly 3 answers. Each answer must be max 150 characters and will be moderated for inappropriate content.',
   })
   @ApiResponse({
     status: 200,
@@ -215,7 +231,8 @@ export class ProfilesController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Invalid request - must provide exactly 3 answers, or content moderation failed',
+    description:
+      'Invalid request - must provide exactly 3 answers, or content moderation failed',
   })
   async updatePromptAnswers(
     @Request() req: any,
