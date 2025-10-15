@@ -435,5 +435,44 @@ describe('ProfilesService - updateProfileStatus Strict Validation', () => {
         );
       }
     });
+
+    it('should reject visibility when user has more than 3 prompts', async () => {
+      const userWithTooManyPrompts = {
+        id: 'user-id',
+        profile: {
+          id: 'profile-id',
+          userId: 'user-id',
+          photos: [{ id: '1' }, { id: '2' }, { id: '3' }],
+          promptAnswers: [
+            { promptId: 'prompt-1' },
+            { promptId: 'prompt-2' },
+            { promptId: 'prompt-3' },
+            { promptId: 'prompt-4' }, // Too many!
+          ],
+          birthDate: '1990-01-01',
+          bio: 'Test bio',
+        },
+        personalityAnswers: Array(10).fill({ id: 'answer' }),
+      };
+
+      jest
+        .spyOn(userRepository, 'findOne')
+        .mockResolvedValue(userWithTooManyPrompts as any);
+      jest.spyOn(personalityQuestionRepository, 'count').mockResolvedValue(10);
+
+      await expect(
+        service.updateProfileStatus('user-id', { isVisible: true }),
+      ).rejects.toThrow(BadRequestException);
+
+      try {
+        await service.updateProfileStatus('user-id', { isVisible: true });
+      } catch (error) {
+        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error.response.code).toBe('PROFILE_INCOMPLETE');
+        expect(error.response.missingRequirements).toContain(
+          'Need to remove 1 prompt to have exactly 3 (4/3)',
+        );
+      }
+    });
   });
 });
