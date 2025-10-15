@@ -58,12 +58,21 @@ export class ProfilesController {
 
   @Put('me')
   @SkipProfileCompletion()
-  @ApiOperation({ summary: 'Update current user profile' })
+  @ApiOperation({
+    summary: 'Update current user profile',
+    description:
+      'Update profile fields. All text fields (bio, pseudo, jobTitle, company, education, favoriteSong) are moderated for inappropriate content and forbidden words.',
+  })
   @ApiResponse({
     status: 200,
     description:
       'Profile updated successfully. You can update the pseudo field (username) using this endpoint.',
     type: ProfileResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Invalid request or content moderation failed. Text fields contain forbidden words or inappropriate content.',
   })
   async updateProfile(
     @Request() req: any,

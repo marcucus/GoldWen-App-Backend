@@ -192,6 +192,12 @@ export const moderationConfig = registerAs(
         process.env.MODERATION_IMAGE_THRESHOLD || '80',
       ),
     },
+    forbiddenWords: {
+      enabled: process.env.FORBIDDEN_WORDS_ENABLED === 'true',
+      words: process.env.FORBIDDEN_WORDS
+        ? process.env.FORBIDDEN_WORDS.split(',').map((word) => word.trim())
+        : [],
+    },
   }),
 );
 

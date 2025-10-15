@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { ModerationService } from '../services/moderation.service';
 import { AiModerationService } from '../services/ai-moderation.service';
 import { ImageModerationService } from '../services/image-moderation.service';
+import { ForbiddenWordsService } from '../services/forbidden-words.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { CustomLoggerService } from '../../../common/logger';
 import { Photo } from '../../../database/entities/photo.entity';
@@ -17,6 +18,7 @@ describe('ModerationService', () => {
   let userRepository: Repository<User>;
   let aiModerationService: AiModerationService;
   let imageModerationService: ImageModerationService;
+  let forbiddenWordsService: ForbiddenWordsService;
   let notificationsService: NotificationsService;
   let logger: CustomLoggerService;
 
@@ -37,6 +39,13 @@ describe('ModerationService', () => {
 
     const mockImageModerationService = {
       moderateImage: jest.fn(),
+    };
+
+    const mockForbiddenWordsService = {
+      checkText: jest.fn().mockReturnValue({ containsForbiddenWords: false }),
+      checkTextBatch: jest.fn().mockImplementation((texts: string[]) =>
+        texts.map(() => ({ containsForbiddenWords: false })),
+      ),
     };
 
     const mockNotificationsService = {
@@ -71,6 +80,10 @@ describe('ModerationService', () => {
           useValue: mockImageModerationService,
         },
         {
+          provide: ForbiddenWordsService,
+          useValue: mockForbiddenWordsService,
+        },
+        {
           provide: NotificationsService,
           useValue: mockNotificationsService,
         },
@@ -87,6 +100,9 @@ describe('ModerationService', () => {
     aiModerationService = module.get<AiModerationService>(AiModerationService);
     imageModerationService = module.get<ImageModerationService>(
       ImageModerationService,
+    );
+    forbiddenWordsService = module.get<ForbiddenWordsService>(
+      ForbiddenWordsService,
     );
     notificationsService =
       module.get<NotificationsService>(NotificationsService);

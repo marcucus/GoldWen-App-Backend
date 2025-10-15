@@ -77,16 +77,58 @@ export class ProfilesService {
       throw new NotFoundException('Profile not found');
     }
 
-    // Moderate bio if it's being updated
-    if (updateProfileDto.bio) {
-      const moderationResult = await this.moderationService.moderateTextContent(
-        updateProfileDto.bio,
-        userId,
-      );
+    // Collect all text fields that need moderation
+    const textsToModerate: { field: string; text: string }[] = [];
 
-      if (!moderationResult.approved) {
+    if (updateProfileDto.bio) {
+      textsToModerate.push({ field: 'bio', text: updateProfileDto.bio });
+    }
+    if (updateProfileDto.pseudo) {
+      textsToModerate.push({ field: 'pseudo', text: updateProfileDto.pseudo });
+    }
+    if (updateProfileDto.jobTitle) {
+      textsToModerate.push({
+        field: 'jobTitle',
+        text: updateProfileDto.jobTitle,
+      });
+    }
+    if (updateProfileDto.company) {
+      textsToModerate.push({
+        field: 'company',
+        text: updateProfileDto.company,
+      });
+    }
+    if (updateProfileDto.education) {
+      textsToModerate.push({
+        field: 'education',
+        text: updateProfileDto.education,
+      });
+    }
+    if (updateProfileDto.favoriteSong) {
+      textsToModerate.push({
+        field: 'favoriteSong',
+        text: updateProfileDto.favoriteSong,
+      });
+    }
+
+    // Moderate all text fields in batch
+    if (textsToModerate.length > 0) {
+      const moderationResults =
+        await this.moderationService.moderateTextContentBatch(
+          textsToModerate.map((item) => item.text),
+        );
+
+      // Check if any field was blocked
+      const blockedFields = moderationResults
+        .map((result, index) => ({ result, field: textsToModerate[index] }))
+        .filter(({ result }) => !result.approved);
+
+      if (blockedFields.length > 0) {
+        const reasons = blockedFields
+          .map(({ result, field }) => `${field.field}: ${result.reason}`)
+          .join('; ');
         throw new BadRequestException(
-          `Bio rejected: ${moderationResult.reason}`,
+          `Profile fields rejected: ${reasons}`,
         );
       }
     }
@@ -157,6 +199,36 @@ export class ProfilesService {
         message: `Missing answers for required questions: ${missingRequired.map((q) => q.question).join(', ')}`,
         missingQuestions: missingRequired.map((q) => q.id),
       });
+    }
+
+    // Moderate text answers and multiple choice answers
+    const textsToModerate: string[] = [];
+    answers.forEach((answer) => {
+      if (answer.textAnswer) {
+        textsToModerate.push(answer.textAnswer);
+      }
+      if (answer.multipleChoiceAnswer && answer.multipleChoiceAnswer.length > 0) {
+        textsToModerate.push(...answer.multipleChoiceAnswer);
+      }
+    });
+
+    if (textsToModerate.length > 0) {
+      const moderationResults =
+        await this.moderationService.moderateTextContentBatch(textsToModerate);
+
+      // Check if any answer was blocked
+      const blockedAnswers = moderationResults
+        .map((result, index) => ({ result, index }))
+        .filter(({ result }) => !result.approved);
+
+      if (blockedAnswers.length > 0) {
+        const reasons = blockedAnswers
+          .map(({ result, index }) => `Answer ${index + 1}: ${result.reason}`)
+          .join('; ');
+        throw new BadRequestException(
+          `Some questionnaire answers contain inappropriate content: ${reasons}`,
+        );
+      }
     }
 
     try {

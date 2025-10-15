@@ -31,10 +31,19 @@ export class PersonalityController {
   @Post('personality-answers')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Submit personality questionnaire answers' })
+  @ApiOperation({
+    summary: 'Submit personality questionnaire answers',
+    description:
+      'Submit answers to the personality questionnaire. Text answers and multiple choice answers will be moderated for inappropriate content and forbidden words.',
+  })
   @ApiResponse({
     status: 201,
     description: 'Personality answers submitted successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Invalid request or content moderation failed. Answers contain forbidden words or inappropriate content.',
   })
   async submitPersonalityAnswers(
     @Request() req: any,

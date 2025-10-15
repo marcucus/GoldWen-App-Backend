@@ -2,9 +2,10 @@
 
 ## Overview
 
-The GoldWen backend implements an automated content moderation system for both text and images using AI services:
+The GoldWen backend implements an automated content moderation system for both text and images using AI services and configurable forbidden words:
 
-- **Text Moderation**: OpenAI's Moderation API
+- **Text Moderation**: OpenAI's Moderation API for AI-based content analysis
+- **Forbidden Words**: Configurable list of forbidden words/phrases
 - **Image Moderation**: AWS Rekognition
 
 ## Configuration
@@ -27,6 +28,10 @@ AWS_SECRET_ACCESS_KEY=your_aws_secret_key
 MODERATION_AUTO_BLOCK=true
 MODERATION_TEXT_THRESHOLD=0.7
 MODERATION_IMAGE_THRESHOLD=80
+
+# Forbidden Words Configuration
+FORBIDDEN_WORDS_ENABLED=true
+FORBIDDEN_WORDS=badword1,badword2,inappropriate phrase,offensive term
 ```
 
 ### Configuration Options
@@ -34,6 +39,8 @@ MODERATION_IMAGE_THRESHOLD=80
 - `MODERATION_AUTO_BLOCK`: Enable/disable automatic blocking (default: `false`)
 - `MODERATION_TEXT_THRESHOLD`: Confidence threshold for text blocking (0-1, default: `0.7`)
 - `MODERATION_IMAGE_THRESHOLD`: Confidence threshold for image blocking (0-100, default: `80`)
+- `FORBIDDEN_WORDS_ENABLED`: Enable/disable forbidden words checking (default: `false`)
+- `FORBIDDEN_WORDS`: Comma-separated list of forbidden words/phrases (case-insensitive)
 
 ## API Endpoints
 
@@ -127,6 +134,28 @@ Content-Type: application/json
 
 ## Integration Examples
 
+### Moderated Text Fields
+
+The following text fields throughout the application are automatically moderated for inappropriate content and forbidden words:
+
+**Profile Fields:**
+- Bio
+- Pseudo (username)
+- Job Title
+- Company
+- Education
+- Favorite Song
+
+**Questionnaire/Personality Answers:**
+- Text answers (`textAnswer`)
+- Multiple choice answers (`multipleChoiceAnswer`)
+
+**Prompt Answers:**
+- All prompt response texts
+
+**Messages:**
+- Chat messages (can be integrated using `moderateTextContent`)
+
 ### Photo Upload Flow
 
 When a user uploads a photo, the system automatically moderates it:
@@ -209,9 +238,18 @@ async updateProfile(userId: string, updateData: UpdateProfileDto) {
 
 ## Moderation Categories
 
-### Text Content
+### Forbidden Words
 
-The system checks for the following categories:
+The system checks for a configurable list of forbidden words/phrases:
+- Words are matched case-insensitively with whole-word boundaries
+- Supports both single words and multi-word phrases
+- Configured via the `FORBIDDEN_WORDS` environment variable
+- When enabled, this check runs **before** AI moderation for faster rejection
+- Returns clear error messages indicating which forbidden words were found
+
+### Text Content (AI-based)
+
+The system checks for the following categories using OpenAI:
 - Sexual content
 - Hate speech
 - Harassment
@@ -249,7 +287,8 @@ All moderation events are logged:
 - `text_moderation_completed`: When text moderation completes
 - `image_moderation_completed`: When image moderation completes
 - `photo_moderation_completed`: When photo moderation completes
-- `text_content_blocked`: When text content is blocked
+- `text_content_blocked`: When text content is blocked (includes AI or forbidden words)
+- `forbidden_words_detected`: When forbidden words are found in text
 - `photo_blocked_notification_sent`: When user is notified about photo rejection
 - `user_content_blocked`: Security event when user content is blocked
 
@@ -260,8 +299,31 @@ The moderation system uses a **fail-safe approach**:
 - If OpenAI API fails → Content is **approved** (safe default)
 - If AWS Rekognition fails → Content is **approved** (safe default)
 - Errors are logged but don't block the user experience
+- **Forbidden words checking always runs** (even if AI moderation fails)
 
 This prevents false positives from disrupting the user experience while maintaining security.
+
+### Error Responses
+
+When content is rejected due to forbidden words or inappropriate content, the API returns a `400 Bad Request` with a clear error message:
+
+```json
+{
+  "statusCode": 400,
+  "message": "Content contains forbidden words: badword, offensive",
+  "error": "Bad Request"
+}
+```
+
+For batch operations (like personality questionnaires with multiple answers):
+
+```json
+{
+  "statusCode": 400,
+  "message": "Some questionnaire answers contain inappropriate content: Answer 2: Content contains forbidden words: badword",
+  "error": "Bad Request"
+}
+```
 
 ## Testing
 
