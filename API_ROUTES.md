@@ -304,6 +304,13 @@ Cette documentation liste toutes les routes API disponibles pour le frontend et 
 **Content-Type**: `multipart/form-data`  
 **Body**: File upload avec metadata
 
+### POST /profiles/me/media
+**Description**: Upload de média (alias pour /profiles/me/photos)  
+**Headers**: `Authorization: Bearer <token>`  
+**Content-Type**: `multipart/form-data`  
+**Body**: File upload avec metadata  
+**Note**: Cet endpoint est un alias pour l'upload de photos. Utilisez le champ `photos` dans le formulaire multipart.
+
 ### PUT /profiles/me/photos/:photoId
 **Description**: Mise à jour de l'ordre des photos  
 **Headers**: `Authorization: Bearer <token>`
