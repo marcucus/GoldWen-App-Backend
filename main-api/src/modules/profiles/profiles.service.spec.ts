@@ -121,6 +121,77 @@ describe('ProfilesService', () => {
     expect(service).toBeDefined();
   });
 
+  describe('getProfile', () => {
+    it('should return profile with pseudo field', async () => {
+      const mockProfile = {
+        id: 'profile-id',
+        userId: 'user-id',
+        firstName: 'John',
+        lastName: 'Doe',
+        pseudo: 'johndoe123',
+        birthDate: new Date('1990-01-01'),
+        bio: 'Test bio',
+        photos: [],
+        promptAnswers: [],
+        user: mockUser,
+      };
+
+      jest
+        .spyOn(profileRepository, 'findOne')
+        .mockResolvedValue(mockProfile as any);
+
+      const result = await service.getProfile('user-id');
+
+      expect(result).toBeDefined();
+      expect(result.pseudo).toBe('johndoe123');
+      expect(result.firstName).toBe('John');
+      expect(result.lastName).toBe('Doe');
+    });
+
+    it('should throw NotFoundException when profile does not exist', async () => {
+      jest.spyOn(profileRepository, 'findOne').mockResolvedValue(null);
+
+      await expect(service.getProfile('non-existent-user')).rejects.toThrow(
+        'Profile not found',
+      );
+    });
+  });
+
+  describe('updateProfile', () => {
+    it('should update profile with pseudo field', async () => {
+      const mockProfile = {
+        id: 'profile-id',
+        userId: 'user-id',
+        firstName: 'John',
+        lastName: 'Doe',
+        pseudo: 'oldpseudo',
+      };
+
+      const updatedProfile = {
+        ...mockProfile,
+        pseudo: 'newpseudo',
+      };
+
+      jest
+        .spyOn(profileRepository, 'findOne')
+        .mockResolvedValue(mockProfile as any);
+      jest
+        .spyOn(profileRepository, 'save')
+        .mockResolvedValue(updatedProfile as any);
+
+      const result = await service.updateProfile('user-id', {
+        pseudo: 'newpseudo',
+      });
+
+      expect(result.pseudo).toBe('newpseudo');
+      expect(profileRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pseudo: 'newpseudo',
+        }),
+      );
+    });
+  });
+
   describe('updateProfileStatus', () => {
     it('should allow setting profile visibility to false without validation', async () => {
       const profileRepositorySaveSpy = jest.spyOn(profileRepository, 'save');
