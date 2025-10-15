@@ -63,7 +63,10 @@ export class ProfilesController {
 
   @Get('completion')
   @SkipProfileCompletion()
-  @ApiOperation({ summary: 'Get profile completion status' })
+  @ApiOperation({ 
+    summary: 'Get profile completion status',
+    description: 'Returns detailed profile completion status including requirements: 3 photos, exactly 3 prompts, personality questionnaire, and basic info (birthDate, bio).'
+  })
   @ApiResponse({ status: 200, description: 'Profile completion status' })
   async getProfileCompletion(@Request() req: any) {
     return this.profilesService.getProfileCompletion(req.user.id);
@@ -155,7 +158,10 @@ export class ProfilesController {
   @Get('prompts')
   @CacheControl(CacheStrategy.LONG_CACHE)
   @SkipProfileCompletion()
-  @ApiOperation({ summary: 'Get available prompts' })
+  @ApiOperation({ 
+    summary: 'Get available prompts',
+    description: 'Returns exactly 3 active prompts that users can answer. Required prompts are prioritized first, then ordered by their order field.'
+  })
   @ApiResponse({ status: 200, description: 'Prompts retrieved successfully' })
   async getPrompts() {
     return this.profilesService.getPrompts();
@@ -163,10 +169,17 @@ export class ProfilesController {
 
   @Post('me/prompt-answers')
   @SkipProfileCompletion()
-  @ApiOperation({ summary: 'Submit prompt answers' })
+  @ApiOperation({ 
+    summary: 'Submit prompt answers',
+    description: 'Submit exactly 3 prompt answers. This is required for profile completion. Each answer must be max 150 characters and will be moderated for inappropriate content.'
+  })
   @ApiResponse({
     status: 201,
     description: 'Prompt answers submitted successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid request - must provide exactly 3 answers, or content moderation failed',
   })
   async submitPromptAnswers(
     @Request() req: any,
@@ -192,10 +205,17 @@ export class ProfilesController {
 
   @Put('me/prompt-answers')
   @SkipProfileCompletion()
-  @ApiOperation({ summary: 'Update prompt answers' })
+  @ApiOperation({ 
+    summary: 'Update prompt answers',
+    description: 'Update all prompt answers at once. Must provide exactly 3 answers. Each answer must be max 150 characters and will be moderated for inappropriate content.'
+  })
   @ApiResponse({
     status: 200,
     description: 'Prompt answers updated successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid request - must provide exactly 3 answers, or content moderation failed',
   })
   async updatePromptAnswers(
     @Request() req: any,
