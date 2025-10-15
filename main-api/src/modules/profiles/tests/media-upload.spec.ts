@@ -52,6 +52,7 @@ describe('ProfilesService - Media Upload Endpoint', () => {
             save: jest.fn(),
             delete: jest.fn(),
             findOne: jest.fn(),
+            create: jest.fn((photo) => photo), // Add create method
             createQueryBuilder: jest.fn(),
           },
         },
@@ -136,10 +137,7 @@ describe('ProfilesService - Media Upload Endpoint', () => {
         profileId: 'profile-1',
       }));
 
-      jest.spyOn(photoRepository, 'save').mockImplementation((photo: any) => {
-        const index = savedPhotos.findIndex(p => p.filename === photo.filename);
-        return Promise.resolve(savedPhotos[index] as any);
-      });
+      jest.spyOn(photoRepository, 'save').mockResolvedValue(savedPhotos as any);
 
       const result = await service.uploadPhotos('user-1', mockFiles);
 
@@ -259,10 +257,7 @@ describe('ProfilesService - Media Upload Endpoint', () => {
         profileId: 'profile-1',
       }));
 
-      jest.spyOn(photoRepository, 'save').mockImplementation((photo: any) => {
-        const index = savedPhotos.findIndex(p => p.filename === photo.filename);
-        return Promise.resolve(savedPhotos[index] as any);
-      });
+      jest.spyOn(photoRepository, 'save').mockResolvedValue(savedPhotos as any);
 
       const result = await service.uploadPhotos('user-1', mockFiles);
 
