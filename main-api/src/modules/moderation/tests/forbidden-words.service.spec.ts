@@ -5,12 +5,11 @@ import { CustomLoggerService } from '../../../common/logger';
 
 describe('ForbiddenWordsService', () => {
   let service: ForbiddenWordsService;
-  let configService: ConfigService;
   let logger: CustomLoggerService;
 
   beforeEach(async () => {
     const mockConfigService = {
-      get: jest.fn((key: string, defaultValue?: any) => {
+      get: jest.fn((key: string, defaultValue?: unknown) => {
         if (key === 'moderation.forbiddenWords.enabled') {
           return true;
         }
@@ -44,7 +43,6 @@ describe('ForbiddenWordsService', () => {
     }).compile();
 
     service = module.get<ForbiddenWordsService>(ForbiddenWordsService);
-    configService = module.get<ConfigService>(ConfigService);
     logger = module.get<CustomLoggerService>(CustomLoggerService);
   });
 
@@ -62,7 +60,9 @@ describe('ForbiddenWordsService', () => {
     });
 
     it('should detect multiple forbidden words', () => {
-      const result = service.checkText('This has badword and offensive content');
+      const result = service.checkText(
+        'This has badword and offensive content',
+      );
 
       expect(result.containsForbiddenWords).toBe(true);
       expect(result.foundWords).toHaveLength(2);
@@ -120,9 +120,11 @@ describe('ForbiddenWordsService', () => {
     it('should log security event when forbidden words detected', () => {
       service.checkText('This has badword in it');
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(logger.logSecurityEvent).toHaveBeenCalledWith(
         'forbidden_words_detected',
         expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           foundWords: expect.arrayContaining(['badword']),
         }),
       );
@@ -175,7 +177,7 @@ describe('ForbiddenWordsService', () => {
   describe('when disabled', () => {
     beforeEach(async () => {
       const mockConfigService = {
-        get: jest.fn((key: string, defaultValue?: any) => {
+        get: jest.fn((key: string, defaultValue?: unknown) => {
           if (key === 'moderation.forbiddenWords.enabled') {
             return false;
           }

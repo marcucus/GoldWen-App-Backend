@@ -43,9 +43,11 @@ describe('ModerationService', () => {
 
     const mockForbiddenWordsService = {
       checkText: jest.fn().mockReturnValue({ containsForbiddenWords: false }),
-      checkTextBatch: jest.fn().mockImplementation((texts: string[]) =>
-        texts.map(() => ({ containsForbiddenWords: false })),
-      ),
+      checkTextBatch: jest
+        .fn()
+        .mockImplementation((texts: string[]) =>
+          texts.map(() => ({ containsForbiddenWords: false })),
+        ),
     };
 
     const mockNotificationsService = {

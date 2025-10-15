@@ -3,7 +3,7 @@ import { UpdateProfileDto } from '../dto/profiles.dto';
 
 /**
  * DTO-level validation tests for bio character limit
- * 
+ *
  * These tests verify that the class-validator decorators properly enforce
  * the 600 character limit for the bio field, including spaces and newlines.
  */
@@ -29,7 +29,7 @@ describe('UpdateProfileDto - Bio Validation', () => {
     dto.bio = 'a'.repeat(601);
 
     const errors = await validate(dto);
-    
+
     expect(errors.length).toBeGreaterThan(0);
     expect(errors[0].property).toBe('bio');
     expect(errors[0].constraints).toHaveProperty('maxLength');
@@ -41,7 +41,7 @@ describe('UpdateProfileDto - Bio Validation', () => {
     dto.bio = 'a'.repeat(1000);
 
     const errors = await validate(dto);
-    
+
     expect(errors.length).toBeGreaterThan(0);
     expect(errors[0].property).toBe('bio');
     expect(errors[0].constraints).toHaveProperty('maxLength');
@@ -53,7 +53,7 @@ describe('UpdateProfileDto - Bio Validation', () => {
     dto.bio = 'a'.repeat(590) + ' '.repeat(11);
 
     const errors = await validate(dto);
-    
+
     expect(errors.length).toBeGreaterThan(0);
     expect(errors[0].property).toBe('bio');
     expect(errors[0].constraints).toHaveProperty('maxLength');
@@ -65,7 +65,7 @@ describe('UpdateProfileDto - Bio Validation', () => {
     dto.bio = 'a'.repeat(590) + '\n'.repeat(11);
 
     const errors = await validate(dto);
-    
+
     expect(errors.length).toBeGreaterThan(0);
     expect(errors[0].property).toBe('bio');
     expect(errors[0].constraints).toHaveProperty('maxLength');
@@ -129,9 +129,9 @@ Looking for someone who shares similar interests!`;
     (dto as any).bio = 12345; // Invalid type
 
     const errors = await validate(dto);
-    
+
     expect(errors.length).toBeGreaterThan(0);
-    const bioError = errors.find(e => e.property === 'bio');
+    const bioError = errors.find((e) => e.property === 'bio');
     expect(bioError).toBeDefined();
     expect(bioError?.constraints).toHaveProperty('isString');
   });

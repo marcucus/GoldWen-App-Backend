@@ -60,7 +60,10 @@ export class ForbiddenWordsService {
 
       // Create regex for whole word matching with word boundaries
       // \b matches word boundaries (start/end of word)
-      const regex = new RegExp(`\\b${this.escapeRegex(normalizedForbiddenWord)}\\b`, 'i');
+      const regex = new RegExp(
+        `\\b${this.escapeRegex(normalizedForbiddenWord)}\\b`,
+        'i',
+      );
 
       if (regex.test(normalizedText)) {
         foundWords.push(forbiddenWord);

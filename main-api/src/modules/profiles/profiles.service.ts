@@ -127,9 +127,7 @@ export class ProfilesService {
         const reasons = blockedFields
           .map(({ result, field }) => `${field.field}: ${result.reason}`)
           .join('; ');
-        throw new BadRequestException(
-          `Profile fields rejected: ${reasons}`,
-        );
+        throw new BadRequestException(`Profile fields rejected: ${reasons}`);
       }
     }
 
@@ -207,7 +205,10 @@ export class ProfilesService {
       if (answer.textAnswer) {
         textsToModerate.push(answer.textAnswer);
       }
-      if (answer.multipleChoiceAnswer && answer.multipleChoiceAnswer.length > 0) {
+      if (
+        answer.multipleChoiceAnswer &&
+        answer.multipleChoiceAnswer.length > 0
+      ) {
         textsToModerate.push(...answer.multipleChoiceAnswer);
       }
     });
