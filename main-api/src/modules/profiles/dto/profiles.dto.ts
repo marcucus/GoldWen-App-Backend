@@ -93,6 +93,9 @@ export class ProfileResponseDto {
   @ApiPropertyOptional({ description: 'Height in centimeters' })
   height?: number;
 
+  @ApiPropertyOptional({ description: 'Favorite song' })
+  favoriteSong?: string;
+
   @ApiProperty({ description: 'Whether profile is verified', default: false })
   isVerified: boolean;
 
@@ -238,6 +241,12 @@ export class UpdateProfileDto {
   @Min(100)
   @Max(250)
   height?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  favoriteSong?: string;
 
   // Legacy fields for backwards compatibility
   @ApiPropertyOptional({

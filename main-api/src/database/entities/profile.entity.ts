@@ -89,6 +89,9 @@ export class Profile {
   @Column({ nullable: true })
   height: number; // in cm
 
+  @Column({ nullable: true })
+  favoriteSong: string;
+
   @Column({ default: false })
   isVerified: boolean;
 
