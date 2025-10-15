@@ -25,6 +25,7 @@ import { ProfilesService } from './profiles.service';
 import { CacheControl } from '../../common/interceptors/cache.interceptor';
 import { CacheStrategy } from '../../common/enums/cache-strategy.enum';
 import {
+  ProfileResponseDto,
   UpdateProfileDto,
   SubmitPersonalityAnswersDto,
   UploadPhotosDto,
@@ -45,7 +46,11 @@ export class ProfilesController {
   @CacheControl(CacheStrategy.SHORT_CACHE)
   @SkipProfileCompletion()
   @ApiOperation({ summary: 'Get current user profile' })
-  @ApiResponse({ status: 200, description: 'Profile retrieved successfully' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Profile retrieved successfully. The response includes the pseudo field (username).',
+    type: ProfileResponseDto 
+  })
   async getProfile(@Request() req: any) {
     return this.profilesService.getProfile(req.user.id);
   }
@@ -53,7 +58,11 @@ export class ProfilesController {
   @Put('me')
   @SkipProfileCompletion()
   @ApiOperation({ summary: 'Update current user profile' })
-  @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Profile updated successfully. You can update the pseudo field (username) using this endpoint.',
+    type: ProfileResponseDto 
+  })
   async updateProfile(
     @Request() req: any,
     @Body() updateProfileDto: UpdateProfileDto,

@@ -19,6 +19,102 @@ import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Gender } from '../../../common/enums';
 
+export class ProfileResponseDto {
+  @ApiProperty({ description: 'Unique profile identifier' })
+  id: string;
+
+  @ApiProperty({ description: 'User ID associated with this profile' })
+  userId: string;
+
+  @ApiProperty({ description: 'First name' })
+  firstName: string;
+
+  @ApiPropertyOptional({ description: 'Last name' })
+  lastName?: string;
+
+  @ApiPropertyOptional({ description: 'Username/pseudonym', maxLength: 30 })
+  pseudo?: string;
+
+  @ApiPropertyOptional({ description: 'Birth date' })
+  birthDate?: Date;
+
+  @ApiPropertyOptional({ enum: Gender, description: 'User gender' })
+  gender?: Gender;
+
+  @ApiPropertyOptional({ 
+    enum: Gender, 
+    isArray: true, 
+    description: 'Genders the user is interested in' 
+  })
+  interestedInGenders?: Gender[];
+
+  @ApiPropertyOptional({ description: 'User biography', maxLength: 500 })
+  bio?: string;
+
+  @ApiPropertyOptional({ description: 'Job title', maxLength: 100 })
+  jobTitle?: string;
+
+  @ApiPropertyOptional({ description: 'Company name', maxLength: 100 })
+  company?: string;
+
+  @ApiPropertyOptional({ description: 'Education/school', maxLength: 100 })
+  education?: string;
+
+  @ApiPropertyOptional({ description: 'Location/city' })
+  location?: string;
+
+  @ApiPropertyOptional({ description: 'Latitude coordinate' })
+  latitude?: number;
+
+  @ApiPropertyOptional({ description: 'Longitude coordinate' })
+  longitude?: number;
+
+  @ApiPropertyOptional({ description: 'Maximum distance for matches (km)' })
+  maxDistance?: number;
+
+  @ApiPropertyOptional({ description: 'Minimum age preference' })
+  minAge?: number;
+
+  @ApiPropertyOptional({ description: 'Maximum age preference' })
+  maxAge?: number;
+
+  @ApiPropertyOptional({ 
+    type: [String], 
+    description: 'User interests/hobbies' 
+  })
+  interests?: string[];
+
+  @ApiPropertyOptional({ 
+    type: [String], 
+    description: 'Languages spoken' 
+  })
+  languages?: string[];
+
+  @ApiPropertyOptional({ description: 'Height in centimeters' })
+  height?: number;
+
+  @ApiProperty({ description: 'Whether profile is verified', default: false })
+  isVerified: boolean;
+
+  @ApiProperty({ description: 'Whether profile is visible to others', default: true })
+  isVisible: boolean;
+
+  @ApiProperty({ description: 'Whether to show age on profile', default: true })
+  showAge: boolean;
+
+  @ApiProperty({ description: 'Whether to show distance on profile', default: true })
+  showDistance: boolean;
+
+  @ApiProperty({ description: 'Whether to show profile in discovery', default: true })
+  showMeInDiscovery: boolean;
+
+  @ApiProperty({ description: 'Profile creation timestamp' })
+  createdAt: Date;
+
+  @ApiProperty({ description: 'Profile last update timestamp' })
+  updatedAt: Date;
+}
+
 export class UpdateProfileDto {
   @ApiPropertyOptional()
   @IsOptional()
