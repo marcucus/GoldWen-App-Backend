@@ -64,6 +64,18 @@ photos: File[] (max 6 files, max 10MB each)
 - `400` - Invalid file type or size
 - `404` - Profile not found
 
+---
+
+### 1b. Upload Media (Alias)
+
+**POST** `/api/v1/profiles/me/media`
+
+This endpoint is an alias for the photos upload endpoint (`/api/v1/profiles/me/photos`). It provides the same functionality and accepts the same parameters. This ensures compatibility with clients that may use the `/media` endpoint instead of `/photos`.
+
+**Note:** All features, validation rules, and response formats are identical to the photos upload endpoint.
+
+---
+
 ### 2. Delete Photo
 
 **DELETE** `/api/v1/profiles/me/photos/:photoId`

@@ -125,6 +125,21 @@ export class ProfilesController {
     return this.profilesService.uploadPhotos(req.user.id, files);
   }
 
+  @Post('me/media')
+  @SkipProfileCompletion()
+  @ApiOperation({ summary: 'Upload profile media (alias for photos endpoint)' })
+  @ApiResponse({ status: 201, description: 'Media uploaded successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid file type, size, or count' })
+  @ApiResponse({ status: 404, description: 'Profile not found' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FilesInterceptor('photos', 6)) // Max 6 photos as per requirements
+  async uploadMedia(
+    @Request() req: any,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    return this.profilesService.uploadPhotos(req.user.id, files);
+  }
+
   @Delete('me/photos/:photoId')
   @SkipProfileCompletion()
   @ApiOperation({ summary: 'Delete a profile photo' })
