@@ -37,7 +37,7 @@ The prompt management system allows users to select and answer prompts that will
 
 ### 2. POST /api/v1/profiles/me/prompt-answers
 
-**Description:** Submit initial prompt answers (must provide at least 3 answers)
+**Description:** Submit initial prompt answers (must provide exactly 3 answers)
 
 **Authentication:** Required (JWT Bearer Token)
 
@@ -62,7 +62,7 @@ The prompt management system allows users to select and answer prompts that will
 ```
 
 **Validation:**
-- Minimum 3 answers required
+- Exactly 3 answers required
 - Each answer maximum 150 characters
 - All prompts must be valid and active
 - Content moderation applied to all answers
@@ -217,8 +217,7 @@ The prompt management system allows users to select and answer prompts that will
 ## Business Rules
 
 1. **Minimum Requirements:**
-   - Users must provide at least 3 prompt answers (enforced in POST)
-   - Users must provide exactly 3 prompt answers when updating (enforced in PUT)
+   - Users must provide exactly 3 prompt answers (enforced in both POST and PUT)
 
 2. **Character Limit:**
    - Each answer is limited to 150 characters maximum
@@ -240,10 +239,10 @@ The prompt management system allows users to select and answer prompts that will
 
 ### DTOs
 
-- `PromptAnswerDto`: Used for POST requests (minimum 3 answers)
+- `PromptAnswerDto`: Used for POST requests (exactly 3 answers)
 - `UpdatePromptAnswerDto`: Used for PUT requests (includes optional id field)
 - `UpdatePromptAnswersDto`: Wrapper for PUT requests (exactly 3 answers)
-- `SubmitPromptAnswersDto`: Wrapper for POST requests (minimum 3 answers)
+- `SubmitPromptAnswersDto`: Wrapper for POST requests (exactly 3 answers)
 
 ### Service Methods
 
@@ -255,7 +254,7 @@ The prompt management system allows users to select and answer prompts that will
 ### Validation Flow
 
 1. DTO validation (class-validator)
-2. Count validation (3 answers for PUT, min 3 for POST)
+2. Count validation (exactly 3 answers for both POST and PUT)
 3. Content moderation
 4. Prompt existence and active status check
 5. Database transaction

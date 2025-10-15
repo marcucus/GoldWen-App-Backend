@@ -221,8 +221,6 @@ export class ProfilesService {
       throw new BadRequestException('At least one photo is required');
     }
 
-    console.log('Received files for upload:', files);
-
     // Create photo entities with initial approval status as false
     const photoEntities = files.map((file, index) => {
       return this.photoRepository.create({
@@ -236,7 +234,6 @@ export class ProfilesService {
         isApproved: false, // Start as unapproved, will be moderated
       });
     });
-    console.log('Photo entities to be saved:', photoEntities);
     const savedPhotos = await this.photoRepository.save(photoEntities);
 
     // Trigger moderation for each photo asynchronously
@@ -649,14 +646,6 @@ export class ProfilesService {
       throw new NotFoundException('Profile not found');
     }
 
-    // Debug: Log the user profile data
-    console.log('Profile completion debug - user data:', {
-      userId: user.id,
-      profileId: user.profile.id,
-      promptAnswersRaw: user.profile.promptAnswers,
-      promptAnswersCount: user.profile.promptAnswers?.length || 0,
-    });
-
     const photosCount = user.profile.photos?.length || 0;
     const hasPhotos = photosCount >= 3;
     const hasRequiredProfileFields = !!(
@@ -682,20 +671,6 @@ export class ProfilesService {
       (p) => !answeredPromptIds.has(p.id),
     );
 
-    // Debug: Log prompts validation
-    console.log('Prompts validation debug:', {
-      userId: user.id,
-      requiredPromptsCount: 3,
-      promptsCount,
-      answeredPromptIds: Array.from(answeredPromptIds),
-      availablePromptIds: availablePrompts.map((p) => p.id),
-      missingPrompts: missingPrompts.map((p) => ({
-        id: p.id,
-        text: p.text,
-      })),
-      hasPrompts,
-    });
-
     const requiredQuestionsCount =
       await this.personalityQuestionRepository.count({
         where: { isActive: true, isRequired: true },
@@ -708,7 +683,9 @@ export class ProfilesService {
     if (!hasPhotos) missingSteps.push('Upload at least 3 photos');
     if (!hasPrompts) {
       const missingCount = 3 - promptsCount;
-      missingSteps.push(`Answer ${missingCount} more prompt${missingCount > 1 ? 's' : ''} (${promptsCount}/3)`);
+      missingSteps.push(
+        `Answer ${missingCount} more prompt${missingCount > 1 ? 's' : ''} (${promptsCount}/3)`,
+      );
     }
     if (!hasPersonalityAnswers)
       missingSteps.push('Complete personality questionnaire');

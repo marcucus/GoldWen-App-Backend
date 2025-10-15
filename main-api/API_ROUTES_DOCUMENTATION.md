@@ -770,12 +770,12 @@ Pour enregistrer le consentement, utilisez `POST /users/consent`.
   "answers": [
     {
       "promptId": "string (UUID)",
-      "answer": "string (max 300 caractères)"
+      "answer": "string (max 150 caractères)"
     }
   ]
 }
 ```
-**Note**: Minimum 3 réponses requises
+**Note**: Exactement 3 réponses requises
 
 ### PUT /profiles/me/prompt-answers
 **Description**: Modifier les réponses aux prompts existantes  
@@ -786,11 +786,12 @@ Pour enregistrer le consentement, utilisez `POST /users/consent`.
   "answers": [
     {
       "promptId": "string (UUID)",
-      "answer": "string (max 300 caractères)"
+      "answer": "string (max 150 caractères)"
     }
   ]
 }
 ```
+**Note**: Exactement 3 réponses requises
 
 ### PUT /profiles/me/status
 **Description**: Mettre à jour le statut du profil  
