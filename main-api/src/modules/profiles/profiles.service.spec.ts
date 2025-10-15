@@ -45,6 +45,11 @@ describe('ProfilesService', () => {
 
   const mockModerationService = {
     moderateTextContent: jest.fn().mockResolvedValue({ approved: true }),
+    moderateTextContentBatch: jest
+      .fn()
+      .mockImplementation((texts: string[]) =>
+        Promise.resolve(texts.map(() => ({ approved: true }))),
+      ),
     moderatePhoto: jest.fn().mockResolvedValue({ approved: true }),
   };
 

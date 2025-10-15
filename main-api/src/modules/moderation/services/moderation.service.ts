@@ -5,6 +5,7 @@ import { Photo } from '../../../database/entities/photo.entity';
 import { User } from '../../../database/entities/user.entity';
 import { AiModerationService } from './ai-moderation.service';
 import { ImageModerationService } from './image-moderation.service';
+import { ForbiddenWordsService } from './forbidden-words.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { CustomLoggerService } from '../../../common/logger';
 import { NotificationType } from '../../../common/enums';
@@ -18,6 +19,7 @@ export class ModerationService {
     private userRepository: Repository<User>,
     private aiModerationService: AiModerationService,
     private imageModerationService: ImageModerationService,
+    private forbiddenWordsService: ForbiddenWordsService,
     private notificationsService: NotificationsService,
     private logger: CustomLoggerService,
   ) {}
@@ -112,6 +114,29 @@ export class ModerationService {
     approved: boolean;
     reason?: string;
   }> {
+    // First check for forbidden words
+    const forbiddenWordsResult = this.forbiddenWordsService.checkText(text);
+    if (forbiddenWordsResult.containsForbiddenWords) {
+      this.logger.logSecurityEvent('text_content_blocked', {
+        userId,
+        reason: 'forbidden_words',
+        foundWords: forbiddenWordsResult.foundWords,
+      });
+
+      if (userId) {
+        await this.handleTextContentBlocked(
+          userId,
+          forbiddenWordsResult.reason || 'Content contains forbidden words',
+        );
+      }
+
+      return {
+        approved: false,
+        reason: forbiddenWordsResult.reason,
+      };
+    }
+
+    // Then check with AI moderation
     const moderationResult = await this.aiModerationService.moderateText(text);
 
     if (moderationResult.shouldBlock) {
@@ -143,6 +168,32 @@ export class ModerationService {
   async moderateTextContentBatch(
     texts: string[],
   ): Promise<Array<{ approved: boolean; reason?: string }>> {
+    // First check all texts for forbidden words
+    const forbiddenWordsResults =
+      this.forbiddenWordsService.checkTextBatch(texts);
+
+    // Check if any contain forbidden words
+    const forbiddenIndices = forbiddenWordsResults
+      .map((result, index) => ({ result, index }))
+      .filter(({ result }) => result.containsForbiddenWords);
+
+    // If any texts contain forbidden words, return early with rejections
+    if (forbiddenIndices.length > 0) {
+      return texts.map((text, index) => {
+        const forbiddenResult = forbiddenWordsResults[index];
+        if (forbiddenResult.containsForbiddenWords) {
+          return {
+            approved: false,
+            reason: forbiddenResult.reason,
+          };
+        }
+        // For texts without forbidden words, still need to check AI moderation
+        // We'll process these below
+        return { approved: true };
+      });
+    }
+
+    // Then check with AI moderation for texts that passed forbidden words check
     const results = await this.aiModerationService.moderateTextBatch(texts);
 
     return results.map((result) => ({

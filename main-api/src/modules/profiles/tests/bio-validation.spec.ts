@@ -35,6 +35,11 @@ describe('ProfilesService - Bio Validation', () => {
         approved: true,
         reason: null,
       }),
+      moderateTextContentBatch: jest
+        .fn()
+        .mockImplementation((texts: string[]) =>
+          Promise.resolve(texts.map(() => ({ approved: true }))),
+        ),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -278,20 +283,22 @@ Looking for someone who shares similar interests and values meaningful conversat
         .spyOn(profileRepository, 'findOne')
         .mockResolvedValue(mockProfile as any);
 
-      // Mock moderation rejection
+      // Mock moderation rejection (now uses batch moderation)
       jest
-        .spyOn(mockModerationService, 'moderateTextContent')
-        .mockResolvedValue({
-          approved: false,
-          reason: 'Contains inappropriate language',
-        });
+        .spyOn(mockModerationService, 'moderateTextContentBatch')
+        .mockResolvedValue([
+          {
+            approved: false,
+            reason: 'Contains inappropriate language',
+          },
+        ]);
 
       await expect(service.updateProfile('user-1', updateDto)).rejects.toThrow(
         BadRequestException,
       );
 
       await expect(service.updateProfile('user-1', updateDto)).rejects.toThrow(
-        'Bio rejected: Contains inappropriate language',
+        'Profile fields rejected: bio: Contains inappropriate language',
       );
     });
 

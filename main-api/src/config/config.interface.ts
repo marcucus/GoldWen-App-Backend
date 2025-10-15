@@ -123,6 +123,10 @@ export interface ModerationConfig {
     textThreshold: number; // 0-1, higher means stricter
     imageThreshold: number; // 0-100, confidence level for inappropriate content
   };
+  forbiddenWords: {
+    enabled: boolean;
+    words: string[]; // List of forbidden words/phrases
+  };
 }
 
 export interface AnalyticsConfig {
