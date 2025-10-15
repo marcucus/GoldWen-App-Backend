@@ -1,4 +1,10 @@
-import { IsEmail, IsString, IsOptional, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  IsOptional,
+  MinLength,
+  Matches,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class LoginDto {
@@ -17,9 +23,18 @@ export class RegisterDto {
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'password123', minLength: 6 })
+  @ApiProperty({
+    example: 'Password123!',
+    minLength: 6,
+    description:
+      'Password must be at least 6 characters long, contain at least one uppercase letter and one special character',
+  })
   @IsString()
-  @MinLength(6)
+  @MinLength(6, { message: 'Password must be at least 6 characters long' })
+  @Matches(/^(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).*$/, {
+    message:
+      'Password must contain at least one uppercase letter and one special character (!@#$%^&*()_+-=[]{};\':"\\|,.<>/?)',
+  })
   password: string;
 
   @ApiProperty({ example: 'John' })
@@ -71,9 +86,18 @@ export class ResetPasswordDto {
   @IsString()
   token: string;
 
-  @ApiProperty({ example: 'newpassword123', minLength: 6 })
+  @ApiProperty({
+    example: 'NewPassword123!',
+    minLength: 6,
+    description:
+      'Password must be at least 6 characters long, contain at least one uppercase letter and one special character',
+  })
   @IsString()
-  @MinLength(6)
+  @MinLength(6, { message: 'Password must be at least 6 characters long' })
+  @Matches(/^(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).*$/, {
+    message:
+      'Password must contain at least one uppercase letter and one special character (!@#$%^&*()_+-=[]{};\':"\\|,.<>/?)',
+  })
   newPassword: string;
 }
 
@@ -82,9 +106,18 @@ export class ChangePasswordDto {
   @IsString()
   currentPassword: string;
 
-  @ApiProperty({ example: 'newpassword123', minLength: 6 })
+  @ApiProperty({
+    example: 'NewPassword123!',
+    minLength: 6,
+    description:
+      'Password must be at least 6 characters long, contain at least one uppercase letter and one special character',
+  })
   @IsString()
-  @MinLength(6)
+  @MinLength(6, { message: 'Password must be at least 6 characters long' })
+  @Matches(/^(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).*$/, {
+    message:
+      'Password must contain at least one uppercase letter and one special character (!@#$%^&*()_+-=[]{};\':"\\|,.<>/?)',
+  })
   newPassword: string;
 }
 
