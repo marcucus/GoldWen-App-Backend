@@ -15,7 +15,7 @@ import { ModerationService } from '../../moderation/services/moderation.service'
 
 /**
  * Integration tests for POST /api/v1/profiles/me/media endpoint
- * 
+ *
  * This endpoint is an alias for the photos upload endpoint to ensure
  * compatibility with clients that may call /media instead of /photos.
  */
@@ -95,9 +95,7 @@ describe('ProfilesService - Media Upload Endpoint', () => {
     profileRepository = module.get<Repository<Profile>>(
       getRepositoryToken(Profile),
     );
-    photoRepository = module.get<Repository<Photo>>(
-      getRepositoryToken(Photo),
-    );
+    photoRepository = module.get<Repository<Photo>>(getRepositoryToken(Photo));
   });
 
   describe('POST /api/v1/profiles/me/media - Upload Media (Photos)', () => {

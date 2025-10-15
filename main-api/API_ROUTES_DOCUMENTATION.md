@@ -682,7 +682,8 @@ Pour enregistrer le consentement, utilisez `POST /users/consent`.
   "maxAge?": "number (18-100, optionnel)",
   "interests?": "string[] (optionnel)",
   "languages?": "string[] (optionnel)",
-  "height?": "number (100-250 cm, optionnel)"
+  "height?": "number (100-250 cm, optionnel)",
+  "favoriteSong?": "string (max 200 caractères, optionnel)"
 }
 ```
 

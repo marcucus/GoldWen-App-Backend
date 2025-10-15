@@ -260,6 +260,7 @@ Cette documentation liste toutes les routes API disponibles pour le frontend et 
   "interests": ["voyage", "cuisine", "sport"],
   "languages": ["français", "anglais"],
   "height": 175,
+  "favoriteSong": "Bohemian Rhapsody by Queen",
   "isVerified": false,
   "isVisible": true,
   "showAge": true,
@@ -294,7 +295,8 @@ Cette documentation liste toutes les routes API disponibles pour le frontend et 
   "maxAge": 35,
   "interests": ["voyage", "cuisine", "sport"],
   "languages": ["français", "anglais"],
-  "height": 170
+  "height": 170,
+  "favoriteSong": "Imagine by John Lennon"
 }
 ```
 

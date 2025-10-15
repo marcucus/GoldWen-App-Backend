@@ -129,7 +129,10 @@ export class ProfilesController {
   @SkipProfileCompletion()
   @ApiOperation({ summary: 'Upload profile media (alias for photos endpoint)' })
   @ApiResponse({ status: 201, description: 'Media uploaded successfully' })
-  @ApiResponse({ status: 400, description: 'Invalid file type, size, or count' })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid file type, size, or count',
+  })
   @ApiResponse({ status: 404, description: 'Profile not found' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FilesInterceptor('photos', 6)) // Max 6 photos as per requirements
