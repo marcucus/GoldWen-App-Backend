@@ -709,10 +709,14 @@ export class ProfilesService {
     if (!hasPrompts) {
       if (promptsCount < 3) {
         const missingCount = 3 - promptsCount;
-        missingSteps.push(`Answer ${missingCount} more prompt${missingCount > 1 ? 's' : ''} (${promptsCount}/3)`);
+        missingSteps.push(
+          `Answer ${missingCount} more prompt${missingCount > 1 ? 's' : ''} (${promptsCount}/3)`,
+        );
       } else if (promptsCount > 3) {
         const extraCount = promptsCount - 3;
-        missingSteps.push(`You have too many prompts (${promptsCount}/3). Please remove ${extraCount} prompt${extraCount > 1 ? 's' : ''}`);
+        missingSteps.push(
+          `You have too many prompts (${promptsCount}/3). Please remove ${extraCount} prompt${extraCount > 1 ? 's' : ''}`,
+        );
       }
     }
     if (!hasPersonalityAnswers)

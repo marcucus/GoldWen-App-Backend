@@ -103,9 +103,7 @@ describe('ProfilesService - Dynamic Prompt Requirements', () => {
       };
 
       // Mock repository calls
-      jest
-        .spyOn(promptRepository, 'find')
-        .mockResolvedValue(allPrompts as any);
+      jest.spyOn(promptRepository, 'find').mockResolvedValue(allPrompts as any);
 
       jest
         .spyOn(profileRepository, 'findOne')

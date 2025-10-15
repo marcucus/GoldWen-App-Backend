@@ -41,10 +41,10 @@ export class ProfileResponseDto {
   @ApiPropertyOptional({ enum: Gender, description: 'User gender' })
   gender?: Gender;
 
-  @ApiPropertyOptional({ 
-    enum: Gender, 
-    isArray: true, 
-    description: 'Genders the user is interested in' 
+  @ApiPropertyOptional({
+    enum: Gender,
+    isArray: true,
+    description: 'Genders the user is interested in',
   })
   interestedInGenders?: Gender[];
 
@@ -78,15 +78,15 @@ export class ProfileResponseDto {
   @ApiPropertyOptional({ description: 'Maximum age preference' })
   maxAge?: number;
 
-  @ApiPropertyOptional({ 
-    type: [String], 
-    description: 'User interests/hobbies' 
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'User interests/hobbies',
   })
   interests?: string[];
 
-  @ApiPropertyOptional({ 
-    type: [String], 
-    description: 'Languages spoken' 
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Languages spoken',
   })
   languages?: string[];
 
@@ -96,16 +96,25 @@ export class ProfileResponseDto {
   @ApiProperty({ description: 'Whether profile is verified', default: false })
   isVerified: boolean;
 
-  @ApiProperty({ description: 'Whether profile is visible to others', default: true })
+  @ApiProperty({
+    description: 'Whether profile is visible to others',
+    default: true,
+  })
   isVisible: boolean;
 
   @ApiProperty({ description: 'Whether to show age on profile', default: true })
   showAge: boolean;
 
-  @ApiProperty({ description: 'Whether to show distance on profile', default: true })
+  @ApiProperty({
+    description: 'Whether to show distance on profile',
+    default: true,
+  })
   showDistance: boolean;
 
-  @ApiProperty({ description: 'Whether to show profile in discovery', default: true })
+  @ApiProperty({
+    description: 'Whether to show profile in discovery',
+    default: true,
+  })
   showMeInDiscovery: boolean;
 
   @ApiProperty({ description: 'Profile creation timestamp' })
