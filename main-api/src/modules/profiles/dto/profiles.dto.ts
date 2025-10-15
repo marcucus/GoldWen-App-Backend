@@ -48,7 +48,7 @@ export class ProfileResponseDto {
   })
   interestedInGenders?: Gender[];
 
-  @ApiPropertyOptional({ description: 'User biography', maxLength: 500 })
+  @ApiPropertyOptional({ description: 'User biography', maxLength: 600 })
   bio?: string;
 
   @ApiPropertyOptional({ description: 'Job title', maxLength: 100 })
@@ -165,7 +165,7 @@ export class UpdateProfileDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  @MaxLength(500)
+  @MaxLength(600)
   bio?: string;
 
   @ApiPropertyOptional()
