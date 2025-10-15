@@ -575,7 +575,7 @@ export class ProfilesService {
 
     // Check if user has answered exactly 3 prompts (required for completion)
     const promptsCount = user.profile.promptAnswers?.length || 0;
-    const hasPromptAnswers = promptsCount >= 3;
+    const hasPromptAnswers = promptsCount === 3;
 
     const hasRequiredProfileFields = !!(
       user.profile.birthDate && user.profile.bio
@@ -665,7 +665,7 @@ export class ProfilesService {
 
     // Check if user has answered exactly 3 prompts (required for completion)
     const promptsCount = user.profile.promptAnswers?.length || 0;
-    const hasPrompts = promptsCount >= 3;
+    const hasPrompts = promptsCount === 3;
 
     // Get available prompts for missing information (only the 3 prompts we offer)
     const availablePrompts = await this.promptRepository.find({
@@ -707,8 +707,13 @@ export class ProfilesService {
     const missingSteps: string[] = [];
     if (!hasPhotos) missingSteps.push('Upload at least 3 photos');
     if (!hasPrompts) {
-      const missingCount = 3 - promptsCount;
-      missingSteps.push(`Answer ${missingCount} more prompt${missingCount > 1 ? 's' : ''} (${promptsCount}/3)`);
+      if (promptsCount < 3) {
+        const missingCount = 3 - promptsCount;
+        missingSteps.push(`Answer ${missingCount} more prompt${missingCount > 1 ? 's' : ''} (${promptsCount}/3)`);
+      } else if (promptsCount > 3) {
+        const extraCount = promptsCount - 3;
+        missingSteps.push(`You have too many prompts (${promptsCount}/3). Please remove ${extraCount} prompt${extraCount > 1 ? 's' : ''}`);
+      }
     }
     if (!hasPersonalityAnswers)
       missingSteps.push('Complete personality questionnaire');
@@ -747,8 +752,13 @@ export class ProfilesService {
     } else if (!hasPhotos) {
       nextStep = 'Upload at least 3 photos';
     } else if (!hasPrompts) {
-      const missingCount = 3 - promptsCount;
-      nextStep = `Answer ${missingCount} more prompt${missingCount > 1 ? 's' : ''}`;
+      if (promptsCount < 3) {
+        const missingCount = 3 - promptsCount;
+        nextStep = `Answer ${missingCount} more prompt${missingCount > 1 ? 's' : ''}`;
+      } else if (promptsCount > 3) {
+        const extraCount = promptsCount - 3;
+        nextStep = `Remove ${extraCount} prompt${extraCount > 1 ? 's' : ''} to have exactly 3`;
+      }
     } else {
       nextStep = 'Profile is complete!';
     }
@@ -817,7 +827,7 @@ export class ProfilesService {
 
       // Check if user has exactly 3 prompt answers (required for completion)
       const promptsCount = user.profile.promptAnswers?.length || 0;
-      const hasPromptAnswers = promptsCount >= 3;
+      const hasPromptAnswers = promptsCount === 3;
 
       const hasRequiredProfileFields = !!(
         user.profile.birthDate && user.profile.bio
@@ -847,10 +857,17 @@ export class ProfilesService {
           );
         }
         if (!hasPromptAnswers) {
-          const missingCount = 3 - promptsCount;
-          missingRequirements.push(
-            `Need to answer ${missingCount} more prompt${missingCount > 1 ? 's' : ''} (${promptsCount}/3)`,
-          );
+          if (promptsCount < 3) {
+            const missingCount = 3 - promptsCount;
+            missingRequirements.push(
+              `Need to answer ${missingCount} more prompt${missingCount > 1 ? 's' : ''} (${promptsCount}/3)`,
+            );
+          } else if (promptsCount > 3) {
+            const extraCount = promptsCount - 3;
+            missingRequirements.push(
+              `Need to remove ${extraCount} prompt${extraCount > 1 ? 's' : ''} to have exactly 3 (${promptsCount}/3)`,
+            );
+          }
         }
         if (!hasPersonalityAnswers) {
           missingRequirements.push(

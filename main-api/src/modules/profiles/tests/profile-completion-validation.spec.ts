@@ -383,4 +383,61 @@ describe('ProfilesService - Profile Completion Validation', () => {
       expect(result).toBe(false);
     });
   });
+
+  describe('getProfileCompletion with more than 3 prompts', () => {
+    it('should mark profile as incomplete when user has more than 3 prompt answers', async () => {
+      const availablePrompts = [
+        {
+          id: 'prompt-1',
+          text: 'What makes you happy?',
+          isActive: true,
+          isRequired: true,
+        },
+        {
+          id: 'prompt-2',
+          text: 'Describe yourself',
+          isActive: true,
+          isRequired: true,
+        },
+        {
+          id: 'prompt-3',
+          text: 'Your passion',
+          isActive: true,
+          isRequired: true,
+        },
+      ];
+
+      const userWithTooManyPrompts = {
+        ...mockUser,
+        profile: {
+          ...mockProfile,
+          photos: [{ id: '1' }, { id: '2' }, { id: '3' }], // Has photos
+          promptAnswers: [
+            { promptId: 'prompt-1' },
+            { promptId: 'prompt-2' },
+            { promptId: 'prompt-3' },
+            { promptId: 'prompt-4' }, // Too many prompts (4 instead of 3)
+          ],
+        },
+        personalityAnswers: Array(10).fill({ id: 'answer' }), // Complete personality
+      };
+
+      jest
+        .spyOn(userRepository, 'findOne')
+        .mockResolvedValue(userWithTooManyPrompts as any);
+      jest
+        .spyOn(promptRepository, 'find')
+        .mockResolvedValue(availablePrompts as any);
+      jest.spyOn(personalityQuestionRepository, 'count').mockResolvedValue(10);
+
+      const result = await service.getProfileCompletion('user-id');
+
+      expect(result.isComplete).toBe(false);
+      expect(result.requirements.minimumPrompts.satisfied).toBe(false);
+      expect(result.requirements.minimumPrompts.current).toBe(4);
+      expect(result.missingSteps).toContain(
+        'You have too many prompts (4/3). Please remove 1 prompt',
+      );
+    });
+  });
 });
