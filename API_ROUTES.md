@@ -235,14 +235,50 @@ Cette documentation liste toutes les routes API disponibles pour le frontend et 
 
 ### GET /profiles/me
 **Description**: Récupération du profil complet avec photos et réponses  
-**Headers**: `Authorization: Bearer <token>`
+**Headers**: `Authorization: Bearer <token>`  
+**Response**: Retourne le profil complet incluant le champ `pseudo` (nom d'utilisateur)
+```json
+{
+  "id": "uuid",
+  "userId": "uuid",
+  "firstName": "John",
+  "lastName": "Doe",
+  "pseudo": "johndoe123",
+  "birthDate": "1990-01-01",
+  "gender": "man",
+  "interestedInGenders": ["woman"],
+  "bio": "Description de profil",
+  "jobTitle": "Développeur",
+  "company": "Tech Corp",
+  "education": "Master en Informatique",
+  "location": "Paris, France",
+  "latitude": 48.8566,
+  "longitude": 2.3522,
+  "maxDistance": 50,
+  "minAge": 25,
+  "maxAge": 35,
+  "interests": ["voyage", "cuisine", "sport"],
+  "languages": ["français", "anglais"],
+  "height": 175,
+  "isVerified": false,
+  "isVisible": true,
+  "showAge": true,
+  "showDistance": true,
+  "showMeInDiscovery": true,
+  "createdAt": "2025-01-01T00:00:00.000Z",
+  "updatedAt": "2025-01-01T00:00:00.000Z"
+}
+```
 
 ### PUT /profiles/me
-**Description**: Mise à jour des informations de profil  
+**Description**: Mise à jour des informations de profil (incluant le pseudo/nom d'utilisateur)  
 **Headers**: `Authorization: Bearer <token>`  
 **Body**:
 ```json
 {
+  "firstName": "John",
+  "lastName": "Doe",
+  "pseudo": "johndoe123",
   "birthDate": "1990-01-01",
   "gender": "woman",
   "interestedInGenders": ["man"],
