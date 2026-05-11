@@ -1,4 +1,5 @@
 export enum UserStatus {
+  PENDING = 'pending',
   ACTIVE = 'active',
   INACTIVE = 'inactive',
   SUSPENDED = 'suspended',
@@ -96,6 +97,15 @@ export enum FontSize {
   MEDIUM = 'medium',
   LARGE = 'large',
   XLARGE = 'xlarge',
+}
+
+export enum OnboardingStep {
+  GENDER = 'gender',
+  PERSONALITY = 'personality',
+  BASIC_INFO = 'basic_info',
+  PHOTOS = 'photos',
+  PROMPTS = 'prompts',
+  COMPLETED = 'completed',
 }
 
 // Export new enums

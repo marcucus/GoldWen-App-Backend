@@ -122,7 +122,7 @@ Nous adopterons une architecture de **microservices**. Cela permet de découpler
 
 ### **6.2. Application Mobile (Front-End)**
 
-* **Technologie :** **React Native**. Votre choix est le plus judicieux pour un MVP. Il permet de développer pour iOS et Android avec une seule base de code, réduisant ainsi les coûts et le temps de développement initiaux.7 La performance est aujourd'hui largement suffisante pour une application de ce type.
+* **Technologie :** **Flutter**. C'est une alternative moderne et performante à React Native. Développé par Google, Flutter nous permet de maintenir une **base de code unique** pour iOS et Android, ce qui est idéal pour les objectifs de budget et de rapidité du MVP. Il est particulièrement reconnu pour sa capacité à créer des interfaces utilisateur fluides et expressives, ce qui s'aligne parfaitement avec notre exigence d'un "beau design", tout en offrant des performances quasi-natives.
 
 ### **6.3. Services Back-End**
 
@@ -180,7 +180,7 @@ Basé sur les standards du marché pour le développement d'une application de c
 | Recherche & Planification | 2 000 $ \- 5 000 $ | Analyse de marché, définition du périmètre, spécifications. 8 |
 | Design UI/UX | 10 000 $ \- 25 000 $ | Wireframes, prototypes interactifs, design system "Calm Tech". 8 |
 | **Phase 2 : Développement** |  |  |
-| Développement Front-End (React Native) | 25 000 $ \- 50 000 $ | Développement des écrans, logique de l'application pour iOS & Android. 7 |
+| Développement Front-End (Flutter) | 25 000 $ \- 50 000 $ | Développement des écrans, logique de l'application pour iOS & Android avec une base de code unique. 7 |
 | Développement Back-End (NestJS, Python, BDD) | 20 000 $ \- 50 000 $ | API, base de données, logique métier, service de matching V1. 8 |
 | Panneau d'Administration | 5 000 $ \- 10 000 $ | Interface web simple pour la gestion interne. |
 | **Phase 3 : Qualité & Lancement** |  |  |

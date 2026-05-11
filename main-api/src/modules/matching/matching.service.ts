@@ -10,6 +10,7 @@ import {
   Repository,
   Not,
   In,
+  MoreThan,
   MoreThanOrEqual,
   LessThanOrEqual,
   Between,
@@ -613,16 +614,19 @@ export class MatchingService {
   }
 
   private async getMaxChoicesPerDay(userId: string): Promise<number> {
+    // NOTE: `isActive` on Subscription is a computed getter, NOT a DB column.
+    // We must query `status` and `expiresAt` directly against real SQL columns.
     const activeSubscription = await this.subscriptionRepository.findOne({
       where: {
         userId,
-        isActive: true,
+        status: SubscriptionStatus.ACTIVE,
+        expiresAt: MoreThan(new Date()),
       },
     });
 
     // Free users: 1 choice per day
     // Premium users: 3 choices per day (as per specifications)
-    return activeSubscription?.status === SubscriptionStatus.ACTIVE ? 3 : 1;
+    return activeSubscription ? 3 : 1;
   }
 
   async getUserChoices(

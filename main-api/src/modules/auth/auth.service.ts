@@ -67,7 +67,7 @@ export class AuthService {
       const user = this.userRepository.create({
         email,
         passwordHash,
-        status: UserStatus.ACTIVE,
+        status: UserStatus.PENDING,
         emailVerificationToken: StringUtil.generateRandomString(32),
       });
 
@@ -181,7 +181,7 @@ export class AuthService {
           email,
           socialId,
           socialProvider: provider,
-          status: UserStatus.ACTIVE,
+          status: UserStatus.PENDING,
           isEmailVerified: true,
         });
 

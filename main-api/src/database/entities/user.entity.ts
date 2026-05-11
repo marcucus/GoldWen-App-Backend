@@ -8,7 +8,7 @@ import {
   OneToMany,
   Index,
 } from 'typeorm';
-import { UserStatus, FontSize, UserRole } from '../../common/enums';
+import { UserStatus, FontSize, UserRole, OnboardingStep } from '../../common/enums';
 import { Profile } from './profile.entity';
 import { PersonalityAnswer } from './personality-answer.entity';
 import { DailySelection } from './daily-selection.entity';
@@ -44,7 +44,7 @@ export class User {
   @Column({
     type: 'enum',
     enum: UserStatus,
-    default: UserStatus.ACTIVE,
+    default: UserStatus.PENDING,
   })
   status?: UserStatus;
 
@@ -69,6 +69,13 @@ export class User {
 
   @Column({ default: false })
   isOnboardingCompleted?: boolean;
+
+  @Column({
+    type: 'enum',
+    enum: OnboardingStep,
+    nullable: true,
+  })
+  onboardingStep?: OnboardingStep;
 
   @Column({ default: false })
   isProfileCompleted?: boolean;

@@ -115,6 +115,18 @@ export class UsersController {
     };
   }
 
+  @ApiOperation({ summary: 'Update user onboarding step' })
+  @ApiResponse({ status: 200, description: 'Onboarding step updated' })
+  @Put('me/onboarding-step')
+  async updateOnboardingStep(
+    @Req() req: Request,
+    @Body('step') step: string,
+  ) {
+    const user = req.user as User;
+    await this.usersService.updateOnboardingStep(user.id, step);
+    return new SuccessResponseDto('Onboarding step updated successfully');
+  }
+
   @ApiOperation({ summary: 'Update user settings' })
   @ApiResponse({ status: 200, description: 'Settings updated' })
   @Put('me/settings')

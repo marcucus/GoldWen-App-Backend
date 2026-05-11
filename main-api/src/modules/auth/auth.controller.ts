@@ -17,6 +17,7 @@ import {
 import type { Response, Request } from 'express';
 
 import { OAuth2Client } from 'google-auth-library';
+import appleSignin from 'apple-signin-auth';
 
 import { AuthService } from './auth.service';
 import {
@@ -40,6 +41,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({ status: 201, description: 'User successfully registered' })
   @ApiResponse({ status: 409, description: 'User already exists' })
+  @UseGuards(BruteForceGuard)
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
     const result = await this.authService.register(registerDto);
@@ -154,30 +156,38 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Apple social authentication with identity token' })
   @ApiResponse({ status: 200, description: 'Apple authentication successful' })
+  @UseGuards(BruteForceGuard)
   @Post('apple')
   async appleLogin(
     @Body() appleTokenDto: { identityToken: string; user?: any },
   ) {
-    // For now, return placeholder implementation
-    // In a real implementation, you would verify the Apple identity token
     const { identityToken, user } = appleTokenDto;
 
-    // Apple token verification logic would go here
-    // For development, we'll create a mock response based on the token
     if (!identityToken) {
       throw new Error('Identity token is required');
     }
 
-    // Mock Apple user data for development
-    const appleUserData = {
-      socialId: `apple_${Date.now()}`,
-      provider: 'apple',
-      email: user?.email || 'apple.user@privaterelay.appleid.com',
-      firstName: user?.name?.firstName || 'Apple',
-      lastName: user?.name?.lastName || 'User',
-    };
+    try {
+      // Verify Apple Identity Token
+      const appleIdTokenClaims = await appleSignin.verifyIdToken(identityToken, {
+        // You should configure APPLE_CLIENT_ID in your environment variables (.env)
+        // Set it to your App's Bundle ID (e.g. com.goldwen.app)
+        audience: process.env.APPLE_CLIENT_ID, 
+        ignoreExpiration: false,
+      });
 
-    return this.authService.socialLogin(appleUserData);
+      const appleUserData = {
+        socialId: appleIdTokenClaims.sub,
+        provider: 'apple',
+        email: appleIdTokenClaims.email || user?.email,
+        firstName: user?.name?.firstName || 'Utilisateur',
+        lastName: user?.name?.lastName || 'Apple',
+      };
+
+      return this.authService.socialLogin(appleUserData);
+    } catch (e) {
+      throw new Error('Invalid Apple token or verification failed');
+    }
   }
 
   @ApiOperation({ summary: 'Apple OAuth callback' })
@@ -193,6 +203,7 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Request password reset' })
   @ApiResponse({ status: 200, description: 'Password reset email sent' })
+  @UseGuards(BruteForceGuard)
   @Post('forgot-password')
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     await this.authService.forgotPassword(forgotPasswordDto);

@@ -90,6 +90,22 @@ export class UsersService {
     return this.findById(id);
   }
 
+  async updateOnboardingStep(id: string, step: string): Promise<User> {
+    const user = await this.findById(id);
+    
+    // Using any for casting string to enum dynamically
+    user.onboardingStep = step as any;
+    
+    // Automatically flag completed and unlock account
+    if (step === 'completed') {
+      user.isOnboardingCompleted = true;
+      user.status = UserStatus.ACTIVE;
+    }
+    
+    await this.userRepository.save(user);
+    return this.findById(id);
+  }
+
   async updateSettings(
     id: string,
     settingsDto: UpdateUserSettingsDto,
