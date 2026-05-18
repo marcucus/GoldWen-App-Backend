@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { Reflector } from '@nestjs/core';
+import { RoleGuard } from '../auth/guards/role.guard';
 
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
@@ -29,6 +31,8 @@ import { Chat } from '../../database/entities/chat.entity';
     FirebaseService,
     FcmService,
     ScheduledNotificationsService,
+    RoleGuard,
+    Reflector,
   ],
   controllers: [NotificationsController],
   exports: [NotificationsService, FirebaseService, FcmService],

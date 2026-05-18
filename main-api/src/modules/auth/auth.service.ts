@@ -4,6 +4,7 @@ import {
   ConflictException,
   NotFoundException,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -11,6 +12,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
+import * as crypto from 'crypto';
 
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
@@ -36,6 +38,9 @@ export interface AuthResponse {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+  private readonly REFRESH_TOKEN_TTL = 7 * 24 * 60 * 60; // 7 days in seconds
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -89,18 +94,19 @@ export class AuthService {
           // Email sending is not critical, so we don't throw errors
         });
 
-      // Generate JWT token
       const accessToken = this.generateAccessToken(savedUser);
+      const refreshToken = await this.generateRefreshToken(savedUser);
 
-      return { user: savedUser, accessToken };
+      return { user: savedUser, accessToken, refreshToken };
     } catch (error) {
-      console.log('Error registering user:', error);
+      if (error instanceof ConflictException) throw error;
+      this.logger.error('Error registering user', error);
       throw new InternalServerErrorException('Error registering user');
     }
   }
 
-  async login(loginDto: LoginDto): Promise<AuthResponse> {
-    const { email, password } = loginDto;
+  async login(loginDto: LoginDto & { twoFactorToken?: string }): Promise<AuthResponse & { requiresTwoFactor?: boolean }> {
+    const { email, password, twoFactorToken } = loginDto;
 
     // Find user with profile
     const user = await this.userRepository.findOne({
@@ -125,17 +131,40 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // Check 2FA if enabled
+    if (user.twoFactorEnabled) {
+      if (!twoFactorToken) {
+        return { user, accessToken: '', requiresTwoFactor: true };
+      }
+      const userWith2fa = await this.userRepository
+        .createQueryBuilder('user')
+        .addSelect('user.twoFactorSecret')
+        .where('user.id = :id', { id: user.id })
+        .getOne();
+
+      const isValid = userWith2fa?.twoFactorSecret
+        ? (await import('speakeasy')).default.totp.verify({
+            secret: userWith2fa.twoFactorSecret,
+            encoding: 'base32',
+            token: twoFactorToken,
+            window: 1,
+          })
+        : false;
+
+      if (!isValid) throw new UnauthorizedException('Invalid 2FA token');
+    }
+
     // Update last login
     user.lastLoginAt = new Date();
     await this.userRepository.save(user);
 
-    // Generate JWT token
     const accessToken = this.generateAccessToken(user);
+    const refreshToken = await this.generateRefreshToken(user);
 
-    return { user, accessToken };
+    return { user, accessToken, refreshToken };
   }
 
-  async validateGoogleUser(profile: any) {
+  async validateGoogleUser(profile: { email: string; googleId?: string; name?: string; picture?: string }) {
     let user = await this.userRepository.findOne({
       where: { email: profile.email },
     });
@@ -203,10 +232,10 @@ export class AuthService {
     user.lastLoginAt = new Date();
     await this.userRepository.save(user);
 
-    // Generate JWT token
     const accessToken = this.generateAccessToken(user);
+    const refreshToken = await this.generateRefreshToken(user);
 
-    return { user, accessToken };
+    return { user, accessToken, refreshToken };
   }
 
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto): Promise<void> {
@@ -300,12 +329,41 @@ export class AuthService {
   }
 
   private generateAccessToken(user: User): string {
-    const payload = {
-      sub: user.id,
-      email: user.email,
-    };
+    return this.jwtService.sign({ sub: user.id, email: user.email });
+  }
 
-    return this.jwtService.sign(payload);
+  private async generateRefreshToken(user: User): Promise<string> {
+    const token = crypto.randomBytes(64).toString('hex');
+    await this.redis.setex(
+      `refresh:${user.id}:${token}`,
+      this.REFRESH_TOKEN_TTL,
+      '1',
+    );
+    return token;
+  }
+
+  async refreshTokens(rawRefreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+    // Find the token across all users — scan by pattern
+    const keys = await this.redis.keys(`refresh:*:${rawRefreshToken}`);
+    if (!keys.length) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    const key = keys[0];
+    const userId = key.split(':')[1];
+
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user || user.status !== UserStatus.ACTIVE) {
+      await this.redis.del(key);
+      throw new UnauthorizedException('User not found or inactive');
+    }
+
+    // Rotate: delete old token, issue new pair
+    await this.redis.del(key);
+    const accessToken = this.generateAccessToken(user);
+    const refreshToken = await this.generateRefreshToken(user);
+
+    return { accessToken, refreshToken };
   }
 
   async getUserById(id: string): Promise<User> {
@@ -321,53 +379,38 @@ export class AuthService {
     return user;
   }
 
-  async logout(userId: string, token?: string): Promise<void> {
+  async logout(userId: string, accessToken?: string): Promise<void> {
     try {
-      // 1. Invalidate the token in Redis (if token is provided)
-      if (token) {
-        // Store the token in a blacklist with expiration matching JWT expiration
-        const jwtExpiresIn = this.configService.get('jwt.expiresIn') || '7d';
-        // Convert expiration to seconds (simple parsing for common formats)
-        let expirationSeconds = 7 * 24 * 60 * 60; // default 7 days
-        
-        if (typeof jwtExpiresIn === 'string') {
-          const match = jwtExpiresIn.match(/^(\d+)([smhd])$/);
-          if (match) {
-            const value = parseInt(match[1]);
-            const unit = match[2];
-            switch (unit) {
-              case 's': expirationSeconds = value; break;
-              case 'm': expirationSeconds = value * 60; break;
-              case 'h': expirationSeconds = value * 60 * 60; break;
-              case 'd': expirationSeconds = value * 24 * 60 * 60; break;
-            }
-          }
+      if (accessToken) {
+        const jwtExpiresIn = this.configService.get<string>('jwt.expiresIn') ?? '24h';
+        let expirationSeconds = 24 * 60 * 60;
+        const match = jwtExpiresIn.match(/^(\d+)([smhd])$/);
+        if (match) {
+          const value = parseInt(match[1]);
+          const multipliers: Record<string, number> = { s: 1, m: 60, h: 3600, d: 86400 };
+          expirationSeconds = value * (multipliers[match[2]] ?? 1);
         }
-        
-        await this.redis.setex(
-          `blacklist:token:${token}`,
-          expirationSeconds,
-          'true'
-        );
+        await this.redis.setex(`blacklist:token:${accessToken}`, expirationSeconds, '1');
       }
 
-      // 2. Remove all push tokens for this user (FCM tokens)
+      // Revoke all refresh tokens for this user
+      const refreshKeys = await this.redis.keys(`refresh:${userId}:*`);
+      if (refreshKeys.length > 0) {
+        await this.redis.del(...refreshKeys);
+      }
+
       await this.pushTokenRepository.delete({ userId });
 
-      // 3. Clear any user-specific cache entries
       const cacheKeys = await this.redis.keys(`user:${userId}:*`);
       if (cacheKeys.length > 0) {
         await this.redis.del(...cacheKeys);
       }
 
-      // 4. Clear session data
       await this.redis.del(`session:${userId}`);
-      
-      console.log(`User ${userId} logged out successfully`);
+
+      this.logger.log(`User ${userId} logged out`);
     } catch (error) {
-      console.error('Error during logout:', error);
-      // Don't throw error - logout should always succeed on the client side
-      // even if cleanup fails on the backend
+      this.logger.error('Error during logout', error);
     }
   }
 }

@@ -1,22 +1,42 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CustomLoggerService } from '../../common/logger';
+import * as CircuitBreaker from 'opossum';
+
+const FETCH_TIMEOUT_MS = 10_000;
+
+export interface PersonalityAnswer {
+  questionId: string;
+  answer: string | number | boolean;
+}
+
+export interface UserPreferences {
+  ageMin?: number;
+  ageMax?: number;
+  maxDistance?: number;
+  [key: string]: unknown;
+}
+
+export interface UserProfileSnapshot {
+  userId: string;
+  [key: string]: unknown;
+}
 
 export interface CompatibilityRequest {
   user1Profile: {
-    personalityAnswers: any[];
-    preferences: any;
+    personalityAnswers: PersonalityAnswer[];
+    preferences: UserPreferences;
   };
   user2Profile: {
-    personalityAnswers: any[];
-    preferences: any;
+    personalityAnswers: PersonalityAnswer[];
+    preferences: UserPreferences;
   };
 }
 
 export interface DailySelectionRequest {
   userId: string;
-  userProfile: any;
-  availableProfiles: any[];
+  userProfile: UserProfileSnapshot;
+  availableProfiles: UserProfileSnapshot[];
   selectionSize: number;
 }
 
@@ -59,6 +79,7 @@ export interface DailySelectionResult {
 export class MatchingIntegrationService {
   private readonly matchingServiceUrl: string;
   private readonly apiKey: string;
+  private readonly breaker: CircuitBreaker;
 
   constructor(
     private readonly configService: ConfigService,
@@ -69,13 +90,44 @@ export class MatchingIntegrationService {
     this.apiKey =
       this.configService.get('matchingService.apiKey') ||
       'matching-service-secret-key';
+
+    this.breaker = new CircuitBreaker(this.fetchWithTimeout.bind(this), {
+      timeout: FETCH_TIMEOUT_MS,
+      errorThresholdPercentage: 50,
+      resetTimeout: 30_000,
+      volumeThreshold: 5,
+    });
+
+    this.breaker.on('open', () =>
+      this.logger.warn('Matching service circuit breaker OPEN — requests halted', 'MatchingIntegration'),
+    );
+    this.breaker.on('halfOpen', () =>
+      this.logger.info('Matching service circuit breaker HALF-OPEN — probing', 'MatchingIntegration'),
+    );
+    this.breaker.on('close', () =>
+      this.logger.info('Matching service circuit breaker CLOSED — service recovered', 'MatchingIntegration'),
+    );
+  }
+
+  private async fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    try {
+      return await fetch(url, { ...init, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  private async protectedFetch(url: string, init: RequestInit): Promise<Response> {
+    return this.breaker.fire(url, init) as Promise<Response>;
   }
 
   async calculateCompatibility(
     request: CompatibilityRequest,
   ): Promise<CompatibilityResult> {
     try {
-      const response = await fetch(
+      const response = await this.protectedFetch(
         `${this.matchingServiceUrl}/api/v1/matching-service/calculate-compatibility`,
         {
           method: 'POST',
@@ -126,7 +178,7 @@ export class MatchingIntegrationService {
     request: CompatibilityRequest,
   ): Promise<CompatibilityResult> {
     try {
-      const response = await fetch(
+      const response = await this.protectedFetch(
         `${this.matchingServiceUrl}/api/v1/matching/calculate-compatibility-v2`,
         {
           method: 'POST',
@@ -171,7 +223,7 @@ export class MatchingIntegrationService {
     request: DailySelectionRequest,
   ): Promise<DailySelectionResult> {
     try {
-      const response = await fetch(
+      const response = await this.protectedFetch(
         `${this.matchingServiceUrl}/api/v1/matching-service/generate-daily-selection`,
         {
           method: 'POST',
@@ -226,11 +278,11 @@ export class MatchingIntegrationService {
   }
 
   async batchCompatibility(
-    baseProfile: any,
-    profilesToCompare: any[],
+    baseProfile: UserProfileSnapshot,
+    profilesToCompare: UserProfileSnapshot[],
   ): Promise<Record<string, CompatibilityResult>> {
     try {
-      const response = await fetch(
+      const response = await this.protectedFetch(
         `${this.matchingServiceUrl}/api/v1/matching-service/batch-compatibility`,
         {
           method: 'POST',
@@ -286,9 +338,9 @@ export class MatchingIntegrationService {
     }
   }
 
-  async getAlgorithmStats(): Promise<any> {
+  async getAlgorithmStats(): Promise<Record<string, unknown>> {
     try {
-      const response = await fetch(
+      const response = await this.protectedFetch(
         `${this.matchingServiceUrl}/api/v1/matching-service/algorithm/stats`,
         {
           method: 'GET',

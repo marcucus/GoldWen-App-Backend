@@ -11,6 +11,9 @@ import {
 import { Server, Socket } from 'socket.io';
 import { UseGuards, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { createAdapter } from '@socket.io/redis-adapter';
+import { Redis } from 'ioredis';
 import { ChatService } from './chat.service';
 import { CustomLoggerService } from '../../common/logger';
 import { MessageType } from '../../common/enums';
@@ -18,9 +21,16 @@ import { TypingIndicatorService } from './services/typing-indicator.service';
 import { ReadReceiptsService } from './services/read-receipts.service';
 import { PresenceService } from './services/presence.service';
 
+interface JwtSocketPayload {
+  sub: string;
+  email: string;
+  iat?: number;
+  exp?: number;
+}
+
 interface AuthenticatedSocket extends Socket {
   userId?: string;
-  user?: any;
+  user?: JwtSocketPayload;
 }
 
 @WebSocketGateway({
@@ -43,13 +53,23 @@ export class ChatGateway
     private readonly typingIndicatorService: TypingIndicatorService,
     private readonly readReceiptsService: ReadReceiptsService,
     private readonly presenceService: PresenceService,
+    private readonly configService: ConfigService,
   ) {}
 
   afterInit(server: Server) {
-    this.logger.info('WebSocket Gateway initialized for chat');
+    const redisHost = this.configService.get<string>('redis.host', 'localhost');
+    const redisPort = this.configService.get<number>('redis.port', 6379);
+    const redisPassword = this.configService.get<string | undefined>('redis.password');
+
+    const redisOptions = { host: redisHost, port: redisPort, password: redisPassword || undefined };
+    const pubClient = new Redis(redisOptions);
+    const subClient = pubClient.duplicate();
+
+    server.adapter(createAdapter(pubClient, subClient));
+    this.logger.info('WebSocket Gateway initialized with Redis adapter');
   }
 
-  async handleConnection(client: AuthenticatedSocket, ...args: any[]) {
+  async handleConnection(client: AuthenticatedSocket) {
     try {
       // Extract token from auth object or query
       const token =
@@ -410,7 +430,7 @@ export class ChatGateway
       type: string;
       title: string;
       body: string;
-      data?: any;
+      data?: Record<string, unknown>;
     },
   ) {
     this.server.to(`user:${userId}`).emit('notification', notification);

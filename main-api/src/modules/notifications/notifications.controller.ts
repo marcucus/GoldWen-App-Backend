@@ -9,7 +9,6 @@ import {
   Query,
   UseGuards,
   Request,
-  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,6 +18,8 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Roles, RoleGuard } from '../auth/guards/role.guard';
+import { UserRole } from '../../common/enums';
 import { NotificationsService } from './notifications.service';
 import { CustomLoggerService } from '../../common/logger';
 import { ScheduledNotificationsService } from './scheduled-notifications.service';
@@ -198,11 +199,14 @@ export class NotificationsController {
   }
 
   @Post('send-group')
+  @Roles([UserRole.ADMIN])
+  @UseGuards(RoleGuard)
   @ApiOperation({
     summary: 'Send notification to group of users (admin only)',
     description: 'Send a notification to multiple users at once',
   })
   @ApiResponse({ status: 201, description: 'Group notification sent' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
   async sendGroupNotification(
     @Request() req: any,
     @Body() sendGroupNotificationDto: SendGroupNotificationDto,
@@ -210,11 +214,6 @@ export class NotificationsController {
     const userId = req.user.id;
 
     this.logger.setContext({ userId, userEmail: req.user.email });
-
-    // TODO: Add admin role check here
-    // if (!req.user.isAdmin) {
-    //   throw new ForbiddenException('Admin access required');
-    // }
 
     const notifications = await this.notificationsService.sendGroupNotification(
       sendGroupNotificationDto,

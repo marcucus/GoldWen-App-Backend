@@ -126,3 +126,23 @@ export class VerifyEmailDto {
   @IsString()
   token: string;
 }
+
+export class RefreshTokenDto {
+  @ApiProperty({ description: 'Refresh token issued at login' })
+  @IsString()
+  refreshToken: string;
+}
+
+export class TwoFactorTokenDto {
+  @ApiProperty({ example: '123456', description: '6-digit TOTP code from authenticator app' })
+  @IsString()
+  @MinLength(6)
+  token: string;
+}
+
+export class LoginWithTwoFactorDto extends LoginDto {
+  @ApiPropertyOptional({ example: '123456', description: 'Required if 2FA is enabled' })
+  @IsOptional()
+  @IsString()
+  twoFactorToken?: string;
+}

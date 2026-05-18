@@ -65,6 +65,9 @@ export class Profile {
   @Column({ nullable: true })
   location: string;
 
+  @Column({ nullable: true, default: 'Europe/Paris' })
+  timezone: string;
+
   @Column('decimal', { precision: 10, scale: 8, nullable: true })
   latitude: number;
 

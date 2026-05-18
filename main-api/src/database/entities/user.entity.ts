@@ -118,6 +118,13 @@ export class User {
   @Column({ nullable: true })
   googleId?: string;
 
+  // Two-Factor Authentication
+  @Column({ default: false })
+  twoFactorEnabled?: boolean;
+
+  @Column({ nullable: true, select: false })
+  twoFactorSecret?: string;
+
   // Relations
   @OneToOne(() => Profile, (profile) => profile.user, { cascade: true })
   profile?: Profile;

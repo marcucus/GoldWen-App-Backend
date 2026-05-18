@@ -10,6 +10,7 @@ import {
   Request,
   UseInterceptors,
   UploadedFiles,
+  Logger,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import {
@@ -40,6 +41,8 @@ import {
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class ProfilesController {
+  private readonly logger = new Logger(ProfilesController.name);
+
   constructor(private readonly profilesService: ProfilesService) {}
 
   @Get('me')
@@ -113,7 +116,7 @@ export class ProfilesController {
     @Request() req: any,
     @Body() answersDto: SubmitPersonalityAnswersDto,
   ) {
-    console.log('Received personality answers:', answersDto);
+    this.logger.log(`Received personality answers for user: ${req.user.id}`);
     await this.profilesService.submitPersonalityAnswers(
       req.user.id,
       answersDto,

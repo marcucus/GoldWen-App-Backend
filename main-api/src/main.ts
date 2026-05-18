@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { CustomLoggerService } from './common/logger';
 import { HttpExceptionFilter } from './common/filters';
@@ -51,9 +52,26 @@ async function bootstrap() {
   app.useGlobalInterceptors(new CacheInterceptor(reflector));
   app.useGlobalInterceptors(new ResponseInterceptor(logger));
 
-  // CORS
+  // Security headers
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' }, // allow CDN images
+    contentSecurityPolicy: configService.get('app.environment') === 'production',
+  }));
+
+  // CORS — origines explicites uniquement
+  const allowedOrigins = [
+    configService.get<string>('app.frontendUrl'),
+    configService.get<string>('app.webUrl'),
+  ].filter(Boolean);
+
   app.enableCors({
-    origin: '*', // Accepte toutes les origines temporairement
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS: origin non autorisée: ${origin}`));
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [

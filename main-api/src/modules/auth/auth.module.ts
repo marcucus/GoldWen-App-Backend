@@ -5,6 +5,7 @@ import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { AuthService } from './auth.service';
+import { TwoFactorService } from './two-factor.service';
 import { AuthController } from './auth.controller';
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
@@ -30,8 +31,8 @@ import { GoogleStrategy } from './strategies/google.strategy';
     }),
     EmailModule,
   ],
-  providers: [AuthService, JwtStrategy, GoogleStrategy], // AppleStrategy , GoogleStrategy
+  providers: [AuthService, TwoFactorService, JwtStrategy, GoogleStrategy],
   controllers: [AuthController],
-  exports: [AuthService, JwtStrategy, PassportModule],
+  exports: [AuthService, TwoFactorService, JwtStrategy, PassportModule],
 })
 export class AuthModule {}

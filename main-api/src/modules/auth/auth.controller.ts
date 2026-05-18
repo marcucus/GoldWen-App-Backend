@@ -20,14 +20,17 @@ import { OAuth2Client } from 'google-auth-library';
 import appleSignin from 'apple-signin-auth';
 
 import { AuthService } from './auth.service';
+import { TwoFactorService } from './two-factor.service';
 import {
-  LoginDto,
   RegisterDto,
   SocialLoginDto,
   ForgotPasswordDto,
   ResetPasswordDto,
   ChangePasswordDto,
   VerifyEmailDto,
+  RefreshTokenDto,
+  TwoFactorTokenDto,
+  LoginWithTwoFactorDto,
 } from './dto/auth.dto';
 import { SuccessResponseDto } from '../../common/dto/response.dto';
 import { User } from '../../database/entities/user.entity';
@@ -36,7 +39,10 @@ import { BruteForceGuard } from '../../common/guards';
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private twoFactorService: TwoFactorService,
+  ) {}
 
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({ status: 201, description: 'User successfully registered' })
@@ -66,8 +72,11 @@ export class AuthController {
   @ApiResponse({ status: 429, description: 'Too many login attempts' })
   @UseGuards(BruteForceGuard)
   @Post('login')
-  async login(@Body() loginDto: LoginDto) {
+  async login(@Body() loginDto: LoginWithTwoFactorDto) {
     const result = await this.authService.login(loginDto);
+    if (result.requiresTwoFactor) {
+      return { success: true, requiresTwoFactor: true, message: '2FA token required' };
+    }
     return {
       success: true,
       message: 'Login successful',
@@ -79,6 +88,7 @@ export class AuthController {
           isProfileCompleted: result.user.isProfileCompleted,
         },
         accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
       },
     };
   }
@@ -130,7 +140,7 @@ export class AuthController {
 
     return this.authService.validateGoogleUser({
       googleId: sub,
-      email,
+      email: email!,
       name,
       picture,
     });
@@ -265,6 +275,21 @@ export class AuthController {
     };
   }
 
+  @ApiOperation({ summary: 'Refresh access token using refresh token' })
+  @ApiResponse({ status: 200, description: 'New access + refresh token pair issued' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
+  @Post('refresh')
+  async refresh(@Body() dto: RefreshTokenDto) {
+    const result = await this.authService.refreshTokens(dto.refreshToken);
+    return {
+      success: true,
+      data: {
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+      },
+    };
+  }
+
   @ApiOperation({ summary: 'Logout user' })
   @ApiResponse({ status: 200, description: 'User logged out successfully' })
   @ApiBearerAuth()
@@ -273,12 +298,47 @@ export class AuthController {
   async logout(@Req() req: Request) {
     const userId = (req.user as any).id;
     const token = req.headers.authorization?.replace('Bearer ', '');
-    
+
     await this.authService.logout(userId, token);
-    
+
     return {
       success: true,
       message: 'Logged out successfully',
     };
+  }
+
+  // ─── Two-Factor Authentication ───────────────────────────────────────────────
+
+  @ApiOperation({ summary: 'Generate 2FA secret and QR code' })
+  @ApiResponse({ status: 200, description: 'QR code and backup secret returned' })
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Post('2fa/generate')
+  async generate2fa(@Req() req: Request) {
+    const userId = (req.user as any).id;
+    const { qrCodeUrl, secret } = await this.twoFactorService.generateSecret(userId);
+    return { success: true, data: { qrCodeUrl, secret } };
+  }
+
+  @ApiOperation({ summary: 'Enable 2FA after verifying TOTP token' })
+  @ApiResponse({ status: 200, description: '2FA enabled' })
+  @ApiResponse({ status: 401, description: 'Invalid TOTP token' })
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Post('2fa/enable')
+  async enable2fa(@Req() req: Request, @Body() dto: TwoFactorTokenDto) {
+    await this.twoFactorService.enableTwoFactor((req.user as any).id, dto.token);
+    return new SuccessResponseDto('2FA enabled successfully');
+  }
+
+  @ApiOperation({ summary: 'Disable 2FA by verifying current TOTP token' })
+  @ApiResponse({ status: 200, description: '2FA disabled' })
+  @ApiResponse({ status: 401, description: 'Invalid TOTP token' })
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Post('2fa/disable')
+  async disable2fa(@Req() req: Request, @Body() dto: TwoFactorTokenDto) {
+    await this.twoFactorService.disableTwoFactor((req.user as any).id, dto.token);
+    return new SuccessResponseDto('2FA disabled successfully');
   }
 }

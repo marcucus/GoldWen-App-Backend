@@ -1,7 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
@@ -20,6 +20,7 @@ import { User } from '../../database/entities/user.entity';
 
 @Module({
   imports: [
+    ConfigModule,
     TypeOrmModule.forFeature([Chat, Message, Match, User]),
     JwtModule.registerAsync({
       useFactory: (configService: ConfigService) => ({

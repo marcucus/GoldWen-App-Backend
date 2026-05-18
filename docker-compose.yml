@@ -5,9 +5,9 @@ services:
     image: postgres:15-alpine
     container_name: goldwen_postgres
     environment:
-      POSTGRES_DB: goldwen_db
-      POSTGRES_USER: goldwen
-      POSTGRES_PASSWORD: goldwen_password
+      POSTGRES_DB: ${POSTGRES_DB:-goldwen_db}
+      POSTGRES_USER: ${POSTGRES_USER:-goldwen}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -35,8 +35,8 @@ services:
       dockerfile: Dockerfile
     container_name: goldwen_matching_service
     environment:
-      API_KEY: matching-service-secret-key
-      DATABASE_URL: postgresql://goldwen:goldwen_password@postgres:5432/goldwen_db
+      API_KEY: ${MATCHING_SERVICE_API_KEY}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-goldwen}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-goldwen_db}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_DB: 0

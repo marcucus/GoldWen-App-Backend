@@ -5,6 +5,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { BullModule } from '@nestjs/bull';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
 import { APP_GUARD } from '@nestjs/core';
 
 import { AppController } from './app.controller';
@@ -30,6 +31,7 @@ import {
   appConfig,
   oauthConfig,
   fileUploadConfig,
+  storageConfig,
   notificationConfig,
   emailConfig,
   matchingServiceConfig,
@@ -39,6 +41,7 @@ import {
   moderationConfig,
   analyticsConfig,
 } from './config/configuration';
+import { StorageService } from './common/services/storage.service';
 
 // Modules
 import { AuthModule } from './modules/auth/auth.module';
@@ -75,6 +78,7 @@ import { LegalModule } from './modules/legal/legal.module';
         appConfig,
         oauthConfig,
         fileUploadConfig,
+        storageConfig,
         notificationConfig,
         emailConfig,
         matchingServiceConfig,
@@ -86,22 +90,23 @@ import { LegalModule } from './modules/legal/legal.module';
       ],
     }),
 
-    // Throttler for rate limiting
+    // Throttler — Redis-backed for multi-instance rate limiting
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
         const ttl = configService.get<number>('throttler.global.ttl') || 60000;
-        const limit =
-          configService.get<number>('throttler.global.limit') || 100;
+        const limit = configService.get<number>('throttler.global.limit') || 100;
+        const redisHost = configService.get<string>('redis.host') || 'localhost';
+        const redisPort = configService.get<number>('redis.port') || 6379;
+        const redisPassword = configService.get<string | undefined>('redis.password');
 
         return {
-          throttlers: [
-            {
-              name: 'default',
-              ttl,
-              limit,
-            },
-          ],
+          throttlers: [{ name: 'default', ttl, limit }],
+          storage: new ThrottlerStorageRedisService({
+            host: redisHost,
+            port: redisPort,
+            password: redisPassword || undefined,
+          }),
         };
       },
       inject: [ConfigService],
@@ -118,7 +123,8 @@ import { LegalModule } from './modules/legal/legal.module';
         password: configService.get('database.password'),
         database: configService.get('database.database'),
         autoLoadEntities: true,
-        synchronize: true,
+        synchronize: configService.get('app.environment') === 'development',
+        migrationsRun: configService.get('app.environment') !== 'development',
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         logging: configService.get('app.environment') === 'development',
       }),
@@ -181,11 +187,13 @@ import { LegalModule } from './modules/legal/legal.module';
   controllers: [AppController],
   providers: [
     AppService,
+    StorageService,
     {
       provide: APP_GUARD,
       useClass: RateLimitGuard,
     },
   ],
+  exports: [StorageService],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {

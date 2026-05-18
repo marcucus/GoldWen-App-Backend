@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
@@ -6,6 +6,8 @@ import { httpIntegration, expressIntegration } from '@sentry/node';
 
 @Injectable()
 export class SentryService {
+  private readonly logger = new Logger(SentryService.name);
+
   constructor(private configService: ConfigService) {
     this.init();
   }
@@ -14,7 +16,7 @@ export class SentryService {
     const sentryConfig = this.configService.get('monitoring.sentry');
 
     if (!sentryConfig?.dsn) {
-      console.log('Sentry DSN not configured, skipping initialization');
+      this.logger.debug('Sentry DSN not configured, skipping initialization');
       return;
     }
 
@@ -42,9 +44,7 @@ export class SentryService {
       },
     });
 
-    console.log(
-      `Sentry initialized for environment: ${sentryConfig.environment}`,
-    );
+    this.logger.debug(`Sentry initialized for environment: ${sentryConfig.environment}`);
   }
 
   private static filterSensitiveData(data: any): any {

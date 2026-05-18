@@ -2,11 +2,11 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import * as path from 'path';
-import * as fs from 'fs';
+import { StorageService } from '../../common/services/storage.service';
 
 import { Profile } from '../../database/entities/profile.entity';
 import { User } from '../../database/entities/user.entity';
@@ -27,6 +27,8 @@ import {
 
 @Injectable()
 export class ProfilesService {
+  private readonly logger = new Logger(ProfilesService.name);
+
   constructor(
     @InjectRepository(Profile)
     private profileRepository: Repository<Profile>,
@@ -43,6 +45,7 @@ export class ProfilesService {
     @InjectRepository(PromptAnswer)
     private promptAnswerRepository: Repository<PromptAnswer>,
     private moderationService: ModerationService,
+    private storageService: StorageService,
   ) {}
 
   async getProfile(userId: string): Promise<Profile> {
@@ -254,11 +257,9 @@ export class ProfilesService {
       await this.updateProfileCompletionStatus(userId);
     } catch (error) {
       // Log the error for debugging
-      console.error(
-        'Error saving personality answers for user',
-        userId,
-        ':',
-        error,
+      this.logger.error(
+        `Error saving personality answers for user ${userId}`,
+        error?.stack || error,
       );
       throw new BadRequestException({
         message: 'Failed to save personality answers: ' + error.message,
@@ -294,29 +295,31 @@ export class ProfilesService {
       throw new BadRequestException('At least one photo is required');
     }
 
-    console.log('Received files for upload:', files);
+    // Upload chaque fichier sur S3 en parallèle
+    const uploadedUrls = await Promise.all(
+      files.map((file) => this.storageService.uploadFile(file, 'photos')),
+    );
 
-    // Create photo entities with initial approval status as false
     const photoEntities = files.map((file, index) => {
       return this.photoRepository.create({
         profileId: profile.id,
-        url: `/uploads/photos/${file.filename}`,
-        filename: file.filename,
+        url: uploadedUrls[index],
+        filename: file.originalname,
         mimeType: file.mimetype,
         fileSize: file.size,
         order: currentPhotosCount + index + 1,
-        isPrimary: currentPhotosCount === 0 && index === 0, // First photo is primary if no photos exist
-        isApproved: false, // Start as unapproved, will be moderated
+        isPrimary: currentPhotosCount === 0 && index === 0,
+        isApproved: false,
       });
     });
-    console.log('Photo entities to be saved:', photoEntities);
+
     const savedPhotos = await this.photoRepository.save(photoEntities);
 
     // Trigger moderation for each photo asynchronously
     // We don't await this so the upload response is fast
     savedPhotos.forEach((photo) => {
       this.moderationService.moderatePhoto(photo.id).catch((error) => {
-        console.error(`Error moderating photo ${photo.id}:`, error.message);
+        this.logger.error(`Error moderating photo ${photo.id}`, error?.stack || error);
       });
     });
 
@@ -505,11 +508,9 @@ export class ProfilesService {
       await this.updateProfileCompletionStatus(userId);
     } catch (error) {
       // Log the error for debugging
-      console.error(
-        '[submitPromptAnswers] ERROR saving prompt answers for user',
-        userId,
-        ':',
-        error,
+      this.logger.error(
+        `[submitPromptAnswers] ERROR saving prompt answers for user ${userId}`,
+        error?.stack || error,
       );
       throw new BadRequestException(
         'Failed to save prompt answers: ' + error.message,
@@ -595,11 +596,9 @@ export class ProfilesService {
       // Return saved answers with prompt information
       return this.getUserPromptAnswers(userId);
     } catch (error) {
-      console.error(
-        '[updatePromptAnswers] ERROR updating prompt answers for user',
-        userId,
-        ':',
-        error,
+      this.logger.error(
+        `[updatePromptAnswers] ERROR updating prompt answers for user ${userId}`,
+        error?.stack || error,
       );
       throw new BadRequestException(
         'Failed to update prompt answers: ' + error.message,
@@ -618,8 +617,8 @@ export class ProfilesService {
     }
 
     await this.photoRepository.remove(photo);
+    await this.storageService.deleteFile(photo.url);
 
-    // Check if profile is still complete
     await this.updateProfileCompletionStatus(userId);
   }
 
@@ -635,7 +634,7 @@ export class ProfilesService {
     });
 
     if (!user || !user.profile) {
-      console.log(`[updateProfileCompletionStatus] User or profile not found for userId: ${userId}`);
+      this.logger.debug(`[updateProfileCompletionStatus] User or profile not found for userId: ${userId}`);
       return;
     }
 
@@ -673,38 +672,20 @@ export class ProfilesService {
     const isOnboardingCompleted = hasPersonalityAnswers;
 
     // Log completion status for debugging
-    console.log(`[updateProfileCompletionStatus] Completion check for userId: ${userId}`, {
-      hasMinPhotos,
-      photosCount: user.profile.photos?.length || 0,
-      hasPromptAnswers,
-      promptsCount,
-      hasPersonalityAnswers,
-      personalityAnswersCount: user.personalityAnswers?.length || 0,
-      requiredQuestionsCount,
-      hasRequiredProfileFields,
-      hasBirthDate: !!user.profile.birthDate,
-      hasBio: !!user.profile.bio,
-      isProfileCompleted,
-      isOnboardingCompleted,
-      currentIsProfileCompleted: user.isProfileCompleted,
-      currentIsOnboardingCompleted: user.isOnboardingCompleted,
-    });
+    this.logger.debug(`[updateProfileCompletionStatus] Completion check for userId: ${userId} - photos:${user.profile.photos?.length || 0} prompts:${promptsCount} personality:${user.personalityAnswers?.length || 0}/${requiredQuestionsCount} birthDate:${!!user.profile.birthDate} bio:${!!user.profile.bio} complete:${isProfileCompleted} onboarding:${isOnboardingCompleted}`);
 
     // Update user status
     if (
       user.isProfileCompleted !== isProfileCompleted ||
       user.isOnboardingCompleted !== isOnboardingCompleted
     ) {
-      console.log(`[updateProfileCompletionStatus] Updating completion flags for userId: ${userId}`, {
-        from: { isProfileCompleted: user.isProfileCompleted, isOnboardingCompleted: user.isOnboardingCompleted },
-        to: { isProfileCompleted, isOnboardingCompleted },
-      });
+      this.logger.log(`[updateProfileCompletionStatus] Updating completion flags for userId: ${userId} - isProfileCompleted:${user.isProfileCompleted}=>${isProfileCompleted} isOnboardingCompleted:${user.isOnboardingCompleted}=>${isOnboardingCompleted}`);
       user.isProfileCompleted = isProfileCompleted;
       user.isOnboardingCompleted = isOnboardingCompleted;
       await this.userRepository.save(user);
-      console.log(`[updateProfileCompletionStatus] Successfully updated completion flags for userId: ${userId}`);
+      this.logger.log(`[updateProfileCompletionStatus] Successfully updated completion flags for userId: ${userId}`);
     } else {
-      console.log(`[updateProfileCompletionStatus] No changes needed for userId: ${userId}`);
+      this.logger.debug(`[updateProfileCompletionStatus] No changes needed for userId: ${userId}`);
     }
   }
 
@@ -748,12 +729,7 @@ export class ProfilesService {
     }
 
     // Debug: Log the user profile data
-    console.log('Profile completion debug - user data:', {
-      userId: user.id,
-      profileId: user.profile.id,
-      promptAnswersRaw: user.profile.promptAnswers,
-      promptAnswersCount: user.profile.promptAnswers?.length || 0,
-    });
+    this.logger.debug(`Profile completion debug - userId:${user.id} profileId:${user.profile.id} promptAnswersCount:${user.profile.promptAnswers?.length || 0}`);
 
     const photosCount = user.profile.photos?.length || 0;
     const hasPhotos = photosCount >= 3;
@@ -781,18 +757,7 @@ export class ProfilesService {
     );
 
     // Debug: Log prompts validation
-    console.log('Prompts validation debug:', {
-      userId: user.id,
-      requiredPromptsCount: 3,
-      promptsCount,
-      answeredPromptIds: Array.from(answeredPromptIds),
-      availablePromptIds: availablePrompts.map((p) => p.id),
-      missingPrompts: missingPrompts.map((p) => ({
-        id: p.id,
-        text: p.text,
-      })),
-      hasPrompts,
-    });
+    this.logger.debug(`Prompts validation debug - userId:${user.id} promptsCount:${promptsCount}/3 hasPrompts:${hasPrompts} missingCount:${missingPrompts.length}`);
 
     const requiredQuestionsCount =
       await this.personalityQuestionRepository.count({

@@ -3,6 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual, LessThan } from 'typeorm';
@@ -17,6 +18,8 @@ import { ReportStatus, NotificationType } from '../../common/enums';
 
 @Injectable()
 export class ReportsService {
+  private readonly logger = new Logger(ReportsService.name);
+
   constructor(
     @InjectRepository(Report)
     private reportRepository: Repository<Report>,
@@ -136,7 +139,7 @@ export class ReportsService {
       await this.sendReportNotification(savedReport);
     } catch (error) {
       // Log error but don't fail the report creation
-      console.error('Failed to send report notification:', error);
+      this.logger.error('Failed to send report notification', error?.stack || error);
     }
 
     return savedReport;
@@ -283,7 +286,7 @@ export class ReportsService {
     try {
       await this.sendResolutionNotification(updatedReport);
     } catch (error) {
-      console.error('Failed to send resolution notification:', error);
+      this.logger.error('Failed to send resolution notification', error?.stack || error);
     }
 
     return updatedReport;
@@ -347,7 +350,7 @@ export class ReportsService {
         },
       });
     } catch (error) {
-      console.error('Failed to send resolution notification:', error);
+      this.logger.error('Failed to send resolution notification', error?.stack || error);
     }
   }
 

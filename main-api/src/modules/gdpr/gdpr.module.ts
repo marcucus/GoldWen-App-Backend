@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { GdprController } from './gdpr.controller';
 import { GdprService } from './gdpr.service';
 import { DataExportService } from './data-export.service';
+import { RetentionScheduler } from './retention.scheduler';
 
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
@@ -36,7 +37,7 @@ import { AccountDeletion } from '../../database/entities/account-deletion.entity
     ]),
   ],
   controllers: [GdprController],
-  providers: [GdprService, DataExportService],
+  providers: [GdprService, DataExportService, RetentionScheduler],
   exports: [GdprService, DataExportService],
 })
 export class GdprModule {}

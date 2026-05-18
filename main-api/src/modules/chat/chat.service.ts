@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   Inject,
   forwardRef,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Or, In, Not, LessThan, Between } from 'typeorm';
@@ -20,6 +21,8 @@ import { SendMessageDto } from './dto/chat.dto';
 
 @Injectable()
 export class ChatService {
+  private readonly logger = new Logger(ChatService.name);
+
   constructor(
     @InjectRepository(Chat)
     private chatRepository: Repository<Chat>,
@@ -118,7 +121,7 @@ export class ChatService {
         );
       } catch (error) {
         // Log error but don't fail the whole operation
-        console.error('Failed to send chat acceptance notifications:', error);
+        this.logger.error('Failed to send chat acceptance notifications', error?.stack || error);
       }
 
       return {

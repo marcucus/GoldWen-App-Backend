@@ -23,6 +23,7 @@ export interface AppConfig {
   apiPrefix: string;
   logLevel: string;
   frontendUrl: string;
+  webUrl: string;
 }
 
 export interface OAuthConfig {
@@ -41,6 +42,15 @@ export interface OAuthConfig {
 export interface FileUploadConfig {
   uploadDir: string;
   maxFileSize: number;
+}
+
+export interface StorageConfig {
+  provider: 'local' | 's3';
+  bucket: string;
+  region: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  cdnUrl: string;
 }
 
 export interface NotificationConfig {

@@ -6,6 +6,7 @@ import {
   AppConfig,
   OAuthConfig,
   FileUploadConfig,
+  StorageConfig,
   NotificationConfig,
   EmailConfig,
   MatchingServiceConfig,
@@ -36,13 +37,15 @@ export const redisConfig = registerAs(
   }),
 );
 
-export const jwtConfig = registerAs(
-  'jwt',
-  (): JwtConfig => ({
-    secret: process.env.JWT_SECRET || 'your-super-secret-jwt-key',
+export const jwtConfig = registerAs('jwt', (): JwtConfig => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is required');
+  }
+  return {
+    secret: process.env.JWT_SECRET,
     expiresIn: process.env.JWT_EXPIRES_IN || '24h',
-  }),
-);
+  };
+});
 
 export const appConfig = registerAs(
   'app',
@@ -52,6 +55,7 @@ export const appConfig = registerAs(
     apiPrefix: process.env.API_PREFIX || 'api/v1',
     logLevel: process.env.LOG_LEVEL || 'info',
     frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3001',
+    webUrl: process.env.WEB_URL || 'http://localhost:3000',
   }),
 );
 
@@ -76,6 +80,18 @@ export const fileUploadConfig = registerAs(
   (): FileUploadConfig => ({
     uploadDir: process.env.UPLOAD_DIR || 'uploads',
     maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '5242880', 10), // 5MB
+  }),
+);
+
+export const storageConfig = registerAs(
+  'storage',
+  (): StorageConfig => ({
+    provider: (process.env.STORAGE_PROVIDER as 'local' | 's3') || 'local',
+    bucket: process.env.S3_BUCKET || '',
+    region: process.env.S3_REGION || 'eu-west-3',
+    accessKeyId: process.env.S3_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY || '',
+    cdnUrl: process.env.CDN_URL || '',
   }),
 );
 

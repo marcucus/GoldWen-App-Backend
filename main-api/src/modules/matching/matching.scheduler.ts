@@ -10,6 +10,25 @@ import { CustomLoggerService } from '../../common/logger';
 import { MatchingService } from './matching.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
+const DEFAULT_TIMEZONE = 'Europe/Paris';
+
+/** Returns true when the current wall-clock hour in `timezone` is 12 (noon). */
+function isNoonInTimezone(timezone: string): boolean {
+  try {
+    const hour = parseInt(
+      new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        hour: 'numeric',
+        hour12: false,
+      }).format(new Date()),
+      10,
+    );
+    return hour === 12;
+  } catch {
+    return false;
+  }
+}
+
 @Injectable()
 export class MatchingScheduler {
   constructor(
@@ -24,33 +43,44 @@ export class MatchingScheduler {
   ) {}
 
   /**
-   * Generate daily selections for all users at 12:00 PM
-   * This runs every day at noon
-   * TODO: Implement timezone-aware scheduling for multi-region users
+   * Runs every hour at :00.
+   * Only processes users whose local time is noon, based on the timezone
+   * stored in their profile. This replaces the single Paris-timezone noon cron.
    */
-  @Cron('0 12 * * *', {
+  @Cron('0 * * * *', {
     name: 'daily-selection-generation',
-    timeZone: 'Europe/Paris', // Main timezone - adjust based on requirements
   })
   async generateDailySelectionsForAllUsers() {
     const startTime = Date.now();
     const jobId = `daily-selection-${Date.now()}`;
 
-    this.logger.info('🚀 Starting daily selection generation job', {
+    this.logger.info('🕐 Hourly selection check started', {
       jobId,
-      scheduledTime: new Date().toISOString(),
-      timezone: 'Europe/Paris',
+      utcTime: new Date().toISOString(),
     });
 
     try {
-      // Get all users with completed profiles
+      // Fetch all users with completed profiles and their profile timezone
       const users = await this.userRepository.find({
         where: { isProfileCompleted: true },
+        relations: ['profile'],
       });
 
-      this.logger.info('Retrieved users for daily selection', {
+      // Keep only users for whom it is currently noon in their local timezone
+      const usersAtNoon = users.filter((user) => {
+        const tz = user.profile?.timezone ?? DEFAULT_TIMEZONE;
+        return isNoonInTimezone(tz);
+      });
+
+      if (!usersAtNoon.length) {
+        this.logger.debug('No users at local noon — skipping', 'MatchingScheduler');
+        return;
+      }
+
+      this.logger.info('🚀 Starting daily selection generation job', {
         jobId,
-        totalUsers: users.length,
+        utcTime: new Date().toISOString(),
+        eligibleUsers: usersAtNoon.length,
       });
 
       let successCount = 0;
@@ -58,8 +88,7 @@ export class MatchingScheduler {
       let skippedCount = 0;
       const errors: Array<{ userId: string; error: string }> = [];
 
-      // Process each user
-      for (const user of users) {
+      for (const user of usersAtNoon) {
         try {
           // Generate daily selection
           await this.matchingService.generateDailySelection(user.id);
@@ -100,10 +129,9 @@ export class MatchingScheduler {
 
       const executionTime = Date.now() - startTime;
 
-      // Log completion with detailed metrics
       this.logger.info('✅ Daily selection generation completed', {
         jobId,
-        totalUsers: users.length,
+        totalUsers: usersAtNoon.length,
         successCount,
         errorCount,
         skippedCount,
@@ -114,7 +142,7 @@ export class MatchingScheduler {
 
       // Alert if there are errors
       if (errorCount > 0) {
-        const errorRate = (errorCount / users.length) * 100;
+        const errorRate = (errorCount / usersAtNoon.length) * 100;
         const alertLevel = errorRate > 10 ? 'CRITICAL' : 'WARNING';
 
         this.logger.warn(
