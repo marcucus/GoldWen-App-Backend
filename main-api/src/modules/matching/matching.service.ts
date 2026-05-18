@@ -61,7 +61,7 @@ export class MatchingService {
     private notificationsService: NotificationsService,
     private matchingIntegrationService: MatchingIntegrationService,
     private logger: CustomLoggerService,
-  ) {}
+  ) { }
 
   async generateDailySelection(userId: string): Promise<DailySelection> {
     const user = await this.userRepository.findOne({
@@ -131,6 +131,7 @@ export class MatchingService {
     // Use external matching service to generate daily selection
     try {
       const userProfile = {
+        userId,
         personalityAnswers: user.personalityAnswers || [],
         preferences: {
           ageRange: {
@@ -163,7 +164,7 @@ export class MatchingService {
           userId,
           userProfile,
           availableProfiles,
-          selectionSize,
+          selectionSize
         });
 
       const selectedProfileIds = selectionResult.selectedProfiles.map(
@@ -262,9 +263,9 @@ export class MatchingService {
     const profiles =
       profileIds.length > 0
         ? await this.userRepository.find({
-            where: { id: In(profileIds) },
-            relations: ['profile', 'profile.photos'],
-          })
+          where: { id: In(profileIds) },
+          relations: ['profile', 'profile.photos'],
+        })
         : [];
 
     // Calculate refresh time (next day at noon)
@@ -596,7 +597,7 @@ export class MatchingService {
           // Basic text similarity (can be enhanced)
           const similarity =
             answer1.textAnswer.toLowerCase() ===
-            answer2.textAnswer.toLowerCase()
+              answer2.textAnswer.toLowerCase()
               ? 100
               : 50;
           totalScore += similarity;
@@ -830,11 +831,11 @@ export class MatchingService {
             const match =
               userChoice.choiceType === ChoiceType.LIKE
                 ? await this.matchRepository.findOne({
-                    where: [
-                      { user1Id: userId, user2Id: userChoice.targetUserId },
-                      { user1Id: userChoice.targetUserId, user2Id: userId },
-                    ],
-                  })
+                  where: [
+                    { user1Id: userId, user2Id: userChoice.targetUserId },
+                    { user1Id: userChoice.targetUserId, user2Id: userId },
+                  ],
+                })
                 : null;
 
             return {

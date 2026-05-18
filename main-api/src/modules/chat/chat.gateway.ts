@@ -65,7 +65,10 @@ export class ChatGateway
     const pubClient = new Redis(redisOptions);
     const subClient = pubClient.duplicate();
 
-    server.adapter(createAdapter(pubClient, subClient));
+    // When a namespace is configured, afterInit receives the Namespace object,
+    // not the main Server. The adapter must be set on the root Server instance.
+    const io: Server = (server as unknown as { server: Server }).server ?? server;
+    io.adapter(createAdapter(pubClient, subClient));
     this.logger.info('WebSocket Gateway initialized with Redis adapter');
   }
 

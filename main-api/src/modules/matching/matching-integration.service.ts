@@ -1,7 +1,7 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CustomLoggerService } from '../../common/logger';
-import * as CircuitBreaker from 'opossum';
+import CircuitBreaker from 'opossum';
 
 const FETCH_TIMEOUT_MS = 10_000;
 

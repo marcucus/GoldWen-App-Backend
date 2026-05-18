@@ -88,7 +88,7 @@ export class TwoFactorService {
     await this.userRepository
       .createQueryBuilder()
       .update(User)
-      .set({ twoFactorEnabled: false, twoFactorSecret: null } as Partial<User>)
+      .set({ twoFactorEnabled: false, twoFactorSecret: undefined } as Partial<User>)
       .where('id = :id', { id: userId })
       .execute();
 

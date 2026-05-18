@@ -1,7 +1,7 @@
 import { Controller, Get, Header, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { MetricsService } from './metrics.service';
 import { AdminGuard } from '../../modules/auth/guards/admin.guard';
