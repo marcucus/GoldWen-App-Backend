@@ -10,6 +10,7 @@ import { Notification } from '../../database/entities/notification.entity';
 import { DailySelection } from '../../database/entities/daily-selection.entity';
 import { Report } from '../../database/entities/report.entity';
 import { SupportTicket } from '../../database/entities/support-ticket.entity';
+import { Subscription } from '../../database/entities/subscription.entity';
 
 function makeQueryBuilder(overrides: Record<string, unknown> = {}) {
   return {
@@ -41,6 +42,9 @@ describe('RetentionScheduler', () => {
     createQueryBuilder: jest.fn(),
   };
   const mockSupportTicketRepository = {
+    createQueryBuilder: jest.fn(),
+  };
+  const mockSubscriptionRepository = {
     createQueryBuilder: jest.fn(),
   };
   const mockNotificationsService = {
@@ -77,6 +81,10 @@ describe('RetentionScheduler', () => {
           provide: getRepositoryToken(SupportTicket),
           useValue: mockSupportTicketRepository,
         },
+        {
+          provide: getRepositoryToken(Subscription),
+          useValue: mockSubscriptionRepository,
+        },
         { provide: NotificationsService, useValue: mockNotificationsService },
         { provide: DataExportService, useValue: mockDataExportService },
         { provide: CustomLoggerService, useValue: mockLogger },
@@ -96,6 +104,9 @@ describe('RetentionScheduler', () => {
     );
     mockReportRepository.createQueryBuilder.mockReturnValue(makeQueryBuilder());
     mockSupportTicketRepository.createQueryBuilder.mockReturnValue(
+      makeQueryBuilder(),
+    );
+    mockSubscriptionRepository.createQueryBuilder.mockReturnValue(
       makeQueryBuilder(),
     );
     mockDataExportService.purgeExpiredExports.mockResolvedValue(0);
@@ -269,6 +280,39 @@ describe('RetentionScheduler', () => {
       expect(mockLogger.info).toHaveBeenCalledWith(
         'Purged closed support tickets',
         expect.objectContaining({ deleted: 1 }),
+      );
+    });
+  });
+
+  describe('purgeOldAnonymizedSubscriptions (via runRetention)', () => {
+    it('deletes anonymized subscriptions older than the accounting retention window', async () => {
+      const execute = jest.fn().mockResolvedValue({ affected: 5 });
+      mockSubscriptionRepository.createQueryBuilder.mockReturnValue(
+        makeQueryBuilder({ execute }),
+      );
+
+      await scheduler.runRetention();
+
+      expect(execute).toHaveBeenCalled();
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'Purged old anonymized subscriptions',
+        expect.objectContaining({ deleted: 5 }),
+      );
+    });
+
+    it('logs an error without throwing when the subscription purge fails', async () => {
+      mockSubscriptionRepository.createQueryBuilder.mockReturnValue(
+        makeQueryBuilder({
+          execute: jest.fn().mockRejectedValue(new Error('db down')),
+        }),
+      );
+
+      await expect(scheduler.runRetention()).resolves.toBeUndefined();
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to purge old anonymized subscriptions',
+        'db down',
+        'RetentionScheduler',
       );
     });
   });

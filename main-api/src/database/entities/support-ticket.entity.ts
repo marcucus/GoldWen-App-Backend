@@ -60,12 +60,15 @@ export class SupportTicket {
   @Column({ nullable: true })
   repliedAt: Date;
 
-  @Column()
-  userId: string;
+  @Column({ nullable: true })
+  userId: string | null;
 
-  @ManyToOne(() => User, (user) => user.supportTickets)
+  @ManyToOne(() => User, (user) => user.supportTickets, {
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
   @JoinColumn({ name: 'userId' })
-  user: User;
+  user: User | null;
 
   @CreateDateColumn()
   createdAt: Date;

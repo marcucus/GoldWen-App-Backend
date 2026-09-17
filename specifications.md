@@ -230,7 +230,7 @@ La gestion des données personnelles, surtout dans une application de rencontre,
    * Journaux de sécurité : 6 mois, sans contenu des conversations.  
    * Sauvegardes : rotation sur 30 jours, sans réintroduction des données supprimées lors d'une restauration.  
    * Exception légale/comptable : en cas de litige ou d'obligation légale, seules les données nécessaires sont conservées séparément avec un accès limité ; les pièces comptables peuvent devoir être gardées jusqu'à 10 ans, sans conserver le profil de rencontre associé.  
-   * Détail technique complet (durées codées, jobs de purge, écarts connus et décisions en attente) : voir `docs/DATA_RETENTION_POLICY.md`.
+   * Détail technique complet (durées codées, jobs de purge, dépendances côté hébergement restantes) : voir `docs/DATA_RETENTION_POLICY.md`.
 
 #### **Sources des citations**
 

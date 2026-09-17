@@ -302,20 +302,24 @@ export class GdprService {
 
   // Private helper methods for anonymization.
   //
-  // NOTE (2026-09-17, politique de rétention) : ces 3 méthodes ne sont
-  // actuellement PAS appelées. UserDataService.deleteUserCompletely() fait
-  // un DELETE dur sur la ligne User, et les FK onDelete: 'CASCADE' de
-  // Message/Match/Report suppriment ces lignes en cascade avant que cette
-  // anonymisation n'ait pu s'exécuter. Elles sont conservées ici comme
-  // référence pour la remédiation à décider : les signalements doivent
-  // légalement survivre 12 mois après clôture (modération) même si le
-  // compte est supprimé entre-temps, ce qui suppose de remplacer
-  // onDelete: 'CASCADE' par 'SET NULL' sur reports.reporterId /
-  // reportedUserId (+ colonnes nullable, + migration) plutôt que de
-  // réactiver un update vers la valeur littérale 'deleted-user', qui
-  // violerait la contrainte de clé étrangère si elle est réellement
-  // appliquée en base. Voir docs/DATA_RETENTION_POLICY.md, section
-  // "Décision d'architecture en attente".
+  // NOTE (2026-09-17, politique de rétention) : anonymizeUserMessages et
+  // anonymizeUserMatches ne sont actuellement PAS appelées.
+  // UserDataService.deleteUserCompletely() fait un DELETE dur sur la ligne
+  // User, et les FK onDelete: 'CASCADE' de Message/Match suppriment ces
+  // lignes en cascade avant que cette anonymisation n'ait pu s'exécuter —
+  // ce qui est le comportement voulu pour les messages (déjà purgés bien
+  // avant par ChatScheduler) et les matches (pas de durée de rétention
+  // indépendante définie pour eux dans la politique actuelle). Elles sont
+  // conservées ici, non appelées, comme référence si une politique de
+  // rétention propre aux matches devait un jour être définie.
+  //
+  // anonymizeReportsAgainstUser a été retirée : ce n'est plus nécessaire
+  // depuis la migration AddSetNullRetentionForeignKeys, qui fait passer
+  // reports.reportedUserId (et reporterId) à onDelete: 'SET NULL' — la
+  // base de données anonymise elle-même la ligne au moment de la
+  // suppression du compte, sans update applicatif, et surtout sans risque
+  // de violer la contrainte de clé étrangère comme l'aurait fait l'ancien
+  // update vers la valeur littérale non-UUID 'deleted-user'.
 
   /**
    * Anonymize user messages
@@ -344,17 +348,5 @@ export class GdprService {
     );
 
     return (result1.affected || 0) + (result2.affected || 0);
-  }
-
-  /**
-   * Anonymize reports against the user
-   */
-  private async anonymizeReportsAgainstUser(userId: string): Promise<number> {
-    const result = await this.reportRepository.update(
-      { reportedUserId: userId },
-      { reportedUserId: 'deleted-user' },
-    );
-
-    return result.affected || 0;
   }
 }

@@ -168,12 +168,13 @@ export class UserDataService {
           { userId },
         )
         .execute();
-      await manager
-        .createQueryBuilder()
-        .delete()
-        .from('support_tickets')
-        .where('"userId" = :userId', { userId })
-        .execute();
+      // Les tickets support ne sont plus supprimés explicitement ici : la
+      // FK support_tickets.userId est passée à onDelete: 'SET NULL' (voir
+      // migration AddSetNullRetentionForeignKeys) pour que le ticket
+      // survive 12 mois après clôture, conformément à la politique de
+      // rétention (docs/DATA_RETENTION_POLICY.md). Il sera anonymisé
+      // (userId = NULL) automatiquement par la suppression du User
+      // ci-dessous, puis purgé par RetentionScheduler.purgeClosedSupportTickets.
       await manager
         .createQueryBuilder()
         .delete()

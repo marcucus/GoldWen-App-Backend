@@ -12,6 +12,7 @@ import {
   SupportTicket,
   SupportStatus,
 } from '../../database/entities/support-ticket.entity';
+import { Subscription } from '../../database/entities/subscription.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { DataExportService } from './data-export.service';
 import {
@@ -21,6 +22,7 @@ import {
   NOTIFICATION_RETENTION_DAYS,
   SUPPORT_TICKET_RETENTION_MONTHS_AFTER_CLOSURE,
   REPORT_RETENTION_MONTHS_AFTER_CLOSURE,
+  ACCOUNTING_RECORD_RETENTION_YEARS,
 } from '../../common/constants/retention.constants';
 
 function daysAgo(n: number): Date {
@@ -35,6 +37,12 @@ function monthsAgo(n: number): Date {
   return d;
 }
 
+function yearsAgo(n: number): Date {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - n);
+  return d;
+}
+
 /**
  * Applique la politique de rétention des données GoldWen validée le
  * 2026-09-17 (voir docs/DATA_RETENTION_POLICY.md pour le détail et les
@@ -46,10 +54,14 @@ function monthsAgo(n: number): Date {
  *   d'accès + 24h de grâce après expiration), pas ici.
  * - La rotation des sauvegardes : dépend de la configuration de
  *   l'hébergeur, hors du périmètre de ce code.
- * - La conservation 10 ans des pièces comptables (abonnements) au-delà de
- *   la suppression de compte : nécessite une décision d'architecture
- *   (les FK actuelles suppriment les abonnements en cascade avec le
- *   compte) — voir la note dédiée dans la documentation.
+ *
+ * Depuis la migration AddSetNullRetentionForeignKeys, les FK
+ * reports.reporterId / reportedUserId, support_tickets.userId et
+ * subscriptions.userId passent à NULL (au lieu d'être supprimées en
+ * cascade) quand le compte utilisateur est supprimé, pour que ces
+ * enregistrements survivent le temps de leur propre durée de conservation.
+ * `purgeOldAnonymizedSubscriptions` applique l'exception comptable (jusqu'à
+ * 10 ans, sans profil associé) sur les abonnements orphelins.
  */
 @Injectable()
 export class RetentionScheduler {
@@ -64,6 +76,8 @@ export class RetentionScheduler {
     private readonly reportRepository: Repository<Report>,
     @InjectRepository(SupportTicket)
     private readonly supportTicketRepository: Repository<SupportTicket>,
+    @InjectRepository(Subscription)
+    private readonly subscriptionRepository: Repository<Subscription>,
     private readonly notificationsService: NotificationsService,
     private readonly dataExportService: DataExportService,
     private readonly logger: CustomLoggerService,
@@ -83,6 +97,7 @@ export class RetentionScheduler {
       this.purgeClosedReports(jobId),
       this.purgeClosedSupportTickets(jobId),
       this.purgeExpiredExports(jobId),
+      this.purgeOldAnonymizedSubscriptions(jobId),
     ]);
 
     this.logger.info('GDPR retention job completed', { jobId });
@@ -293,6 +308,37 @@ export class RetentionScheduler {
     } catch (error: unknown) {
       this.logger.error(
         'Failed to purge closed support tickets',
+        error instanceof Error ? error.message : String(error),
+        'RetentionScheduler',
+      );
+    }
+  }
+
+  /**
+   * Exception légale/comptable : un abonnement dont le compte a été
+   * supprimé (userId devenu NULL via onDelete: 'SET NULL') est conservé
+   * comme pièce comptable jusqu'à ACCOUNTING_RECORD_RETENTION_YEARS (10
+   * ans) à compter de sa création, sans conserver le profil de rencontre
+   * associé (déjà supprimé avec le compte). Un abonnement dont le compte
+   * existe toujours n'est jamais purgé ici.
+   */
+  private async purgeOldAnonymizedSubscriptions(jobId: string) {
+    try {
+      const cutoff = yearsAgo(ACCOUNTING_RECORD_RETENTION_YEARS);
+      const result = await this.subscriptionRepository
+        .createQueryBuilder()
+        .delete()
+        .where('"userId" IS NULL')
+        .andWhere('"createdAt" < :cutoff', { cutoff })
+        .execute();
+      this.logger.info('Purged old anonymized subscriptions', {
+        jobId,
+        deleted: result.affected ?? 0,
+        cutoff: cutoff.toISOString(),
+      });
+    } catch (error: unknown) {
+      this.logger.error(
+        'Failed to purge old anonymized subscriptions',
         error instanceof Error ? error.message : String(error),
         'RetentionScheduler',
       );

@@ -19,9 +19,9 @@ export class Report {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ nullable: true })
   @Index()
-  reporterId: string;
+  reporterId: string | null;
 
   @Column({
     type: 'enum',
@@ -30,9 +30,9 @@ export class Report {
   })
   targetType: 'user' | 'message';
 
-  @Column()
+  @Column({ nullable: true })
   @Index()
-  reportedUserId: string;
+  reportedUserId: string | null;
 
   @Column({
     type: 'enum',
@@ -82,16 +82,18 @@ export class Report {
 
   // Relations
   @ManyToOne(() => User, (user) => user.reportsSubmitted, {
-    onDelete: 'CASCADE',
+    onDelete: 'SET NULL',
+    nullable: true,
   })
   @JoinColumn({ name: 'reporterId' })
-  reporter: User;
+  reporter: User | null;
 
   @ManyToOne(() => User, (user) => user.reportsReceived, {
-    onDelete: 'CASCADE',
+    onDelete: 'SET NULL',
+    nullable: true,
   })
   @JoinColumn({ name: 'reportedUserId' })
-  reportedUser: User;
+  reportedUser: User | null;
 
   @ManyToOne(() => Admin)
   @JoinColumn({ name: 'reviewedById' })

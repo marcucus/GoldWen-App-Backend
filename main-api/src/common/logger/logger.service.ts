@@ -2,7 +2,9 @@ import type { Request, Response } from 'express';
 import { Injectable, LoggerService } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createLogger, Logger, transports, format } from 'winston';
+import DailyRotateFile from 'winston-daily-rotate-file';
 import { v4 as uuidv4 } from 'uuid';
+import { SECURITY_LOG_RETENTION_MONTHS } from '../constants/retention.constants';
 
 export interface LogContext {
   traceId?: string;
@@ -73,6 +75,14 @@ export class CustomLoggerService implements LoggerService {
       }),
     );
 
+    // Rotation temporelle (par jour, conservés SECURITY_LOG_RETENTION_MONTHS
+    // mois) plutôt que par taille : la politique de rétention (voir
+    // docs/DATA_RETENTION_POLICY.md) exige que ces journaux ne survivent
+    // pas au-delà de 6 mois, ce qu'une rotation par taille ne garantit pas
+    // (elle peut les garder indéfiniment à faible volume, ou les purger en
+    // quelques jours à fort volume).
+    const securityLogRetentionDays = `${SECURITY_LOG_RETENTION_MONTHS * 30}d`;
+
     this.logger = createLogger({
       level: logLevel,
       format: isProduction ? productionFormat : developmentFormat,
@@ -81,16 +91,16 @@ export class CustomLoggerService implements LoggerService {
         // In production, you might want to add file transports or external services
         ...(isProduction
           ? [
-              new transports.File({
-                filename: 'logs/error.log',
+              new DailyRotateFile({
+                filename: 'logs/error-%DATE%.log',
+                datePattern: 'YYYY-MM-DD',
                 level: 'error',
-                maxsize: 5242880, // 5MB
-                maxFiles: 5,
+                maxFiles: securityLogRetentionDays,
               }),
-              new transports.File({
-                filename: 'logs/combined.log',
-                maxsize: 5242880, // 5MB
-                maxFiles: 5,
+              new DailyRotateFile({
+                filename: 'logs/combined-%DATE%.log',
+                datePattern: 'YYYY-MM-DD',
+                maxFiles: securityLogRetentionDays,
               }),
             ]
           : []),

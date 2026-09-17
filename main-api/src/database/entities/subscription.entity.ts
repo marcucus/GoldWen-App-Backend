@@ -16,9 +16,9 @@ export class Subscription {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ nullable: true })
   @Index()
-  userId: string;
+  userId: string | null;
 
   @Column({
     type: 'enum',
@@ -73,9 +73,12 @@ export class Subscription {
   updatedAt: Date;
 
   // Relations
-  @ManyToOne(() => User, (user) => user.subscriptions, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.subscriptions, {
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
   @JoinColumn()
-  user: User;
+  user: User | null;
 
   // Helper methods
   get isActive(): boolean {

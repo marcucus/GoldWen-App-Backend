@@ -117,6 +117,17 @@ export class SubscriptionsService {
       throw new NotFoundException('Subscription not found');
     }
 
+    if (!subscription.userId) {
+      // Ne devrait pas arriver : on n'active un abonnement que pour un
+      // compte existant. userId ne devient null que via onDelete: 'SET
+      // NULL' après suppression du compte (voir migration
+      // AddSetNullRetentionForeignKeys) — un abonnement déjà anonymisé
+      // n'a plus vocation à être (ré)activé.
+      throw new NotFoundException(
+        'Cannot activate a subscription with no associated account',
+      );
+    }
+
     subscription.status = SubscriptionStatus.ACTIVE;
     subscription.startDate = new Date();
 

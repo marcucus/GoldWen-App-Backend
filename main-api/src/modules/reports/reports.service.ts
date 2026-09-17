@@ -236,10 +236,15 @@ export class ReportsService {
       createdAt: report.createdAt,
       updatedAt: report.updatedAt,
       reviewedAt: report.reviewedAt,
-      reportedUser: {
-        id: report.reportedUser.id,
-        // Don't expose sensitive user data
-      },
+      // reportedUser peut être null : le compte visé peut avoir été
+      // supprimé depuis (onDelete: 'SET NULL'), le signalement survivant
+      // pour la modération pendant sa propre durée de rétention.
+      reportedUser: report.reportedUser
+        ? {
+            id: report.reportedUser.id,
+            // Don't expose sensitive user data
+          }
+        : null,
     }));
 
     return {
