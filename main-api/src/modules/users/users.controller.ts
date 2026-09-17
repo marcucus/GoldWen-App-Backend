@@ -118,10 +118,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Update user onboarding step' })
   @ApiResponse({ status: 200, description: 'Onboarding step updated' })
   @Put('me/onboarding-step')
-  async updateOnboardingStep(
-    @Req() req: Request,
-    @Body('step') step: string,
-  ) {
+  async updateOnboardingStep(@Req() req: Request, @Body('step') step: string) {
     const user = req.user as User;
     await this.usersService.updateOnboardingStep(user.id, step);
     return new SuccessResponseDto('Onboarding step updated successfully');
@@ -198,12 +195,12 @@ export class UsersController {
   @ApiOperation({ summary: 'Upload user photos' })
   @ApiResponse({ status: 201, description: 'Photos uploaded successfully' })
   @Post('me/photos')
-  async uploadPhotos(@Req() req: Request) {
+  uploadPhotos(@Req() req: Request) {
     const user = req.user as User;
 
     // For now, return a response indicating the endpoint structure is ready
     // In a full implementation, this would handle multipart/form-data file uploads
-    return {
+    return Promise.resolve({
       success: true,
       message:
         'Photo upload endpoint ready - requires multipart/form-data implementation',
@@ -213,25 +210,25 @@ export class UsersController {
         supportedFormats: ['jpg', 'jpeg', 'png'],
         maxFileSize: '10MB',
       },
-    };
+    });
   }
 
   @ApiOperation({ summary: 'Delete user photo' })
   @ApiResponse({ status: 200, description: 'Photo deleted successfully' })
   @Delete('me/photos/:photoId')
-  async deletePhoto(@Req() req: Request) {
+  deletePhoto(@Req() req: Request) {
     const user = req.user as User;
     // const photoId = req.params.photoId; // Would extract from params
 
     // For now, return a response indicating the endpoint structure is ready
-    return {
+    return Promise.resolve({
       success: true,
       message:
         'Photo deletion endpoint ready - requires photo ID parameter handling',
       data: {
         userId: user.id,
       },
-    };
+    });
   }
 
   @ApiOperation({

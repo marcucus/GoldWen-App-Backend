@@ -1,3 +1,4 @@
+import type { Request as ExpressRequest } from 'express';
 import {
   Injectable,
   CanActivate,
@@ -8,7 +9,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { DailySelection } from '../../../database/entities/daily-selection.entity';
 import { Subscription } from '../../../database/entities/subscription.entity';
-import { SubscriptionPlan, SubscriptionStatus } from '../../../common/enums';
 import { CustomLoggerService } from '../../../common/logger';
 
 @Injectable()
@@ -22,8 +22,8 @@ export class QuotaGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
-    const userId = request.user?.id;
+    const request = context.switchToHttp().getRequest<ExpressRequest>();
+    const userId = (request.user as { id?: string } | undefined)?.id;
 
     if (!userId) {
       throw new ForbiddenException('User not authenticated');

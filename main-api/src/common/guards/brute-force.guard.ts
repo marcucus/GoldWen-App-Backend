@@ -1,6 +1,6 @@
-import { Injectable, ExecutionContext, Inject } from '@nestjs/common';
+import { Injectable, ExecutionContext } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import * as throttler from '@nestjs/throttler';
-import { ThrottlerOptions } from '@nestjs/throttler';
 import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { CustomLoggerService } from '../logger';
@@ -41,7 +41,7 @@ export class BruteForceGuard extends throttler.ThrottlerGuard {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const response = context.switchToHttp().getResponse();
+    const response = context.switchToHttp().getResponse<Response>();
 
     try {
       const canActivate = await super.canActivate(context);
@@ -51,7 +51,7 @@ export class BruteForceGuard extends throttler.ThrottlerGuard {
       response.setHeader('X-RateLimit-Reset', Date.now() + this.authTtl);
 
       return canActivate;
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof throttler.ThrottlerException) {
         // Add rate limit headers on rate limit exceeded
         response.setHeader('X-RateLimit-Limit', this.authLimit);
@@ -66,11 +66,11 @@ export class BruteForceGuard extends throttler.ThrottlerGuard {
   protected async throwThrottlingException(
     context: ExecutionContext,
   ): Promise<void> {
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<Request>();
     const ip = request.ip || request.connection?.remoteAddress;
     const path = request.path;
     const userAgent = request.headers['user-agent'];
-    const email = request.body?.email;
+    const email = (request.body as { email?: string } | undefined)?.email;
 
     // Log brute force attempt
     this.logger.logSecurityEvent(
@@ -85,7 +85,7 @@ export class BruteForceGuard extends throttler.ThrottlerGuard {
     );
 
     // Send critical alert for brute force attacks
-    this.alerting.sendCriticalAlert(
+    await this.alerting.sendCriticalAlert(
       'Brute Force Attack Detected',
       `Multiple failed login attempts detected from IP ${ip}`,
       {
@@ -101,10 +101,11 @@ export class BruteForceGuard extends throttler.ThrottlerGuard {
     );
   }
 
-  protected async getTracker(req: Record<string, any>): Promise<string> {
+  protected getTracker(req: Request): Promise<string> {
     // Track by IP + email combination for more precise brute force detection
     const ip = req.ip || req.connection?.remoteAddress || 'unknown';
-    const email = req.body?.email || 'no-email';
-    return `${ip}:${email}`;
+    const email =
+      (req.body as { email?: string } | undefined)?.email || 'no-email';
+    return Promise.resolve(`${ip}:${email}`);
   }
 }

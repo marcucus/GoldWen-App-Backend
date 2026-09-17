@@ -1,7 +1,7 @@
+import type { FindOptionsWhere } from 'typeorm';
 import {
   Injectable,
   NotFoundException,
-  ForbiddenException,
   UnauthorizedException,
   Inject,
   forwardRef,
@@ -17,10 +17,7 @@ import { Report } from '../../database/entities/report.entity';
 import { Match } from '../../database/entities/match.entity';
 import { Chat } from '../../database/entities/chat.entity';
 import { Subscription } from '../../database/entities/subscription.entity';
-import {
-  SupportTicket,
-  SupportStatus,
-} from '../../database/entities/support-ticket.entity';
+import { SupportTicket } from '../../database/entities/support-ticket.entity';
 import { Prompt } from '../../database/entities/prompt.entity';
 import { CustomLoggerService } from '../../common/logger';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -177,7 +174,7 @@ export class AdminService {
     const { page = 1, limit = 20, status, search } = getUsersDto;
     const skip = (page - 1) * limit;
 
-    const whereCondition: any = {};
+    const whereCondition: FindOptionsWhere<User> = {};
 
     if (status) {
       whereCondition.status = status;
@@ -253,7 +250,7 @@ export class AdminService {
     const { page = 1, limit = 20, status, type } = getReportsDto;
     const skip = (page - 1) * limit;
 
-    const whereCondition: any = {};
+    const whereCondition: FindOptionsWhere<Report> = {};
 
     if (status) {
       whereCondition.status = status;
@@ -399,10 +396,10 @@ export class AdminService {
         totalUsers: users.length,
         status: 'success',
       });
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Failed to broadcast notifications to all users',
-        error.stack,
+        error instanceof Error ? error.stack : undefined,
         'AdminService',
       );
       throw error;
@@ -560,8 +557,11 @@ export class AdminService {
             action: 'support_reply',
           },
         });
-      } catch (error) {
-        this.logger.warn('Failed to send support reply notification', error);
+      } catch (error: unknown) {
+        this.logger.warn(
+          'Failed to send support reply notification',
+          error instanceof Error ? error.stack : String(error),
+        );
       }
     }
 

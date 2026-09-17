@@ -41,8 +41,9 @@ export const createDataSource = (configService: ConfigService) => {
         Report,
       ],
       migrations: ['src/database/migrations/*.ts'],
-      synchronize: configService.get('app.environment') === 'development',
-      logging: configService.get('app.environment') === 'development',
+      synchronize:
+        configService.get<string>('app.environment') === 'development',
+      logging: configService.get<string>('app.environment') === 'development',
     });
   }
 
@@ -71,7 +72,7 @@ export const createDataSource = (configService: ConfigService) => {
       Report,
     ],
     migrations: ['src/database/migrations/*.ts'],
-    synchronize: configService.get('app.environment') === 'development',
-    logging: configService.get('app.environment') === 'development',
+    synchronize: configService.get<string>('app.environment') === 'development',
+    logging: configService.get<string>('app.environment') === 'development',
   });
 };

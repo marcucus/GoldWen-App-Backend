@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { forwardRef } from '@nestjs/common';
+
 import { ChatGateway } from '../chat.gateway';
 import { ChatService } from '../chat.service';
 import { JwtService } from '@nestjs/jwt';
@@ -19,9 +19,9 @@ import { UserStatus } from '../../../common/enums';
 
 describe('ChatGateway - Real-time Features Integration', () => {
   let gateway: ChatGateway;
-  let chatService: ChatService;
+
   let typingIndicatorService: TypingIndicatorService;
-  let readReceiptsService: ReadReceiptsService;
+
   let presenceService: PresenceService;
 
   const mockChatRepository = {
@@ -123,11 +123,11 @@ describe('ChatGateway - Real-time Features Integration', () => {
     }).compile();
 
     gateway = module.get<ChatGateway>(ChatGateway);
-    chatService = module.get<ChatService>(ChatService);
+
     typingIndicatorService = module.get<TypingIndicatorService>(
       TypingIndicatorService,
     );
-    readReceiptsService = module.get<ReadReceiptsService>(ReadReceiptsService);
+
     presenceService = module.get<PresenceService>(PresenceService);
 
     jest.clearAllMocks();
@@ -167,7 +167,7 @@ describe('ChatGateway - Real-time Features Integration', () => {
       done();
     });
 
-    it('should stop typing indicator manually', async () => {
+    it('should stop typing indicator manually', () => {
       const userId = 'user-1';
       const conversationId = 'conv-1';
 
@@ -177,15 +177,17 @@ describe('ChatGateway - Real-time Features Integration', () => {
         emit: jest.fn(),
       };
 
-      await gateway.handleStartTyping({ conversationId }, mockClient);
+      gateway.handleStartTyping({ conversationId }, mockClient);
       expect(typingIndicatorService.isTyping(userId, conversationId)).toBe(
         true,
       );
 
-      await gateway.handleStopTyping({ conversationId }, mockClient);
+      gateway.handleStopTyping({ conversationId }, mockClient);
       expect(typingIndicatorService.isTyping(userId, conversationId)).toBe(
         false,
       );
+
+      return Promise.resolve();
     });
   });
 

@@ -1,4 +1,4 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CustomLoggerService } from '../../common/logger';
 import CircuitBreaker from 'opossum';
@@ -86,7 +86,8 @@ export class MatchingIntegrationService {
     private readonly logger: CustomLoggerService,
   ) {
     this.matchingServiceUrl =
-      this.configService.get('matchingService.url') || 'http://localhost:8000';
+      this.configService.get<string>('matchingService.url') ||
+      'http://localhost:8000';
 
     // SECURITY (Phase 0.10): no fallback to a hardcoded default here — that
     // default ('matching-service-secret-key') is published in this
@@ -112,17 +113,29 @@ export class MatchingIntegrationService {
     });
 
     this.breaker.on('open', () =>
-      this.logger.warn('Matching service circuit breaker OPEN — requests halted', 'MatchingIntegration'),
+      this.logger.warn(
+        'Matching service circuit breaker OPEN — requests halted',
+        'MatchingIntegration',
+      ),
     );
     this.breaker.on('halfOpen', () =>
-      this.logger.info('Matching service circuit breaker HALF-OPEN — probing', 'MatchingIntegration'),
+      this.logger.info(
+        'Matching service circuit breaker HALF-OPEN — probing',
+        'MatchingIntegration',
+      ),
     );
     this.breaker.on('close', () =>
-      this.logger.info('Matching service circuit breaker CLOSED — service recovered', 'MatchingIntegration'),
+      this.logger.info(
+        'Matching service circuit breaker CLOSED — service recovered',
+        'MatchingIntegration',
+      ),
     );
   }
 
-  private async fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+  private async fetchWithTimeout(
+    url: string,
+    init: RequestInit,
+  ): Promise<Response> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     try {
@@ -132,7 +145,10 @@ export class MatchingIntegrationService {
     }
   }
 
-  private async protectedFetch(url: string, init: RequestInit): Promise<Response> {
+  private async protectedFetch(
+    url: string,
+    init: RequestInit,
+  ): Promise<Response> {
     return this.breaker.fire(url, init) as Promise<Response>;
   }
 
@@ -159,17 +175,17 @@ export class MatchingIntegrationService {
         );
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as CompatibilityResult;
 
       this.logger.info('Compatibility calculated', {
         score: result.compatibilityScore,
       });
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Failed to calculate compatibility',
-        error.message,
+        error instanceof Error ? error.message : String(error),
         'MatchingIntegration',
       );
 
@@ -210,7 +226,7 @@ export class MatchingIntegrationService {
         );
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as CompatibilityResult;
 
       this.logger.info('Compatibility V2 calculated', {
         score: result.compatibilityScore,
@@ -220,10 +236,10 @@ export class MatchingIntegrationService {
       });
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Failed to calculate compatibility V2',
-        error.message,
+        error instanceof Error ? error.message : String(error),
         'MatchingIntegration',
       );
 
@@ -255,7 +271,7 @@ export class MatchingIntegrationService {
         );
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as DailySelectionResult;
 
       this.logger.info('Daily selection generated', {
         userId: request.userId,
@@ -263,10 +279,10 @@ export class MatchingIntegrationService {
       });
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Failed to generate daily selection',
-        error.message,
+        error instanceof Error ? error.message : String(error),
         'MatchingIntegration',
       );
 
@@ -317,7 +333,10 @@ export class MatchingIntegrationService {
         );
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as Record<
+        string,
+        CompatibilityResult
+      >;
 
       this.logger.info('Batch compatibility calculated', {
         baseUserId: baseProfile?.userId,
@@ -325,10 +344,10 @@ export class MatchingIntegrationService {
       });
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Failed to calculate batch compatibility',
-        error.message,
+        error instanceof Error ? error.message : String(error),
         'MatchingIntegration',
       );
 
@@ -370,15 +389,15 @@ export class MatchingIntegrationService {
         );
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as Record<string, unknown>;
 
       this.logger.info('Algorithm stats retrieved');
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Failed to get algorithm stats',
-        error.message,
+        error instanceof Error ? error.message : String(error),
         'MatchingIntegration',
       );
 
@@ -402,7 +421,7 @@ export class MatchingIntegrationService {
       });
 
       return response.ok;
-    } catch (error) {
+    } catch {
       this.logger.warn(
         'Matching service health check failed',
         'MatchingIntegration',

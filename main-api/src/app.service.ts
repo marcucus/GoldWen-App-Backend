@@ -25,7 +25,7 @@ export class AppService {
       const dbStart = Date.now();
       await this.dataSource.query('SELECT 1');
       dbResponseTime = Date.now() - dbStart;
-    } catch (error) {
+    } catch {
       dbStatus = 'unhealthy';
     }
 
@@ -36,7 +36,7 @@ export class AppService {
       const redisStart = Date.now();
       await this.redis.ping();
       redisResponseTime = Date.now() - redisStart;
-    } catch (error) {
+    } catch {
       redisStatus = 'unhealthy';
     }
 

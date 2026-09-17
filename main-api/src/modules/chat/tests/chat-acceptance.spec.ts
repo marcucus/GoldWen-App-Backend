@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { ChatService } from '../chat.service';
 import { Chat } from '../../../database/entities/chat.entity';
@@ -12,11 +11,6 @@ import { MatchStatus, ChatStatus } from '../../../common/enums';
 
 describe('ChatService - Chat Acceptance', () => {
   let service: ChatService;
-  let chatRepository: Repository<Chat>;
-  let messageRepository: Repository<Message>;
-  let matchRepository: Repository<Match>;
-  let userRepository: Repository<User>;
-  let notificationsService: NotificationsService;
 
   const mockChatRepository = {
     create: jest.fn(),
@@ -70,14 +64,6 @@ describe('ChatService - Chat Acceptance', () => {
     }).compile();
 
     service = module.get<ChatService>(ChatService);
-    chatRepository = module.get<Repository<Chat>>(getRepositoryToken(Chat));
-    messageRepository = module.get<Repository<Message>>(
-      getRepositoryToken(Message),
-    );
-    matchRepository = module.get<Repository<Match>>(getRepositoryToken(Match));
-    userRepository = module.get<Repository<User>>(getRepositoryToken(User));
-    notificationsService =
-      module.get<NotificationsService>(NotificationsService);
   });
 
   afterEach(() => {

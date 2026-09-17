@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
@@ -9,8 +8,6 @@ import { User } from '../../../database/entities/user.entity';
 
 describe('ProfileCompletionGuard', () => {
   let guard: ProfileCompletionGuard;
-  let userRepository: Repository<User>;
-  let reflector: Reflector;
 
   const mockUserRepository = {
     findOne: jest.fn(),
@@ -36,8 +33,6 @@ describe('ProfileCompletionGuard', () => {
     }).compile();
 
     guard = module.get<ProfileCompletionGuard>(ProfileCompletionGuard);
-    userRepository = module.get<Repository<User>>(getRepositoryToken(User));
-    reflector = module.get<Reflector>(Reflector);
   });
 
   afterEach(() => {

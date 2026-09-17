@@ -21,10 +21,10 @@ import { GoogleStrategy } from './strategies/google.strategy';
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get('jwt.secret'),
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('jwt.secret'),
         signOptions: {
-          expiresIn: configService.get('jwt.expiresIn'),
+          expiresIn: configService.get<string>('jwt.expiresIn'),
         },
       }),
       inject: [ConfigService],

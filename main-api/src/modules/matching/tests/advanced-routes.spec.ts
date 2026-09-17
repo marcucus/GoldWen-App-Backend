@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import type { Request } from 'express';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, ExecutionContext } from '@nestjs/common';
 
 import { MatchingService } from '../matching.service';
 import { MatchingController } from '../matching.controller';
@@ -28,7 +29,6 @@ import {
 } from '../../../common/enums';
 
 describe('Advanced Matching Routes', () => {
-  let service: MatchingService;
   let controller: MatchingController;
   let premiumGuard: PremiumGuard;
   let userRepository: Repository<User>;
@@ -37,15 +37,9 @@ describe('Advanced Matching Routes', () => {
   let subscriptionRepository: Repository<Subscription>;
   let userChoiceRepository: Repository<UserChoice>;
 
-  const mockUser: Partial<User> = {
-    id: 'user-1',
-    email: 'user@example.com',
-    isProfileCompleted: true,
-  };
-
   const mockRequest = {
     user: { id: 'user-1' },
-  };
+  } as unknown as Request;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -145,7 +139,6 @@ describe('Advanced Matching Routes', () => {
     }).compile();
 
     controller = module.get<MatchingController>(MatchingController);
-    service = module.get<MatchingService>(MatchingService);
     premiumGuard = module.get<PremiumGuard>(PremiumGuard);
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
     dailySelectionRepository = module.get<Repository<DailySelection>>(
@@ -263,13 +256,12 @@ describe('Advanced Matching Routes', () => {
       jest
         .spyOn(userChoiceRepository, 'find')
         .mockResolvedValue(mockChoices as UserChoice[]);
-      jest
-        .spyOn(userRepository, 'findOne')
-        .mockImplementation(async ({ where }) => {
-          if ((where as any).id === 'user-2') return mockUser2 as User;
-          if ((where as any).id === 'user-3') return mockUser3 as User;
-          return null;
-        });
+      jest.spyOn(userRepository, 'findOne').mockImplementation(({ where }) => {
+        const whereId = (where as { id?: string } | undefined)?.id;
+        if (whereId === 'user-2') return Promise.resolve(mockUser2 as User);
+        if (whereId === 'user-3') return Promise.resolve(mockUser3 as User);
+        return Promise.resolve(null);
+      });
       jest
         .spyOn(matchRepository, 'findOne')
         .mockResolvedValue(mockMatch as Match);
@@ -430,7 +422,7 @@ describe('Advanced Matching Routes', () => {
         switchToHttp: () => ({
           getRequest: () => mockRequest,
         }),
-      } as any;
+      } as unknown as ExecutionContext;
 
       const result = await premiumGuard.canActivate(mockExecutionContext);
 
@@ -444,7 +436,7 @@ describe('Advanced Matching Routes', () => {
         switchToHttp: () => ({
           getRequest: () => mockRequest,
         }),
-      } as any;
+      } as unknown as ExecutionContext;
 
       await expect(
         premiumGuard.canActivate(mockExecutionContext),
@@ -467,7 +459,7 @@ describe('Advanced Matching Routes', () => {
         switchToHttp: () => ({
           getRequest: () => mockRequest,
         }),
-      } as any;
+      } as unknown as ExecutionContext;
 
       await expect(
         premiumGuard.canActivate(mockExecutionContext),

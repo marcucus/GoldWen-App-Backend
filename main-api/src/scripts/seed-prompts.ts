@@ -71,7 +71,7 @@ async function seedPrompts() {
 
     const allPrompts = await adminService.getPrompts();
     console.log(`\n📋 All prompts in system: ${allPrompts.length}`);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('❌ Error creating prompts:', error);
   } finally {
     await app.close();

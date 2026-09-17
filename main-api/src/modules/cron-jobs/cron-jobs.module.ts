@@ -2,8 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { CleanupScheduler } from './schedulers/cleanup.scheduler';
-import { MatchingScheduler } from '../matching/matching.scheduler';
-import { ChatScheduler } from '../chat/chat.scheduler';
+
 import { MatchingModule } from '../matching/matching.module';
 import { ChatModule } from '../chat/chat.module';
 

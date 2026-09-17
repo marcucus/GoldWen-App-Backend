@@ -115,7 +115,7 @@ export class RevenueCatController {
       await this.revenueCatService.processWebhook(webhookData);
 
       return { received: true };
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         `RevenueCat webhook processing error: ${(error as Error).message}`,
         (error as Error).stack,
@@ -187,7 +187,7 @@ export class RevenueCatController {
     try {
       const result = this.revenueCatService.getOfferings();
       return Promise.resolve(result);
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         `Error getting offerings: ${(error as Error).message}`,
         (error as Error).stack,
@@ -243,7 +243,7 @@ export class RevenueCatController {
       const userId = req.user.id;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       return await this.revenueCatService.getSubscriptionStatus(userId);
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         `Error getting subscription status: ${(error as Error).message}`,
         (error as Error).stack,
@@ -322,7 +322,7 @@ export class RevenueCatController {
         currency: purchaseData.currency,
         platform: purchaseData.platform,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         `Error validating purchase: ${(error as Error).message}`,
         (error as Error).stack,

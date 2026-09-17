@@ -3,6 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import { httpIntegration, expressIntegration } from '@sentry/node';
+import { MonitoringConfig } from '../../config/config.interface';
+
+type SentryFilterableData = Record<string, unknown>;
 
 @Injectable()
 export class SentryService {
@@ -13,7 +16,8 @@ export class SentryService {
   }
 
   private init() {
-    const sentryConfig = this.configService.get('monitoring.sentry');
+    const sentryConfig =
+      this.configService.get<MonitoringConfig['sentry']>('monitoring.sentry');
 
     if (!sentryConfig?.dsn) {
       this.logger.debug('Sentry DSN not configured, skipping initialization');
@@ -38,16 +42,20 @@ export class SentryService {
           );
         }
         if (event.extra) {
-          event.extra = SentryService.filterSensitiveData(event.extra);
+          event.extra = SentryService.filterSensitiveData(
+            event.extra,
+          ) as NonNullable<typeof event.extra>;
         }
         return event;
       },
     });
 
-    this.logger.debug(`Sentry initialized for environment: ${sentryConfig.environment}`);
+    this.logger.debug(
+      `Sentry initialized for environment: ${sentryConfig.environment}`,
+    );
   }
 
-  private static filterSensitiveData(data: any): any {
+  private static filterSensitiveData(data: unknown): unknown {
     if (!data || typeof data !== 'object') return data;
 
     const sensitiveFields = [
@@ -63,7 +71,9 @@ export class SentryService {
       'address',
     ];
 
-    const filtered = { ...data };
+    const filtered: SentryFilterableData = {
+      ...(data as SentryFilterableData),
+    };
 
     for (const field of sensitiveFields) {
       if (field in filtered) {
@@ -81,11 +91,11 @@ export class SentryService {
     return filtered;
   }
 
-  captureException(error: Error, context?: Record<string, any>) {
+  captureException(error: Error, context?: Record<string, unknown>) {
     Sentry.withScope((scope) => {
       if (context) {
         Object.keys(context).forEach((key) => {
-          scope.setContext(key, context[key]);
+          scope.setContext(key, context[key] as SentryFilterableData | null);
         });
       }
       Sentry.captureException(error);
@@ -95,12 +105,12 @@ export class SentryService {
   captureMessage(
     message: string,
     level: Sentry.SeverityLevel = 'info',
-    context?: Record<string, any>,
+    context?: Record<string, unknown>,
   ) {
     Sentry.withScope((scope) => {
       if (context) {
         Object.keys(context).forEach((key) => {
-          scope.setContext(key, context[key]);
+          scope.setContext(key, context[key] as SentryFilterableData | null);
         });
       }
       scope.setLevel(level);
@@ -116,11 +126,17 @@ export class SentryService {
     });
   }
 
-  addBreadcrumb(message: string, category: string, data?: Record<string, any>) {
+  addBreadcrumb(
+    message: string,
+    category: string,
+    data?: Record<string, unknown>,
+  ) {
     Sentry.addBreadcrumb({
       message,
       category,
-      data: data ? SentryService.filterSensitiveData(data) : undefined,
+      data: data
+        ? (SentryService.filterSensitiveData(data) as SentryFilterableData)
+        : undefined,
       level: 'info',
       timestamp: Date.now() / 1000,
     });
@@ -134,8 +150,8 @@ export class SentryService {
         setTag: (key: string, value: string) => {
           Sentry.setTag(key, value);
         },
-        setData: (key: string, value: any) => {
-          Sentry.setContext(key, value);
+        setData: (key: string, value: unknown) => {
+          Sentry.setContext(key, value as SentryFilterableData | null);
         },
       };
     });

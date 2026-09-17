@@ -32,7 +32,7 @@ export class ScheduledNotificationsService {
   })
   async sendDailySelectionNotifications() {
     const isProduction =
-      this.configService.get('app.environment') === 'production';
+      this.configService.get<string>('app.environment') === 'production';
 
     if (!isProduction) {
       this.logger.info(
@@ -77,10 +77,10 @@ export class ScheduledNotificationsService {
             );
             successCount++;
           }
-        } catch (error) {
+        } catch (error: unknown) {
           this.logger.error(
             `Failed to send daily selection notification to user ${user.id}`,
-            error,
+            error instanceof Error ? error.stack : String(error),
           );
           errorCount++;
         }
@@ -91,8 +91,11 @@ export class ScheduledNotificationsService {
         successCount,
         errorCount,
       });
-    } catch (error) {
-      this.logger.error('Daily selection notifications job failed', error);
+    } catch (error: unknown) {
+      this.logger.error(
+        'Daily selection notifications job failed',
+        error instanceof Error ? error.stack : String(error),
+      );
     }
   }
 
@@ -153,10 +156,10 @@ export class ScheduledNotificationsService {
           ]);
 
           notificationCount += 2;
-        } catch (error) {
+        } catch (error: unknown) {
           this.logger.error(
             `Failed to send expiring chat notification for chat ${chat.id}`,
-            error,
+            error instanceof Error ? error.stack : String(error),
           );
         }
       }
@@ -165,14 +168,17 @@ export class ScheduledNotificationsService {
         chatsFound: expiringChats.length,
         notificationsSent: notificationCount,
       });
-    } catch (error) {
-      this.logger.error('Expiring chat notifications job failed', error);
+    } catch (error: unknown) {
+      this.logger.error(
+        'Expiring chat notifications job failed',
+        error instanceof Error ? error.stack : String(error),
+      );
     }
   }
 
   // Manual trigger for testing
   async triggerDailySelectionNotifications() {
-    if (this.configService.get('app.environment') !== 'development') {
+    if (this.configService.get<string>('app.environment') !== 'development') {
       throw new Error('Manual trigger only allowed in development');
     }
 

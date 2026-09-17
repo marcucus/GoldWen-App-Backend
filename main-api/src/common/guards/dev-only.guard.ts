@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, CanActivate, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 /**
@@ -19,7 +14,7 @@ import { ConfigService } from '@nestjs/config';
 export class DevOnlyGuard implements CanActivate {
   constructor(private configService: ConfigService) {}
 
-  canActivate(_context: ExecutionContext): boolean {
+  canActivate(): boolean {
     const environment = this.configService.get<string>('app.environment');
     if (environment === 'production') {
       throw new ForbiddenException(

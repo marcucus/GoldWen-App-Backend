@@ -42,10 +42,7 @@ export class GdprService {
   /**
    * Export all user data in a structured format
    */
-  async exportUserData(
-    userId: string,
-    format: 'json' | 'pdf' = 'json',
-  ): Promise<any> {
+  async exportUserData(userId: string, format: 'json' | 'pdf' = 'json') {
     this.logger.log(
       `Starting data export for user ${userId} in ${format} format`,
     );
@@ -251,15 +248,13 @@ export class GdprService {
   }
 
   // Sanitization methods to clean sensitive data for export
-  private sanitizeUserData(user: User | null): Record<string, any> | null {
+  private sanitizeUserData(user: User | null): Record<string, unknown> | null {
     if (!user) return null;
     // Remove sensitive fields before export
-    const {
-      passwordHash: _passwordHash,
-      emailVerificationToken: _token,
-      resetPasswordToken: _resetToken,
-      ...safeData
-    } = user as any;
+    const safeData: Record<string, unknown> = { ...user };
+    delete safeData.passwordHash;
+    delete safeData.emailVerificationToken;
+    delete safeData.resetPasswordToken;
     return safeData;
   }
 

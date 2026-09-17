@@ -1,24 +1,34 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CustomLoggerService } from '../logger';
+import { MonitoringConfig } from '../../config/config.interface';
 
 export interface AlertPayload {
   level: 'critical' | 'warning' | 'info';
   title: string;
   message: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   timestamp?: Date;
+}
+
+// The shape actually dispatched to each channel: AlertPayload once
+// sendAlert() has filled in the fields every channel needs.
+interface AlertData extends AlertPayload {
+  timestamp: Date;
+  service: string;
+  environment: string;
 }
 
 @Injectable()
 export class AlertingService {
-  private alertsConfig: any;
+  private alertsConfig: MonitoringConfig['alerts'] | undefined;
 
   constructor(
     private configService: ConfigService,
     private logger: CustomLoggerService,
   ) {
-    this.alertsConfig = this.configService.get('monitoring.alerts');
+    this.alertsConfig =
+      this.configService.get<MonitoringConfig['alerts']>('monitoring.alerts');
   }
 
   async sendAlert(alert: AlertPayload) {
@@ -26,7 +36,8 @@ export class AlertingService {
       ...alert,
       timestamp: alert.timestamp || new Date(),
       service: 'GoldWen-API',
-      environment: this.configService.get('app.environment'),
+      environment:
+        this.configService.get<string>('app.environment') || 'development',
     };
 
     // Log the alert
@@ -50,7 +61,7 @@ export class AlertingService {
       promises.push(this.sendSlackAlert(alertData));
     }
 
-    if (this.alertsConfig?.emailRecipients?.length > 0) {
+    if ((this.alertsConfig?.emailRecipients?.length ?? 0) > 0) {
       promises.push(this.sendEmailAlert(alertData));
     }
 
@@ -61,18 +72,18 @@ export class AlertingService {
 
     try {
       await Promise.allSettled(promises);
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Failed to send some alerts',
-        error.stack,
+        error instanceof Error ? error.stack : String(error),
         'AlertingService',
       );
     }
   }
 
-  private async sendWebhookAlert(alert: any) {
+  private async sendWebhookAlert(alert: AlertData) {
     try {
-      const response = await fetch(this.alertsConfig.webhookUrl, {
+      const response = await fetch(this.alertsConfig!.webhookUrl!, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -83,16 +94,16 @@ export class AlertingService {
       if (!response.ok) {
         throw new Error(`Webhook alert failed: ${response.status}`);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Failed to send webhook alert',
-        error.stack,
+        error instanceof Error ? error.stack : String(error),
         'AlertingService',
       );
     }
   }
 
-  private async sendSlackAlert(alert: any) {
+  private async sendSlackAlert(alert: AlertData) {
     try {
       const color =
         alert.level === 'critical'
@@ -143,7 +154,7 @@ export class AlertingService {
         ],
       };
 
-      const response = await fetch(this.alertsConfig.slackWebhookUrl, {
+      const response = await fetch(this.alertsConfig!.slackWebhookUrl!, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -154,16 +165,16 @@ export class AlertingService {
       if (!response.ok) {
         throw new Error(`Slack alert failed: ${response.status}`);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Failed to send Slack alert',
-        error.stack,
+        error instanceof Error ? error.stack : String(error),
         'AlertingService',
       );
     }
   }
 
-  private getSlackFields(alert: any) {
+  private getSlackFields(alert: AlertData) {
     return [
       {
         title: 'Level',
@@ -188,11 +199,11 @@ export class AlertingService {
     ];
   }
 
-  private async sendEmailAlert(alert: any) {
+  private sendEmailAlert(alert: AlertData) {
     // Email alerting would be implemented here
     // For now, just log that it would be sent
     this.logger.info(
-      `Email alert would be sent to: ${this.alertsConfig.emailRecipients.join(', ')}`,
+      `Email alert would be sent to: ${this.alertsConfig!.emailRecipients.join(', ')}`,
       {
         alert,
       },

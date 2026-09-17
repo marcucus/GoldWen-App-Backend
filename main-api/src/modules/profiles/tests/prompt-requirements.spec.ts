@@ -13,13 +13,13 @@ import { Prompt } from '../../../database/entities/prompt.entity';
 import { PromptAnswer } from '../../../database/entities/prompt-answer.entity';
 import { SubmitPromptAnswersDto } from '../dto/profiles.dto';
 import { ModerationService } from '../../moderation/services/moderation.service';
+import { StorageService } from '../../../common/services/storage.service';
 
 describe('ProfilesService - Dynamic Prompt Requirements', () => {
   let service: ProfilesService;
   let profileRepository: Repository<Profile>;
   let promptRepository: Repository<Prompt>;
   let promptAnswerRepository: Repository<PromptAnswer>;
-  let userRepository: Repository<any>;
 
   const mockProfile = {
     id: 'profile-id',
@@ -70,6 +70,13 @@ describe('ProfilesService - Dynamic Prompt Requirements', () => {
           provide: ModerationService,
           useValue: mockModerationService,
         },
+        {
+          provide: StorageService,
+          useValue: {
+            uploadFile: jest.fn(),
+            deleteFile: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -83,7 +90,6 @@ describe('ProfilesService - Dynamic Prompt Requirements', () => {
     promptAnswerRepository = module.get<Repository<PromptAnswer>>(
       getRepositoryToken(PromptAnswer),
     );
-    userRepository = module.get<Repository<any>>(getRepositoryToken(User));
   });
 
   describe('submitPromptAnswers with dynamic validation', () => {

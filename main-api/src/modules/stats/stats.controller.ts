@@ -20,7 +20,6 @@ import {
   ActivityStatsResponseDto,
   ExportFormat,
 } from './dto';
-import { UserRole } from '../../common/enums';
 
 @ApiTags('stats')
 @Controller('stats')

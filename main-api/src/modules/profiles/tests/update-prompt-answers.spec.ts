@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 
 import { ProfilesService } from '../profiles.service';
 import { Profile } from '../../../database/entities/profile.entity';
@@ -13,6 +13,7 @@ import { Prompt } from '../../../database/entities/prompt.entity';
 import { PromptAnswer } from '../../../database/entities/prompt-answer.entity';
 import { UpdatePromptAnswersDto } from '../dto/profiles.dto';
 import { ModerationService } from '../../moderation/services/moderation.service';
+import { StorageService } from '../../../common/services/storage.service';
 
 describe('ProfilesService - Update Prompt Answers', () => {
   let service: ProfilesService;
@@ -110,6 +111,13 @@ describe('ProfilesService - Update Prompt Answers', () => {
             moderateTextContentBatch: jest.fn(),
           },
         },
+        {
+          provide: StorageService,
+          useValue: {
+            uploadFile: jest.fn(),
+            deleteFile: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -177,11 +185,13 @@ describe('ProfilesService - Update Prompt Answers', () => {
         ]);
 
       // Mock prompts repository
-      jest.spyOn(promptRepository, 'find').mockResolvedValue(mockPrompts);
+      jest
+        .spyOn(promptRepository, 'find')
+        .mockResolvedValue(mockPrompts as any);
 
       // Mock profile repository
       jest.spyOn(profileRepository, 'findOne').mockImplementation((options) => {
-        if (options.where && options.where['userId']) {
+        if (options.where && (options.where as any)['userId']) {
           return Promise.resolve({
             ...mockProfile,
             promptAnswers: savedAnswers,
@@ -191,7 +201,9 @@ describe('ProfilesService - Update Prompt Answers', () => {
       });
 
       // Mock prompt answer repository
-      jest.spyOn(promptAnswerRepository, 'delete').mockResolvedValue(null);
+      jest
+        .spyOn(promptAnswerRepository, 'delete')
+        .mockResolvedValue(null as any);
       jest
         .spyOn(promptAnswerRepository, 'create')
         .mockImplementation((data) => {
@@ -257,7 +269,7 @@ describe('ProfilesService - Update Prompt Answers', () => {
       ).rejects.toThrow('Exactly 3 prompt answers are required');
     });
 
-    it('should reject answers that exceed 150 characters', async () => {
+    it('should reject answers that exceed 150 characters', () => {
       // Note: This validation is handled by the DTO validation at controller level
       // The maxLength decorator on UpdatePromptAnswerDto ensures this
       const longAnswer = 'a'.repeat(151);
@@ -272,6 +284,8 @@ describe('ProfilesService - Update Prompt Answers', () => {
       // In real scenario, this would be caught by class-validator
       // This test ensures the DTO is configured correctly
       expect(updateDto.answers[0].answer.length).toBeGreaterThan(150);
+
+      return Promise.resolve();
     });
 
     it('should reject answers with inappropriate content', async () => {
@@ -316,7 +330,9 @@ describe('ProfilesService - Update Prompt Answers', () => {
         ]);
 
       // Mock prompts repository - only return valid prompts
-      jest.spyOn(promptRepository, 'find').mockResolvedValue(mockPrompts);
+      jest
+        .spyOn(promptRepository, 'find')
+        .mockResolvedValue(mockPrompts as any);
 
       await expect(
         service.updatePromptAnswers('user-id', updateDto),
@@ -341,7 +357,9 @@ describe('ProfilesService - Update Prompt Answers', () => {
           { approved: true, reason: '' },
         ]);
 
-      jest.spyOn(promptRepository, 'find').mockResolvedValue(mockPrompts);
+      jest
+        .spyOn(promptRepository, 'find')
+        .mockResolvedValue(mockPrompts as any);
       jest.spyOn(profileRepository, 'findOne').mockResolvedValue(null);
 
       await expect(
@@ -398,10 +416,12 @@ describe('ProfilesService - Update Prompt Answers', () => {
           { approved: true, reason: '' },
         ]);
 
-      jest.spyOn(promptRepository, 'find').mockResolvedValue(mockPrompts);
+      jest
+        .spyOn(promptRepository, 'find')
+        .mockResolvedValue(mockPrompts as any);
 
       jest.spyOn(profileRepository, 'findOne').mockImplementation((options) => {
-        if (options.where && options.where['userId']) {
+        if (options.where && (options.where as any)['userId']) {
           return Promise.resolve({
             ...mockProfile,
             promptAnswers: savedAnswers,
@@ -410,7 +430,9 @@ describe('ProfilesService - Update Prompt Answers', () => {
         return Promise.resolve(mockProfile as any);
       });
 
-      jest.spyOn(promptAnswerRepository, 'delete').mockResolvedValue(null);
+      jest
+        .spyOn(promptAnswerRepository, 'delete')
+        .mockResolvedValue(null as any);
       jest
         .spyOn(promptAnswerRepository, 'create')
         .mockImplementation((data) => {

@@ -11,7 +11,7 @@
  */
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../src/app.module';
 
@@ -32,7 +32,9 @@ describe('Critical MVP Flows (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     await app.init();
 
     dataSource = moduleFixture.get(DataSource);
@@ -195,7 +197,9 @@ describe('Critical MVP Flows (e2e)', () => {
         .expect((r) => {
           // 200 or 201 depending on implementation
           if (r.status !== 200 && r.status !== 201) {
-            throw new Error(`Expected 200/201, got ${r.status}: ${JSON.stringify(r.body)}`);
+            throw new Error(
+              `Expected 200/201, got ${r.status}: ${JSON.stringify(r.body)}`,
+            );
           }
         });
 
@@ -228,7 +232,9 @@ describe('Critical MVP Flows (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect((r) => {
           if (r.status !== 200 && r.status !== 404) {
-            throw new Error(`Unexpected status ${r.status}: ${JSON.stringify(r.body)}`);
+            throw new Error(
+              `Unexpected status ${r.status}: ${JSON.stringify(r.body)}`,
+            );
           }
         });
 
@@ -271,11 +277,19 @@ describe('Critical MVP Flows (e2e)', () => {
 
       await request(app.getHttpServer())
         .post('/subscriptions/webhook')
-        .set('Authorization', process.env.REVENUECAT_WEBHOOK_AUTH_KEY || 'test-webhook-key')
+        .set(
+          'Authorization',
+          process.env.REVENUECAT_WEBHOOK_AUTH_KEY || 'test-webhook-key',
+        )
         .send(webhookPayload)
         .expect((r) => {
           // 200 (processed) or 401 (auth required in prod) are both valid for this test
-          if (r.status !== 200 && r.status !== 201 && r.status !== 401 && r.status !== 400) {
+          if (
+            r.status !== 200 &&
+            r.status !== 201 &&
+            r.status !== 401 &&
+            r.status !== 400
+          ) {
             throw new Error(`Unexpected webhook status ${r.status}`);
           }
         });

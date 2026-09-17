@@ -156,14 +156,13 @@ export class ProfilesService {
       delete updateProfileDto.school;
     }
 
-    // Convert birthDate string to Date object
-    if (updateProfileDto.birthDate) {
-      (updateProfileDto as any).birthDate = new Date(
-        updateProfileDto.birthDate,
-      );
-    }
-
-    Object.assign(profile, updateProfileDto);
+    Object.assign(
+      profile,
+      updateProfileDto,
+      updateProfileDto.birthDate
+        ? { birthDate: new Date(updateProfileDto.birthDate) }
+        : {},
+    );
     await this.profileRepository.save(profile);
 
     // Check if profile is now complete after the update
@@ -255,15 +254,17 @@ export class ProfilesService {
 
       // Check if profile is now complete
       await this.updateProfileCompletionStatus(userId);
-    } catch (error) {
+    } catch (error: unknown) {
       // Log the error for debugging
       this.logger.error(
         `Error saving personality answers for user ${userId}`,
-        error?.stack || error,
+        (error instanceof Error ? error.stack : undefined) || error,
       );
       throw new BadRequestException({
-        message: 'Failed to save personality answers: ' + error.message,
-        error: error?.message || error,
+        message:
+          'Failed to save personality answers: ' +
+          (error instanceof Error ? error.message : String(error)),
+        error: (error instanceof Error ? error.message : undefined) || error,
       });
     }
   }
@@ -319,7 +320,10 @@ export class ProfilesService {
     // We don't await this so the upload response is fast
     savedPhotos.forEach((photo) => {
       this.moderationService.moderatePhoto(photo.id).catch((error) => {
-        this.logger.error(`Error moderating photo ${photo.id}`, error?.stack || error);
+        this.logger.error(
+          `Error moderating photo ${photo.id}`,
+          (error instanceof Error ? error.stack : undefined) || error,
+        );
       });
     });
 
@@ -506,14 +510,15 @@ export class ProfilesService {
 
       // Check if profile is now complete
       await this.updateProfileCompletionStatus(userId);
-    } catch (error) {
+    } catch (error: unknown) {
       // Log the error for debugging
       this.logger.error(
         `[submitPromptAnswers] ERROR saving prompt answers for user ${userId}`,
-        error?.stack || error,
+        (error instanceof Error ? error.stack : undefined) || error,
       );
       throw new BadRequestException(
-        'Failed to save prompt answers: ' + error.message,
+        'Failed to save prompt answers: ' +
+          (error instanceof Error ? error.message : String(error)),
       );
     }
   }
@@ -595,13 +600,14 @@ export class ProfilesService {
 
       // Return saved answers with prompt information
       return this.getUserPromptAnswers(userId);
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         `[updatePromptAnswers] ERROR updating prompt answers for user ${userId}`,
-        error?.stack || error,
+        (error instanceof Error ? error.stack : undefined) || error,
       );
       throw new BadRequestException(
-        'Failed to update prompt answers: ' + error.message,
+        'Failed to update prompt answers: ' +
+          (error instanceof Error ? error.message : String(error)),
       );
     }
   }
@@ -634,7 +640,9 @@ export class ProfilesService {
     });
 
     if (!user || !user.profile) {
-      this.logger.debug(`[updateProfileCompletionStatus] User or profile not found for userId: ${userId}`);
+      this.logger.debug(
+        `[updateProfileCompletionStatus] User or profile not found for userId: ${userId}`,
+      );
       return;
     }
 
@@ -672,20 +680,28 @@ export class ProfilesService {
     const isOnboardingCompleted = hasPersonalityAnswers;
 
     // Log completion status for debugging
-    this.logger.debug(`[updateProfileCompletionStatus] Completion check for userId: ${userId} - photos:${user.profile.photos?.length || 0} prompts:${promptsCount} personality:${user.personalityAnswers?.length || 0}/${requiredQuestionsCount} birthDate:${!!user.profile.birthDate} bio:${!!user.profile.bio} complete:${isProfileCompleted} onboarding:${isOnboardingCompleted}`);
+    this.logger.debug(
+      `[updateProfileCompletionStatus] Completion check for userId: ${userId} - photos:${user.profile.photos?.length || 0} prompts:${promptsCount} personality:${user.personalityAnswers?.length || 0}/${requiredQuestionsCount} birthDate:${!!user.profile.birthDate} bio:${!!user.profile.bio} complete:${isProfileCompleted} onboarding:${isOnboardingCompleted}`,
+    );
 
     // Update user status
     if (
       user.isProfileCompleted !== isProfileCompleted ||
       user.isOnboardingCompleted !== isOnboardingCompleted
     ) {
-      this.logger.log(`[updateProfileCompletionStatus] Updating completion flags for userId: ${userId} - isProfileCompleted:${user.isProfileCompleted}=>${isProfileCompleted} isOnboardingCompleted:${user.isOnboardingCompleted}=>${isOnboardingCompleted}`);
+      this.logger.log(
+        `[updateProfileCompletionStatus] Updating completion flags for userId: ${userId} - isProfileCompleted:${user.isProfileCompleted}=>${isProfileCompleted} isOnboardingCompleted:${user.isOnboardingCompleted}=>${isOnboardingCompleted}`,
+      );
       user.isProfileCompleted = isProfileCompleted;
       user.isOnboardingCompleted = isOnboardingCompleted;
       await this.userRepository.save(user);
-      this.logger.log(`[updateProfileCompletionStatus] Successfully updated completion flags for userId: ${userId}`);
+      this.logger.log(
+        `[updateProfileCompletionStatus] Successfully updated completion flags for userId: ${userId}`,
+      );
     } else {
-      this.logger.debug(`[updateProfileCompletionStatus] No changes needed for userId: ${userId}`);
+      this.logger.debug(
+        `[updateProfileCompletionStatus] No changes needed for userId: ${userId}`,
+      );
     }
   }
 
@@ -729,7 +745,9 @@ export class ProfilesService {
     }
 
     // Debug: Log the user profile data
-    this.logger.debug(`Profile completion debug - userId:${user.id} profileId:${user.profile.id} promptAnswersCount:${user.profile.promptAnswers?.length || 0}`);
+    this.logger.debug(
+      `Profile completion debug - userId:${user.id} profileId:${user.profile.id} promptAnswersCount:${user.profile.promptAnswers?.length || 0}`,
+    );
 
     const photosCount = user.profile.photos?.length || 0;
     const hasPhotos = photosCount >= 3;
@@ -757,7 +775,9 @@ export class ProfilesService {
     );
 
     // Debug: Log prompts validation
-    this.logger.debug(`Prompts validation debug - userId:${user.id} promptsCount:${promptsCount}/3 hasPrompts:${hasPrompts} missingCount:${missingPrompts.length}`);
+    this.logger.debug(
+      `Prompts validation debug - userId:${user.id} promptsCount:${promptsCount}/3 hasPrompts:${hasPrompts} missingCount:${missingPrompts.length}`,
+    );
 
     const requiredQuestionsCount =
       await this.personalityQuestionRepository.count({

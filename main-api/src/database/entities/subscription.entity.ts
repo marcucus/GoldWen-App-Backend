@@ -64,7 +64,7 @@ export class Subscription {
   platform: string; // 'ios' | 'android'
 
   @Column({ type: 'json', nullable: true })
-  metadata: any;
+  metadata: Record<string, unknown> | null;
 
   @CreateDateColumn()
   createdAt: Date;

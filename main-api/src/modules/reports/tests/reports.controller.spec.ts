@@ -10,7 +10,6 @@ import { UpdateReportStatusDto } from '../dto/update-report-status.dto';
 
 describe('ReportsController', () => {
   let controller: ReportsController;
-  let service: ReportsService;
 
   const mockReportsService = {
     createReport: jest.fn(),
@@ -54,7 +53,6 @@ describe('ReportsController', () => {
       .compile();
 
     controller = module.get<ReportsController>(ReportsController);
-    service = module.get<ReportsService>(ReportsService);
   });
 
   afterEach(() => {

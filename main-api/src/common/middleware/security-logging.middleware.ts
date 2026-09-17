@@ -70,7 +70,7 @@ export class SecurityLoggingMiddleware implements NestMiddleware {
         );
 
         // Send alert for critical admin access attempts
-        this.alerting.sendWarningAlert(
+        void this.alerting.sendWarningAlert(
           'Unauthorized Admin Access Attempt',
           `Attempt to access admin endpoint ${req.path} from IP ${ip}`,
           { path: req.path, ip, userAgent },
@@ -106,7 +106,7 @@ export class SecurityLoggingMiddleware implements NestMiddleware {
       // XSS patterns
       /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
       // Path traversal patterns
-      /\.\.[\/\\]/g,
+      /\.\.[/\\]/g,
       // Command injection patterns - exclude {} for JSON
       /[;&|`$()[\]]/g,
     ];
@@ -133,7 +133,7 @@ export class SecurityLoggingMiddleware implements NestMiddleware {
         );
 
         // Send critical alert
-        this.alerting.sendCriticalAlert(
+        void this.alerting.sendCriticalAlert(
           'Suspicious Activity Detected',
           `Potential security threat detected from IP ${req.ip}`,
           {

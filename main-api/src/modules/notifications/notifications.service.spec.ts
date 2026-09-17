@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
 
 import { NotificationsService } from './notifications.service';
@@ -15,8 +14,6 @@ import { ConfigService } from '@nestjs/config';
 
 describe('NotificationsService - Push Token Management', () => {
   let service: NotificationsService;
-  let pushTokenRepository: Repository<PushToken>;
-  let logger: CustomLoggerService;
 
   const mockPushTokenRepository = {
     findOne: jest.fn(),
@@ -98,10 +95,6 @@ describe('NotificationsService - Push Token Management', () => {
     }).compile();
 
     service = module.get<NotificationsService>(NotificationsService);
-    pushTokenRepository = module.get<Repository<PushToken>>(
-      getRepositoryToken(PushToken),
-    );
-    logger = module.get<CustomLoggerService>(CustomLoggerService);
   });
 
   describe('registerPushToken', () => {
@@ -179,7 +172,7 @@ describe('NotificationsService - Push Token Management', () => {
         isActive: true,
       });
 
-      const result = await service.registerPushToken(
+      await service.registerPushToken(
         userId,
         token,
         platform,

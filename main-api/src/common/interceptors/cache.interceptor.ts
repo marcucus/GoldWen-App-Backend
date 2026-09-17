@@ -14,9 +14,13 @@ export const CACHE_STRATEGY_KEY = 'cacheStrategy';
 
 export const CacheControl =
   (strategy: CacheStrategy) =>
-  (target: any, key?: string, descriptor?: PropertyDescriptor) => {
+  (target: object, key?: string, descriptor?: PropertyDescriptor) => {
     if (descriptor) {
-      Reflect.defineMetadata(CACHE_STRATEGY_KEY, strategy, descriptor.value);
+      Reflect.defineMetadata(
+        CACHE_STRATEGY_KEY,
+        strategy,
+        descriptor.value as object,
+      );
       return descriptor;
     }
     Reflect.defineMetadata(CACHE_STRATEGY_KEY, strategy, target);
@@ -27,7 +31,7 @@ export const CacheControl =
 export class CacheInterceptor implements NestInterceptor {
   constructor(private reflector: Reflector) {}
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept<T>(context: ExecutionContext, next: CallHandler<T>): Observable<T> {
     const response = context.switchToHttp().getResponse<Response>();
 
     // Get cache strategy from decorator
@@ -55,8 +59,9 @@ export class CacheInterceptor implements NestInterceptor {
           if (data && typeof data === 'object') {
             const cacheExpiry = this.getCacheExpiry(cacheStrategy);
             if (cacheExpiry) {
-              data.metadata = {
-                ...data.metadata,
+              const payload = data as { metadata?: Record<string, unknown> };
+              payload.metadata = {
+                ...payload.metadata,
                 cacheExpiry: cacheExpiry.toISOString(),
               };
             }
@@ -68,7 +73,7 @@ export class CacheInterceptor implements NestInterceptor {
     );
   }
 
-  private generateETag(data: any): string {
+  private generateETag(data: unknown): string {
     // Simple ETag generation based on data hash
     const content = JSON.stringify(data);
     let hash = 0;

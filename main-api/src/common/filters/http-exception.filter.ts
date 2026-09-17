@@ -15,6 +15,16 @@ import {
 import { ErrorResponseDto } from '../dto/response.dto';
 import { SentryService } from '../monitoring';
 
+// NestJS's built-in HttpException#getResponse() returns `string | object`;
+// when it's an object its exact shape depends on which exception threw it
+// (the framework's own exceptions put { statusCode, message, error }, a
+// custom `throw new HttpException({...}, status)` can put anything).
+interface HttpExceptionResponseBody {
+  message?: string | string[];
+  error?: string;
+  [key: string]: unknown;
+}
+
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   constructor(
@@ -31,16 +41,18 @@ export class HttpExceptionFilter implements ExceptionFilter {
     let status: number;
     let message: string;
     let code: string;
-    let errors: any[] = [];
-    let recoveryAction: string | undefined;
+    let errors: string[] = [];
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
 
       if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
-        const responseObj = exceptionResponse as any;
-        message = responseObj.message || exception.message;
+        const responseObj = exceptionResponse as HttpExceptionResponseBody;
+        message =
+          (Array.isArray(responseObj.message)
+            ? undefined
+            : responseObj.message) || exception.message;
         code = this.mapToStandardErrorCode(
           status,
           responseObj.error || exception.name,
@@ -76,14 +88,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
             method: request.method,
             url: request.url,
             headers: this.filterSensitiveHeaders(request.headers),
-            user: (request as any).user,
+            user: (request as { user?: unknown }).user,
           },
         });
       }
     }
 
     // Get recovery action
-    recoveryAction = ErrorRecoveryActions[code as StandardErrorCode];
+    const recoveryAction = ErrorRecoveryActions[code as StandardErrorCode];
 
     // Log HTTP exceptions (4xx errors at debug level, 5xx at error level)
     const processingTime = Date.now() - startTime;
@@ -97,14 +109,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
       // Also send 5xx errors to Sentry if it's an unexpected error
       if (
         exception instanceof Error &&
-        status === HttpStatus.INTERNAL_SERVER_ERROR
+        (status as HttpStatus) === HttpStatus.INTERNAL_SERVER_ERROR
       ) {
         this.sentry.captureException(exception, {
           request: {
             method: request.method,
             url: request.url,
             headers: this.filterSensitiveHeaders(request.headers),
-            user: (request as any).user,
+            user: (request as { user?: unknown }).user,
           },
         });
       }
@@ -135,7 +147,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const lowerOriginalCode = originalCode.toLowerCase();
 
     // Map common HTTP status codes to standardized error codes
-    switch (status) {
+    switch (status as HttpStatus) {
       case HttpStatus.UNAUTHORIZED:
         if (
           lowerOriginalCode.includes('token_expired') ||
@@ -217,9 +229,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
     return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  private filterSensitiveHeaders(headers: any): any {
+  private filterSensitiveHeaders(
+    headers: Record<string, unknown>,
+  ): Record<string, unknown> {
     const sensitiveHeaders = ['authorization', 'cookie', 'x-api-key'];
-    const filtered = { ...headers };
+    const filtered: Record<string, unknown> = { ...headers };
 
     sensitiveHeaders.forEach((header) => {
       if (filtered[header]) {

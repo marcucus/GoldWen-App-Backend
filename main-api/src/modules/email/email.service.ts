@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CustomLoggerService } from '../../common/logger';
+import { EmailConfig } from '../../config/config.interface';
 import * as nodemailer from 'nodemailer';
 import * as sgMail from '@sendgrid/mail';
 
@@ -17,10 +18,7 @@ export class EmailService {
   }
 
   private initializeEmailProvider(): void {
-    const emailConfig = this.configService.get<{
-      provider?: 'smtp' | 'sendgrid';
-      sendgridApiKey?: string;
-    }>('email');
+    const emailConfig = this.configService.get<EmailConfig>('email');
     this.provider = emailConfig?.provider || 'smtp';
 
     if (this.provider === 'sendgrid') {
@@ -31,7 +29,9 @@ export class EmailService {
   }
 
   private initializeSendGrid(): void {
-    const sendgridApiKey = this.configService.get('email.sendgridApiKey');
+    const sendgridApiKey = this.configService.get<string>(
+      'email.sendgridApiKey',
+    );
 
     if (!sendgridApiKey) {
       this.logger.warn(
@@ -47,17 +47,21 @@ export class EmailService {
         provider: 'sendgrid',
         context: 'EmailService',
       });
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Failed to initialize SendGrid email service',
-        error.stack,
+        error instanceof Error
+          ? error instanceof Error
+            ? error.stack
+            : undefined
+          : undefined,
         'EmailService',
       );
     }
   }
 
   private initializeSMTP(): void {
-    const emailConfig = this.configService.get('email');
+    const emailConfig = this.configService.get<EmailConfig>('email');
 
     if (!emailConfig?.smtp?.host || !emailConfig?.smtp?.user) {
       this.logger.warn(
@@ -92,10 +96,14 @@ export class EmailService {
         user: emailConfig.smtp.user.replace(/(.{2}).*(@.*)/, '$1***$2'),
         context: 'EmailService',
       });
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Failed to initialize SMTP email service',
-        error.stack,
+        error instanceof Error
+          ? error instanceof Error
+            ? error.stack
+            : undefined
+          : undefined,
         'EmailService',
       );
     }
@@ -106,7 +114,8 @@ export class EmailService {
     subject: string,
     html: string,
   ): Promise<void> {
-    const from = this.configService.get('email.from') || 'noreply@goldwen.com';
+    const from =
+      this.configService.get<string>('email.from') || 'noreply@goldwen.com';
 
     if (this.provider === 'sendgrid') {
       const msg = {
@@ -151,11 +160,15 @@ export class EmailService {
         email: this.maskEmail(email),
         provider: this.provider,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage = this.getEmailErrorMessage(error);
       this.logger.error(
         'Failed to send welcome email',
-        error.stack,
+        error instanceof Error
+          ? error instanceof Error
+            ? error.stack
+            : undefined
+          : undefined,
         'EmailService',
       );
       this.logger.info('Welcome email error details', {
@@ -180,7 +193,7 @@ export class EmailService {
     }
 
     try {
-      const resetUrl = `${this.configService.get('app.frontendUrl')}/reset-password?token=${resetToken}`;
+      const resetUrl = `${this.configService.get<string>('app.frontendUrl')}/reset-password?token=${resetToken}`;
 
       await this.sendEmail(
         email,
@@ -192,11 +205,15 @@ export class EmailService {
         email: this.maskEmail(email),
         provider: this.provider,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage = this.getEmailErrorMessage(error);
       this.logger.error(
         'Failed to send password reset email',
-        error.stack,
+        error instanceof Error
+          ? error instanceof Error
+            ? error.stack
+            : undefined
+          : undefined,
         'EmailService',
       );
       this.logger.info('Password reset email error details', {
@@ -232,11 +249,15 @@ export class EmailService {
         email: this.maskEmail(email),
         provider: this.provider,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage = this.getEmailErrorMessage(error);
       this.logger.error(
         'Failed to send data export ready email',
-        error.stack,
+        error instanceof Error
+          ? error instanceof Error
+            ? error.stack
+            : undefined
+          : undefined,
         'EmailService',
       );
       this.logger.info('Data export ready email error details', {
@@ -271,11 +292,15 @@ export class EmailService {
         email: this.maskEmail(email),
         provider: this.provider,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage = this.getEmailErrorMessage(error);
       this.logger.error(
         'Failed to send account deleted email',
-        error.stack,
+        error instanceof Error
+          ? error instanceof Error
+            ? error.stack
+            : undefined
+          : undefined,
         'EmailService',
       );
       this.logger.info('Account deleted email error details', {
@@ -317,11 +342,15 @@ export class EmailService {
         provider: this.provider,
         subscriptionType,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage = this.getEmailErrorMessage(error);
       this.logger.error(
         'Failed to send subscription confirmed email',
-        error.stack,
+        error instanceof Error
+          ? error instanceof Error
+            ? error.stack
+            : undefined
+          : undefined,
         'EmailService',
       );
       this.logger.info('Subscription confirmed email error details', {
@@ -337,7 +366,7 @@ export class EmailService {
 
   private isConfigured(): boolean {
     if (this.provider === 'sendgrid') {
-      return !!this.configService.get('email.sendgridApiKey');
+      return !!this.configService.get<string>('email.sendgridApiKey');
     }
     return !!this.transporter;
   }
@@ -346,12 +375,30 @@ export class EmailService {
     return email.replace(/(.{2}).*(@.*)/, '$1***$2');
   }
 
-  private getEmailErrorMessage(error: any): string {
-    const errorMsg = error?.message || error?.toString() || 'Unknown error';
+  private getEmailErrorMessage(error: unknown): string {
+    // SendGrid rejects with an Error subclass that carries `code` and a
+    // `response.body` payload; a plain SMTP/nodemailer failure is a bare
+    // Error. Narrow instead of trusting the shape blindly.
+    const sgError = error as
+      | {
+          code?: string | number;
+          message?: string;
+          response?: { body?: unknown };
+        }
+      | undefined;
+
+    const errorMsg =
+      (error instanceof Error
+        ? error instanceof Error
+          ? error.message
+          : String(error)
+        : undefined) ||
+      (typeof error === 'string' ? error : undefined) ||
+      'Unknown error';
 
     // SendGrid specific errors
-    if (error?.code || error?.response?.body) {
-      return `SendGrid API error: ${errorMsg}. Code: ${error.code || 'unknown'}`;
+    if (sgError?.code || sgError?.response?.body) {
+      return `SendGrid API error: ${errorMsg}. Code: ${sgError?.code ?? 'unknown'}`;
     }
 
     // SMTP/Gmail authentication errors

@@ -7,6 +7,7 @@ import {
 import type { ThrottlerModuleOptions } from '@nestjs/throttler';
 import { Reflector } from '@nestjs/core';
 import { CustomLoggerService } from '../logger';
+import type { Request, Response } from 'express';
 
 @Injectable()
 export class RateLimitGuard extends ThrottlerGuard {
@@ -20,8 +21,7 @@ export class RateLimitGuard extends ThrottlerGuard {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
-    const response = context.switchToHttp().getResponse();
+    const response = context.switchToHttp().getResponse<Response>();
 
     try {
       const canActivate = await super.canActivate(context);
@@ -37,7 +37,7 @@ export class RateLimitGuard extends ThrottlerGuard {
       response.setHeader('X-RateLimit-Reset', Date.now() + ttl);
 
       return canActivate;
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof ThrottlerException) {
         // Add rate limit headers on rate limit exceeded
         const throttlers = Array.isArray(this.options)
@@ -55,10 +55,15 @@ export class RateLimitGuard extends ThrottlerGuard {
     }
   }
 
+  // No internal await: this only throws, but callers (NestJS's throttler
+  // internals, and this guard's own spec) rely on the call always
+  // returning a rejected Promise rather than throwing synchronously, so
+  // async stays even though nothing here needs to be awaited.
+  // eslint-disable-next-line @typescript-eslint/require-await
   protected async throwThrottlingException(
     context: ExecutionContext,
   ): Promise<void> {
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<Request>();
     const ip = request.ip || request.connection?.remoteAddress;
     const path = request.path;
     const userAgent = request.headers['user-agent'];
@@ -79,8 +84,10 @@ export class RateLimitGuard extends ThrottlerGuard {
     );
   }
 
-  protected async getTracker(req: Record<string, any>): Promise<string> {
+  protected getTracker(req: Request): Promise<string> {
     // Track by IP address for rate limiting
-    return req.ip || req.connection?.remoteAddress || 'unknown';
+    return Promise.resolve(
+      req.ip || req.connection?.remoteAddress || 'unknown',
+    );
   }
 }

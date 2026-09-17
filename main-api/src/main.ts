@@ -31,7 +31,7 @@ async function bootstrap() {
   // photo directly. It is reserved for non-production environments; a real
   // deployment must configure S3 (with the CDN/signed URLs that implies)
   // instead of relying on this route.
-  if (configService.get('app.environment') !== 'production') {
+  if (configService.get<string>('app.environment') !== 'production') {
     app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
   }
   const reflector = app.get(Reflector);
@@ -40,14 +40,14 @@ async function bootstrap() {
   // Use custom logger
   app.useLogger(logger);
 
-  const port = configService.get('app.port') || 3000;
-  const apiPrefix = configService.get('app.apiPrefix') || 'api/v1';
+  const port = configService.get<number>('app.port') || 3000;
+  const apiPrefix = configService.get<string>('app.apiPrefix') || 'api/v1';
 
   logger.info('🚀 Starting GoldWen API...', {
     port,
     apiPrefix,
-    environment: configService.get('app.environment'),
-    logLevel: configService.get('app.logLevel'),
+    environment: configService.get<string>('app.environment'),
+    logLevel: configService.get<string>('app.logLevel'),
   });
 
   // Global prefix
@@ -60,7 +60,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
       transform: true,
       disableErrorMessages:
-        configService.get('app.environment') === 'production',
+        configService.get<string>('app.environment') === 'production',
     }),
   );
 
@@ -72,10 +72,13 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ResponseInterceptor(logger));
 
   // Security headers
-  app.use(helmet({
-    crossOriginResourcePolicy: { policy: 'cross-origin' }, // allow CDN images
-    contentSecurityPolicy: configService.get('app.environment') === 'production',
-  }));
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' }, // allow CDN images
+      contentSecurityPolicy:
+        configService.get<string>('app.environment') === 'production',
+    }),
+  );
 
   // CORS — origines explicites uniquement
   const allowedOrigins = [
@@ -84,7 +87,10 @@ async function bootstrap() {
   ].filter(Boolean);
 
   app.enableCors({
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -103,7 +109,7 @@ async function bootstrap() {
   });
 
   // Swagger documentation
-  if (configService.get('app.environment') !== 'production') {
+  if (configService.get<string>('app.environment') !== 'production') {
     const config = new DocumentBuilder()
       .setTitle('GoldWen API')
       .setDescription('GoldWen Dating App Backend API')
@@ -129,8 +135,8 @@ async function bootstrap() {
     url: `http://192.168.1.5:${port}/${apiPrefix}`,
     networkUrl: `http://192.168.1.5:${port}/${apiPrefix}`,
     docs: `http://192.168.1.5:${port}/${apiPrefix}/docs`,
-    environment: configService.get('app.environment'),
+    environment: configService.get<string>('app.environment'),
   });
 }
 
-bootstrap();
+void bootstrap();

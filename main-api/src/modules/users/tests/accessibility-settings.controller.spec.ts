@@ -3,6 +3,8 @@ import { Request } from 'express';
 import { UsersController } from '../users.controller';
 import { UsersService } from '../users.service';
 import { ProfilesService } from '../../profiles/profiles.service';
+import { GdprService } from '../gdpr.service';
+import { GdprService as GdprModuleService } from '../../gdpr/gdpr.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Profile } from '../../../database/entities/profile.entity';
 import { PromptAnswer } from '../../../database/entities/prompt-answer.entity';
@@ -20,6 +22,14 @@ describe('UsersController - Accessibility Settings', () => {
   };
 
   const mockProfilesService = {};
+  const mockGdprService = {
+    deleteUserCompletely: jest.fn(),
+    exportUserData: jest.fn(),
+  };
+  const mockGdprModuleService = {
+    requestDataExport: jest.fn(),
+    getExportRequestStatus: jest.fn(),
+  };
   const mockProfileRepository = {};
   const mockPromptAnswerRepository = {};
 
@@ -28,7 +38,7 @@ describe('UsersController - Accessibility Settings', () => {
       id: 'user-uuid',
       email: 'test@example.com',
     },
-  } as Request;
+  } as unknown as Request;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -41,6 +51,14 @@ describe('UsersController - Accessibility Settings', () => {
         {
           provide: ProfilesService,
           useValue: mockProfilesService,
+        },
+        {
+          provide: GdprService,
+          useValue: mockGdprService,
+        },
+        {
+          provide: GdprModuleService,
+          useValue: mockGdprModuleService,
         },
         {
           provide: getRepositoryToken(Profile),

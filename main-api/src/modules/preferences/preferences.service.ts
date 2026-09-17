@@ -12,10 +12,6 @@ import { FontSize } from '../../common/enums';
 import {
   UserPreferencesDto,
   UpdateUserPreferencesDto,
-  NotificationPreferencesDto,
-  PrivacyPreferencesDto,
-  AccessibilityPreferencesDto,
-  MatchingFiltersDto,
 } from './dto/preferences.dto';
 
 @Injectable()

@@ -1,3 +1,4 @@
+import type { Request, Response } from 'express';
 import { Injectable, LoggerService } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createLogger, Logger, transports, format } from 'winston';
@@ -7,6 +8,8 @@ export interface LogContext {
   traceId?: string;
   userId?: string;
   userEmail?: string;
+  adminId?: string;
+  adminEmail?: string;
   action?: string;
   resource?: string;
   ipAddress?: string;
@@ -28,8 +31,9 @@ export class CustomLoggerService implements LoggerService {
   }
 
   private createLogger() {
-    const env = this.configService.get('app.environment') || 'development';
-    const logLevel = this.configService.get('app.logLevel') || 'info';
+    const env =
+      this.configService.get<string>('app.environment') || 'development';
+    const logLevel = this.configService.get<string>('app.logLevel') || 'info';
 
     const isProduction = env === 'production';
 
@@ -40,9 +44,9 @@ export class CustomLoggerService implements LoggerService {
       format.json(),
       format.printf(({ timestamp, level, message, ...meta }) => {
         return JSON.stringify({
-          timestamp,
+          timestamp: timestamp,
           level,
-          message,
+          message: message,
           service: 'goldwen-api',
           environment: env,
           ...this.context,
@@ -65,7 +69,7 @@ export class CustomLoggerService implements LoggerService {
           ? JSON.stringify(meta, null, 2)
           : '';
 
-        return `${timestamp} ${level} ${traceId}${contextStr}: ${message} ${metaStr}`;
+        return `${String(timestamp)} ${level} ${traceId}${contextStr}: ${String(message)} ${metaStr}`;
       }),
     );
 
@@ -131,7 +135,7 @@ export class CustomLoggerService implements LoggerService {
     });
   }
 
-  debug(message: string, context?: string) {
+  debug(message: string, context?: string | Record<string, unknown>) {
     this.logger.debug(message, {
       context,
       ...this.context,
@@ -146,15 +150,15 @@ export class CustomLoggerService implements LoggerService {
   }
 
   // Custom methods for structured logging
-  info(message: string, meta?: any) {
+  info(message: string, meta?: Record<string, unknown> | string) {
     this.logger.info(message, {
-      ...meta,
+      ...(typeof meta === 'string' ? { context: meta } : meta),
       ...this.context,
     });
   }
 
   // HTTP request logging
-  logRequest(req: any, res: any, responseTime?: number) {
+  logRequest(req: Request, res: Response, responseTime?: number) {
     const { method, originalUrl, ip, headers } = req;
     const { statusCode } = res;
 
@@ -170,7 +174,7 @@ export class CustomLoggerService implements LoggerService {
   }
 
   // Business logic logging
-  logBusinessEvent(event: string, details: any) {
+  logBusinessEvent(event: string, details: Record<string, unknown>) {
     this.info(`Business event: ${event}`, {
       action: 'business_event',
       event,
@@ -179,8 +183,12 @@ export class CustomLoggerService implements LoggerService {
   }
 
   // Database operation logging
-  logDatabaseOperation(operation: string, table: string, meta?: any) {
-    this.debug(`Database ${operation} on ${table}`, {
+  logDatabaseOperation(
+    operation: string,
+    table: string,
+    meta?: Record<string, unknown>,
+  ) {
+    this.logger.debug(`Database ${operation} on ${table}`, {
       action: 'database_operation',
       operation,
       table,
@@ -209,7 +217,7 @@ export class CustomLoggerService implements LoggerService {
   // Security event logging
   logSecurityEvent(
     event: string,
-    details: any,
+    details: Record<string, unknown>,
     level: 'info' | 'warn' | 'error' = 'warn',
   ) {
     const logData = {
@@ -238,7 +246,11 @@ export class CustomLoggerService implements LoggerService {
   }
 
   // Audit trail logging for GDPR compliance
-  logAuditTrail(action: string, resource: string, details: any) {
+  logAuditTrail(
+    action: string,
+    resource: string,
+    details: Record<string, unknown>,
+  ) {
     this.info(`Audit: ${action} on ${resource}`, {
       action: 'audit_trail',
       auditAction: action,
@@ -255,7 +267,7 @@ export class CustomLoggerService implements LoggerService {
     metric: string,
     value: number,
     unit: string,
-    metadata?: any,
+    metadata?: Record<string, unknown>,
   ) {
     this.info(`Performance metric: ${metric}`, {
       action: 'performance_metric',
@@ -268,7 +280,7 @@ export class CustomLoggerService implements LoggerService {
   }
 
   // User action logging for analytics
-  logUserAction(action: string, details: any) {
+  logUserAction(action: string, details: Record<string, unknown>) {
     this.info(`User action: ${action}`, {
       action: 'user_action',
       userAction: action,

@@ -11,7 +11,7 @@ describe('ImageModerationService', () => {
   beforeEach(async () => {
     const mockConfigService = {
       get: jest.fn((key: string, defaultValue?: any) => {
-        const config = {
+        const config: Record<string, any> = {
           'moderation.aws.region': '',
           'moderation.aws.accessKeyId': '',
           'moderation.aws.secretAccessKey': '',

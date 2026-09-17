@@ -74,7 +74,9 @@ export class AuthService {
         passwordHash,
         status: UserStatus.PENDING,
         // SECURITY (Phase 0.10): store only a hash, never the raw token.
-        emailVerificationToken: TokenUtil.hash(StringUtil.generateRandomString(32)),
+        emailVerificationToken: TokenUtil.hash(
+          StringUtil.generateRandomString(32),
+        ),
       });
 
       const savedUser = await this.userRepository.save(user);
@@ -99,14 +101,16 @@ export class AuthService {
       const refreshToken = await this.generateRefreshToken(savedUser);
 
       return { user: savedUser, accessToken, refreshToken };
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof ConflictException) throw error;
       this.logger.error('Error registering user', error);
       throw new InternalServerErrorException('Error registering user');
     }
   }
 
-  async login(loginDto: LoginDto & { twoFactorToken?: string }): Promise<AuthResponse & { requiresTwoFactor?: boolean }> {
+  async login(
+    loginDto: LoginDto & { twoFactorToken?: string },
+  ): Promise<AuthResponse & { requiresTwoFactor?: boolean }> {
     const { email, password, twoFactorToken } = loginDto;
 
     // Find user with profile
@@ -165,7 +169,12 @@ export class AuthService {
     return { user, accessToken, refreshToken };
   }
 
-  async validateGoogleUser(profile: { email: string; googleId?: string; name?: string; picture?: string }) {
+  async validateGoogleUser(profile: {
+    email: string;
+    googleId?: string;
+    name?: string;
+    picture?: string;
+  }) {
     let user = await this.userRepository.findOne({
       where: { email: profile.email },
     });
@@ -283,8 +292,8 @@ export class AuthService {
     const passwordHash = await PasswordUtil.hash(newPassword);
 
     user.passwordHash = passwordHash;
-    user.resetPasswordToken = null as any;
-    user.resetPasswordExpires = null as any;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
 
     await this.userRepository.save(user);
   }
@@ -326,7 +335,7 @@ export class AuthService {
     }
 
     user.isEmailVerified = true;
-    user.emailVerificationToken = null as any;
+    user.emailVerificationToken = null;
 
     await this.userRepository.save(user);
   }
@@ -358,7 +367,10 @@ export class AuthService {
     return token;
   }
 
-  private async revokeRefreshToken(userId: string, token: string): Promise<void> {
+  private async revokeRefreshToken(
+    userId: string,
+    token: string,
+  ): Promise<void> {
     await this.redis
       .multi()
       .del(`refreshtoken:${token}`)
@@ -366,7 +378,9 @@ export class AuthService {
       .exec();
   }
 
-  async refreshTokens(rawRefreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+  async refreshTokens(
+    rawRefreshToken: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     const userId = await this.redis.get(`refreshtoken:${rawRefreshToken}`);
     if (!userId) {
       throw new UnauthorizedException('Invalid or expired refresh token');
@@ -402,15 +416,25 @@ export class AuthService {
   async logout(userId: string, accessToken?: string): Promise<void> {
     try {
       if (accessToken) {
-        const jwtExpiresIn = this.configService.get<string>('jwt.expiresIn') ?? '24h';
+        const jwtExpiresIn =
+          this.configService.get<string>('jwt.expiresIn') ?? '24h';
         let expirationSeconds = 24 * 60 * 60;
         const match = jwtExpiresIn.match(/^(\d+)([smhd])$/);
         if (match) {
           const value = parseInt(match[1]);
-          const multipliers: Record<string, number> = { s: 1, m: 60, h: 3600, d: 86400 };
+          const multipliers: Record<string, number> = {
+            s: 1,
+            m: 60,
+            h: 3600,
+            d: 86400,
+          };
           expirationSeconds = value * (multipliers[match[2]] ?? 1);
         }
-        await this.redis.setex(`blacklist:token:${accessToken}`, expirationSeconds, '1');
+        await this.redis.setex(
+          `blacklist:token:${accessToken}`,
+          expirationSeconds,
+          '1',
+        );
       }
 
       // Revoke all refresh tokens for this user via the per-user SET index
@@ -430,7 +454,7 @@ export class AuthService {
       await this.redis.del(`session:${userId}`);
 
       this.logger.log(`User ${userId} logged out`);
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error('Error during logout', error);
     }
   }

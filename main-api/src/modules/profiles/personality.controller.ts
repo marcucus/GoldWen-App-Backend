@@ -1,3 +1,4 @@
+import type { Request as ExpressRequest } from 'express';
 import {
   Controller,
   Get,
@@ -15,6 +16,7 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ProfilesService } from './profiles.service';
 import { SubmitPersonalityAnswersDto } from './dto/profiles.dto';
+import { User } from '../../database/entities/user.entity';
 
 @ApiTags('Personality')
 @Controller()
@@ -46,11 +48,11 @@ export class PersonalityController {
       'Invalid request or content moderation failed. Answers contain forbidden words or inappropriate content.',
   })
   async submitPersonalityAnswers(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Body() answersDto: SubmitPersonalityAnswersDto,
   ) {
     await this.profilesService.submitPersonalityAnswers(
-      req.user.id,
+      (req.user as User).id,
       answersDto,
     );
     return { message: 'Personality answers submitted successfully' };

@@ -5,7 +5,6 @@ import { PrivacyPolicy } from '../../database/entities/privacy-policy.entity';
 
 describe('LegalController', () => {
   let controller: LegalController;
-  let service: LegalService;
 
   const mockPrivacyPolicy: PrivacyPolicy = {
     id: '123e4567-e89b-12d3-a456-426614174000',
@@ -41,7 +40,6 @@ describe('LegalController', () => {
     }).compile();
 
     controller = module.get<LegalController>(LegalController);
-    service = module.get<LegalService>(LegalService);
 
     jest.clearAllMocks();
   });

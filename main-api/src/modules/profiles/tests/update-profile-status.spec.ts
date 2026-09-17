@@ -13,6 +13,7 @@ import { Prompt } from '../../../database/entities/prompt.entity';
 import { PromptAnswer } from '../../../database/entities/prompt-answer.entity';
 import { UpdateProfileStatusDto } from '../dto/profiles.dto';
 import { ModerationService } from '../../moderation/services/moderation.service';
+import { StorageService } from '../../../common/services/storage.service';
 
 /**
  * Tests for strict profile validation when updating visibility status
@@ -81,6 +82,13 @@ describe('ProfilesService - updateProfileStatus Strict Validation', () => {
           provide: ModerationService,
           useValue: mockModerationService,
         },
+        {
+          provide: StorageService,
+          useValue: {
+            uploadFile: jest.fn(),
+            deleteFile: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -143,8 +151,8 @@ describe('ProfilesService - updateProfileStatus Strict Validation', () => {
       jest
         .spyOn(userRepository, 'findOne')
         .mockResolvedValue(incompleteUser as any);
-      jest.spyOn(profileRepository, 'save').mockResolvedValue(null);
-      jest.spyOn(userRepository, 'save').mockResolvedValue(null);
+      jest.spyOn(profileRepository, 'save').mockResolvedValue(null as any);
+      jest.spyOn(userRepository, 'save').mockResolvedValue(null as any);
       jest.spyOn(promptRepository, 'find').mockResolvedValue([]);
       jest.spyOn(personalityQuestionRepository, 'count').mockResolvedValue(0);
 
@@ -196,7 +204,7 @@ describe('ProfilesService - updateProfileStatus Strict Validation', () => {
 
       try {
         await service.updateProfileStatus('user-id', statusDto);
-      } catch (error) {
+      } catch (error: any) {
         expect(error.response.code).toBe('PROFILE_INCOMPLETE');
         expect(error.response.missingRequirements).toContain(
           'Need 1 more photo(s)',
@@ -244,7 +252,7 @@ describe('ProfilesService - updateProfileStatus Strict Validation', () => {
 
       try {
         await service.updateProfileStatus('user-id', statusDto);
-      } catch (error) {
+      } catch (error: any) {
         expect(error.response.code).toBe('PROFILE_INCOMPLETE');
         expect(error.response.missingRequirements).toContain(
           'Need to answer 2 more prompts (1/3)',
@@ -289,7 +297,7 @@ describe('ProfilesService - updateProfileStatus Strict Validation', () => {
 
       try {
         await service.updateProfileStatus('user-id', statusDto);
-      } catch (error) {
+      } catch (error: any) {
         expect(error.response.code).toBe('PROFILE_INCOMPLETE');
         expect(error.response.missingRequirements).toContain(
           'Need to complete personality questionnaire',
@@ -334,7 +342,7 @@ describe('ProfilesService - updateProfileStatus Strict Validation', () => {
 
       try {
         await service.updateProfileStatus('user-id', statusDto);
-      } catch (error) {
+      } catch (error: any) {
         expect(error.response.code).toBe('PROFILE_INCOMPLETE');
         expect(error.response.missingRequirements).toContainEqual(
           expect.stringContaining('birth date'),
@@ -367,8 +375,8 @@ describe('ProfilesService - updateProfileStatus Strict Validation', () => {
       jest
         .spyOn(userRepository, 'findOne')
         .mockResolvedValue(completeUser as any);
-      jest.spyOn(profileRepository, 'save').mockResolvedValue(null);
-      jest.spyOn(userRepository, 'save').mockResolvedValue(null);
+      jest.spyOn(profileRepository, 'save').mockResolvedValue(null as any);
+      jest.spyOn(userRepository, 'save').mockResolvedValue(null as any);
       jest.spyOn(promptRepository, 'find').mockResolvedValue([
         { id: 'prompt-1', isActive: true, isRequired: true },
         { id: 'prompt-2', isActive: true, isRequired: true },
@@ -417,7 +425,7 @@ describe('ProfilesService - updateProfileStatus Strict Validation', () => {
       try {
         await service.updateProfileStatus('user-id', statusDto);
         fail('Should have thrown BadRequestException');
-      } catch (error) {
+      } catch (error: any) {
         expect(error).toBeInstanceOf(BadRequestException);
         expect(error.response.code).toBe('PROFILE_INCOMPLETE');
         expect(error.response.missingRequirements).toHaveLength(4);
@@ -466,7 +474,7 @@ describe('ProfilesService - updateProfileStatus Strict Validation', () => {
 
       try {
         await service.updateProfileStatus('user-id', { isVisible: true });
-      } catch (error) {
+      } catch (error: any) {
         expect(error).toBeInstanceOf(BadRequestException);
         expect(error.response.code).toBe('PROFILE_INCOMPLETE');
         expect(error.response.missingRequirements).toContain(

@@ -1,3 +1,5 @@
+import type { User } from '../../../database/entities/user.entity';
+import type { Request as ExpressRequest } from 'express';
 import {
   Injectable,
   CanActivate,
@@ -35,8 +37,8 @@ export class ConsentGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
-    const user = request.user;
+    const request = context.switchToHttp().getRequest<ExpressRequest>();
+    const user = request.user as User | undefined;
 
     // This guard is registered globally (Phase 0.10) and therefore also
     // runs on routes with no authenticated user at all (registration,

@@ -62,8 +62,12 @@ export class RetentionScheduler {
         deleted: result.affected ?? 0,
         cutoff: cutoff.toISOString(),
       });
-    } catch (error) {
-      this.logger.error('Failed to purge inactive accounts', error.message, 'RetentionScheduler');
+    } catch (error: unknown) {
+      this.logger.error(
+        'Failed to purge inactive accounts',
+        error instanceof Error ? error.message : String(error),
+        'RetentionScheduler',
+      );
     }
   }
 
@@ -80,8 +84,12 @@ export class RetentionScheduler {
         deleted: result.affected ?? 0,
         cutoff: cutoff.toISOString(),
       });
-    } catch (error) {
-      this.logger.error('Failed to purge old messages', error.message, 'RetentionScheduler');
+    } catch (error: unknown) {
+      this.logger.error(
+        'Failed to purge old messages',
+        error instanceof Error ? error.message : String(error),
+        'RetentionScheduler',
+      );
     }
   }
 
@@ -98,8 +106,12 @@ export class RetentionScheduler {
         deleted: result.affected ?? 0,
         cutoff: cutoff.toISOString(),
       });
-    } catch (error) {
-      this.logger.error('Failed to purge old notifications', error.message, 'RetentionScheduler');
+    } catch (error: unknown) {
+      this.logger.error(
+        'Failed to purge old notifications',
+        error instanceof Error ? error.message : String(error),
+        'RetentionScheduler',
+      );
     }
   }
 }

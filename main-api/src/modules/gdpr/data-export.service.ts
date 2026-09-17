@@ -116,10 +116,14 @@ export class DataExportService {
       });
 
       this.logger.log(`Export request ${requestId} completed successfully`);
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(`Error processing export request ${requestId}:`, error);
       const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+        error instanceof Error
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : 'Unknown error';
       await this.dataExportRequestRepository.update(requestId, {
         status: ExportStatus.FAILED,
         errorMessage,
@@ -258,14 +262,10 @@ export class DataExportService {
     if (!user) return null;
     // Remove sensitive fields before export
 
-    const userObj = user as any;
-
-    const {
-      passwordHash: _passwordHash,
-      emailVerificationToken: _token,
-      resetPasswordToken: _resetToken,
-      ...safeData
-    } = userObj;
+    const safeData: Record<string, unknown> = { ...user };
+    delete safeData.passwordHash;
+    delete safeData.emailVerificationToken;
+    delete safeData.resetPasswordToken;
     return safeData;
   }
 

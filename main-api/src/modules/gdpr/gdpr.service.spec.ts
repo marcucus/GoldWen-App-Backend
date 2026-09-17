@@ -21,8 +21,7 @@ import { ExportFormat } from '../../database/entities/data-export-request.entity
 
 describe('GdprService', () => {
   let service: GdprService;
-  let dataExportService: DataExportService;
-  let accountDeletionRepository: Repository<AccountDeletion>;
+
   let userRepository: Repository<User>;
   let userConsentRepository: Repository<UserConsent>;
 
@@ -97,10 +96,7 @@ describe('GdprService', () => {
     }).compile();
 
     service = module.get<GdprService>(GdprService);
-    dataExportService = module.get<DataExportService>(DataExportService);
-    accountDeletionRepository = module.get<Repository<AccountDeletion>>(
-      getRepositoryToken(AccountDeletion),
-    );
+
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
     userConsentRepository = module.get<Repository<UserConsent>>(
       getRepositoryToken(UserConsent),

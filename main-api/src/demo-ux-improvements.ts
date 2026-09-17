@@ -1,42 +1,45 @@
-import { HttpException, HttpStatus } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
+import { ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import { CustomLoggerService } from './common/logger';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import { CacheInterceptor } from './common/interceptors/cache.interceptor';
-import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import {
   StandardErrorCode,
   ErrorRecoveryActions,
 } from './common/enums/error-codes.enum';
-import {
-  CacheStrategy,
-  CacheHeaders,
-} from './common/enums/cache-strategy.enum';
-import {
-  SuccessResponseDto,
-  ErrorResponseDto,
-} from './common/dto/response.dto';
+import { CacheHeaders } from './common/enums/cache-strategy.enum';
+import { SuccessResponseDto } from './common/dto/response.dto';
+import { SentryService } from './common/monitoring';
+
+// Minimal shape this demo needs from the mocked Express response, so the
+// mock object literal below doesn't need `any` to reference itself.
+interface DemoMockResponse {
+  status: () => DemoMockResponse;
+  json: (data: unknown) => DemoMockResponse;
+  _lastJsonData: unknown;
+}
 
 /**
  * Demonstration script showing the UX/UI improvements implemented in the backend
  */
-async function demonstrateUXImprovements() {
+function demonstrateUXImprovements() {
   console.log('🚀 GoldWen Backend UX/UI Improvements Demonstration\n');
 
   // 1. Demonstrate Standardized Error Responses
   console.log('=== 1. STANDARDIZED ERROR RESPONSES ===');
 
   const mockLogger = {
-    error: (msg: string, stack?: string, context?: string) =>
-      console.log(`[ERROR] ${msg}`),
-    debug: (msg: string, context?: string) => console.log(`[DEBUG] ${msg}`),
-  } as any;
+    error: (msg: string) => console.log(`[ERROR] ${msg}`),
+    debug: (msg: string) => console.log(`[DEBUG] ${msg}`),
+  };
 
   const mockSentry = {
-    captureException: (error: any) => console.log(`[SENTRY] ${error}`),
-  } as any;
+    captureException: (error: unknown) =>
+      console.log(`[SENTRY] ${String(error)}`),
+  };
 
-  const filter = new HttpExceptionFilter(mockLogger, mockSentry);
+  const filter = new HttpExceptionFilter(
+    mockLogger as unknown as CustomLoggerService,
+    mockSentry as unknown as SentryService,
+  );
 
   // Mock request/response objects
   const mockRequest = {
@@ -47,13 +50,13 @@ async function demonstrateUXImprovements() {
     user: { id: 'user123' },
   };
 
-  const mockResponse = {
-    status: (code: number) => mockResponse,
-    json: (data: any) => {
+  const mockResponse: DemoMockResponse = {
+    status: () => mockResponse,
+    json: (data: unknown) => {
       mockResponse._lastJsonData = data;
       return mockResponse;
     },
-    _lastJsonData: null as any,
+    _lastJsonData: null,
   };
 
   const mockHost = {
@@ -61,7 +64,7 @@ async function demonstrateUXImprovements() {
       getResponse: () => mockResponse,
       getRequest: () => mockRequest,
     }),
-  } as any;
+  } as unknown as ArgumentsHost;
 
   // Test validation error
   const validationError = new HttpException(
@@ -183,7 +186,11 @@ async function demonstrateUXImprovements() {
 
 // Run demonstration if this file is executed directly
 if (require.main === module) {
-  demonstrateUXImprovements().catch(console.error);
+  try {
+    demonstrateUXImprovements();
+  } catch (error: unknown) {
+    console.error(error);
+  }
 }
 
 export { demonstrateUXImprovements };

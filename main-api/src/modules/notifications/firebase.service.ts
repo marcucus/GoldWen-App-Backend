@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as admin from 'firebase-admin';
 import { CustomLoggerService } from '../../common/logger';
+import { NotificationConfig } from '../../config/config.interface';
 
 export interface FirebaseNotificationPayload {
   title: string;
@@ -27,17 +28,19 @@ export class FirebaseService implements OnModuleInit {
     private readonly logger: CustomLoggerService,
   ) {}
 
-  async onModuleInit() {
-    await this.initialize();
+  onModuleInit() {
+    this.initialize();
   }
 
-  private async initialize(): Promise<void> {
+  private initialize(): void {
     if (this.initialized) {
       return;
     }
 
     try {
-      const firebaseConfig = this.configService.get('notification.firebase');
+      const firebaseConfig = this.configService.get<
+        NotificationConfig['firebase']
+      >('notification.firebase');
 
       if (!firebaseConfig) {
         this.logger.warn(
@@ -50,7 +53,14 @@ export class FirebaseService implements OnModuleInit {
       // Try to initialize with service account file path first
       if (firebaseConfig.serviceAccountPath) {
         try {
-          const serviceAccount = require(firebaseConfig.serviceAccountPath);
+          // The service account path is an operator-provided filesystem
+          // path resolved at startup, not a bundled module — a dynamic
+          // `import()` would need JSON import assertions and still be just
+          // as dynamic, so `require()` remains the right tool here.
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const serviceAccount = require(
+            firebaseConfig.serviceAccountPath,
+          ) as admin.ServiceAccount;
           this.app = admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
           });
@@ -60,9 +70,9 @@ export class FirebaseService implements OnModuleInit {
             'FirebaseService',
           );
           return;
-        } catch (error) {
+        } catch (error: unknown) {
           this.logger.warn(
-            `Failed to load service account from path: ${error.message}`,
+            `Failed to load service account from path: ${error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)}`,
             'FirebaseService',
           );
         }
@@ -93,10 +103,10 @@ export class FirebaseService implements OnModuleInit {
         'Firebase credentials not configured, Firebase notifications will be disabled',
         'FirebaseService',
       );
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Failed to initialize Firebase Admin SDK',
-        error.stack,
+        error instanceof Error ? error.stack : String(error),
         'FirebaseService',
       );
     }
@@ -178,10 +188,11 @@ export class FirebaseService implements OnModuleInit {
         success: true,
         messageId,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       // Extract error code for better handling
-      const errorCode = error.code || 'UNKNOWN';
-      const errorMessage = error.message || 'Unknown error';
+      const firebaseError = error as { code?: string; message?: string };
+      const errorCode = firebaseError.code || 'UNKNOWN';
+      const errorMessage = firebaseError.message || 'Unknown error';
 
       this.logger.error(
         'Failed to send Firebase push notification',
@@ -290,9 +301,10 @@ export class FirebaseService implements OnModuleInit {
         success: true,
         messageId,
       };
-    } catch (error) {
-      const errorCode = error.code || 'UNKNOWN';
-      const errorMessage = error.message || 'Unknown error';
+    } catch (error: unknown) {
+      const firebaseError = error as { code?: string; message?: string };
+      const errorCode = firebaseError.code || 'UNKNOWN';
+      const errorMessage = firebaseError.message || 'Unknown error';
 
       this.logger.error(
         'Failed to send Firebase topic notification',

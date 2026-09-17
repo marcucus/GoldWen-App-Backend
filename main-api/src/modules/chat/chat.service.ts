@@ -8,7 +8,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Or, In, Not, LessThan, Between } from 'typeorm';
+import { Repository, In } from 'typeorm';
 
 import { Chat } from '../../database/entities/chat.entity';
 import { Message } from '../../database/entities/message.entity';
@@ -119,9 +119,12 @@ export class ChatService {
           match.user2Id, // User who accepted
           match.user1.profile?.firstName || 'Someone',
         );
-      } catch (error) {
+      } catch (error: unknown) {
         // Log error but don't fail the whole operation
-        this.logger.error('Failed to send chat acceptance notifications', error?.stack || error);
+        this.logger.error(
+          'Failed to send chat acceptance notifications',
+          (error instanceof Error ? error.stack : undefined) || error,
+        );
       }
 
       return {
@@ -299,6 +302,7 @@ export class ChatService {
   }
 
   async markMessagesAsRead(chatId: string, userId: string): Promise<void> {
+    void userId; // Kept for compatibility with existing callers.
     await this.messageRepository.update(
       {
         chatId,
@@ -352,7 +356,7 @@ export class ChatService {
         },
       });
 
-      (chat as any).unreadCount = unreadCount;
+      (chat as Chat & { unreadCount: number }).unreadCount = unreadCount;
     }
 
     return chats;

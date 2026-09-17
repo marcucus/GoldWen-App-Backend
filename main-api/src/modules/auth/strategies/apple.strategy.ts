@@ -1,3 +1,4 @@
+import type { SocialLoginDto } from '../dto/auth.dto';
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
@@ -13,11 +14,15 @@ export class AppleStrategy extends PassportStrategy(
     // Apple OAuth implementation placeholder
   }
 
-  async validate(
+  validate(
     accessToken: string,
     refreshToken: string,
-    profile: any,
-  ): Promise<any> {
+    profile: {
+      id: string;
+      email: string;
+      name?: { firstName?: string; lastName?: string };
+    },
+  ): Promise<SocialLoginDto> {
     const { id, email, name } = profile;
 
     const user = {
@@ -28,6 +33,6 @@ export class AppleStrategy extends PassportStrategy(
       lastName: name?.lastName || '',
     };
 
-    return user;
+    return Promise.resolve(user);
   }
 }

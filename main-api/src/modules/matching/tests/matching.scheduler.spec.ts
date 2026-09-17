@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { Repository } from 'typeorm';
 
 import { MatchingScheduler } from '../matching.scheduler';
 import { MatchingService } from '../matching.service';
@@ -12,12 +11,6 @@ import { CustomLoggerService } from '../../../common/logger';
 
 describe('MatchingScheduler', () => {
   let scheduler: MatchingScheduler;
-  let matchingService: MatchingService;
-  let notificationsService: NotificationsService;
-  let userRepository: Repository<User>;
-  let dailySelectionRepository: Repository<DailySelection>;
-  let configService: ConfigService;
-  let logger: CustomLoggerService;
 
   const mockUserRepository = {
     find: jest.fn(),
@@ -40,7 +33,7 @@ describe('MatchingScheduler', () => {
   };
 
   const mockConfigService = {
-    get: jest.fn((key: string) => {
+    get: jest.fn((key: string): string | undefined => {
       if (key === 'app.environment') return 'development';
       return undefined;
     }),
@@ -85,15 +78,6 @@ describe('MatchingScheduler', () => {
     }).compile();
 
     scheduler = module.get<MatchingScheduler>(MatchingScheduler);
-    matchingService = module.get<MatchingService>(MatchingService);
-    notificationsService =
-      module.get<NotificationsService>(NotificationsService);
-    userRepository = module.get<Repository<User>>(getRepositoryToken(User));
-    dailySelectionRepository = module.get<Repository<DailySelection>>(
-      getRepositoryToken(DailySelection),
-    );
-    configService = module.get<ConfigService>(ConfigService);
-    logger = module.get<CustomLoggerService>(CustomLoggerService);
   });
 
   afterEach(() => {
@@ -101,6 +85,21 @@ describe('MatchingScheduler', () => {
   });
 
   describe('generateDailySelectionsForAllUsers', () => {
+    // The scheduler now runs hourly and only processes users for whom it is
+    // currently noon in their own profile timezone (Phase 1.3 — see
+    // isNoonInTimezone in matching.scheduler.ts). None of the mock users
+    // below set a profile.timezone, so they fall back to DEFAULT_TIMEZONE
+    // ('Europe/Paris'); pin the clock to a fixed Paris-noon instant so these
+    // tests don't depend on the wall-clock time the suite happens to run at.
+    beforeEach(() => {
+      jest.useFakeTimers({ advanceTimers: false });
+      jest.setSystemTime(new Date('2025-01-15T11:00:00.000Z')); // 12:00 in Europe/Paris (UTC+1, winter)
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
     it('should generate daily selections for all users with completed profiles', async () => {
       const mockUsers = [
         { id: 'user1', isProfileCompleted: true },
@@ -120,6 +119,7 @@ describe('MatchingScheduler', () => {
 
       expect(mockUserRepository.find).toHaveBeenCalledWith({
         where: { isProfileCompleted: true },
+        relations: ['profile'],
       });
       expect(mockMatchingService.generateDailySelection).toHaveBeenCalledTimes(
         3,

@@ -36,12 +36,20 @@ import { PromptAnswer } from '../../database/entities/prompt-answer.entity';
       useFactory: (configService: ConfigService) => ({
         storage: memoryStorage(),
         fileFilter: (req, file, callback) => {
-          const validMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+          const validMimeTypes = [
+            'image/jpeg',
+            'image/jpg',
+            'image/png',
+            'image/webp',
+          ];
           if (validMimeTypes.includes(file.mimetype.toLowerCase())) {
             callback(null, true);
             return;
           }
-          if (file.mimetype === 'application/octet-stream' && file.originalname) {
+          if (
+            file.mimetype === 'application/octet-stream' &&
+            file.originalname
+          ) {
             const ext = file.originalname.split('.').pop()?.toLowerCase();
             if (ext && ['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
               callback(null, true);
@@ -49,19 +57,29 @@ import { PromptAnswer } from '../../database/entities/prompt-answer.entity';
             }
           }
           callback(
-            new Error(`Only image files (JPEG, PNG, WebP) are allowed! Received: ${file.mimetype}`),
+            new Error(
+              `Only image files (JPEG, PNG, WebP) are allowed! Received: ${file.mimetype}`,
+            ),
             false,
           );
         },
         limits: {
-          fileSize: parseInt(configService.get('fileUpload.maxFileSize') || '5242880', 10),
+          fileSize: parseInt(
+            configService.get('fileUpload.maxFileSize') || '5242880',
+            10,
+          ),
           files: 6,
         },
       }),
       inject: [ConfigService],
     }),
   ],
-  providers: [ProfilesService, DatabaseSeederService, ProfileCompletionGuard, StorageService],
+  providers: [
+    ProfilesService,
+    DatabaseSeederService,
+    ProfileCompletionGuard,
+    StorageService,
+  ],
   controllers: [ProfilesController, PersonalityController],
   exports: [ProfilesService, ProfileCompletionGuard],
 })

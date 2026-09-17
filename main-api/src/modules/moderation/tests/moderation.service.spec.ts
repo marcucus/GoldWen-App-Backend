@@ -18,7 +18,7 @@ describe('ModerationService', () => {
   let userRepository: Repository<User>;
   let aiModerationService: AiModerationService;
   let imageModerationService: ImageModerationService;
-  let forbiddenWordsService: ForbiddenWordsService;
+
   let notificationsService: NotificationsService;
   let logger: CustomLoggerService;
 
@@ -103,9 +103,7 @@ describe('ModerationService', () => {
     imageModerationService = module.get<ImageModerationService>(
       ImageModerationService,
     );
-    forbiddenWordsService = module.get<ForbiddenWordsService>(
-      ForbiddenWordsService,
-    );
+
     notificationsService =
       module.get<NotificationsService>(NotificationsService);
     logger = module.get<CustomLoggerService>(CustomLoggerService);

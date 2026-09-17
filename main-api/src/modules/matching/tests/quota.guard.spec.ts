@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { QuotaGuard } from '../guards/quota.guard';
 import { DailySelection } from '../../../database/entities/daily-selection.entity';
@@ -9,9 +8,6 @@ import { CustomLoggerService } from '../../../common/logger';
 
 describe('QuotaGuard', () => {
   let guard: QuotaGuard;
-  let dailySelectionRepository: Repository<DailySelection>;
-  let subscriptionRepository: Repository<Subscription>;
-  let logger: CustomLoggerService;
 
   const mockDailySelectionRepository = {
     findOne: jest.fn(),
@@ -47,13 +43,6 @@ describe('QuotaGuard', () => {
     }).compile();
 
     guard = module.get<QuotaGuard>(QuotaGuard);
-    dailySelectionRepository = module.get<Repository<DailySelection>>(
-      getRepositoryToken(DailySelection),
-    );
-    subscriptionRepository = module.get<Repository<Subscription>>(
-      getRepositoryToken(Subscription),
-    );
-    logger = module.get<CustomLoggerService>(CustomLoggerService);
   });
 
   afterEach(() => {
@@ -160,7 +149,7 @@ describe('QuotaGuard', () => {
 
     it('should allow request when free user has remaining choices', async () => {
       const userId = 'user-123';
-      const mockRequest = {
+      const mockRequest: any = {
         user: { id: userId },
       };
       const context = {
@@ -192,7 +181,7 @@ describe('QuotaGuard', () => {
 
     it('should allow request when premium user has remaining choices', async () => {
       const userId = 'user-123';
-      const mockRequest = {
+      const mockRequest: any = {
         user: { id: userId },
       };
       const context = {
@@ -243,7 +232,7 @@ describe('QuotaGuard', () => {
 
     it('should attach quota info to request for use in controllers', async () => {
       const userId = 'user-123';
-      const mockRequest = {
+      const mockRequest: any = {
         user: { id: userId },
       };
       const context = {

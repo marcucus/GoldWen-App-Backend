@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { GdprService } from './gdpr.service';
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
@@ -15,8 +14,6 @@ import { Report } from '../../database/entities/report.entity';
 
 describe('GdprService', () => {
   let service: GdprService;
-  let userRepository: Repository<User>;
-  let profileRepository: Repository<Profile>;
 
   const mockRepositories = {
     find: jest.fn(),
@@ -76,10 +73,6 @@ describe('GdprService', () => {
     }).compile();
 
     service = module.get<GdprService>(GdprService);
-    userRepository = module.get<Repository<User>>(getRepositoryToken(User));
-    profileRepository = module.get<Repository<Profile>>(
-      getRepositoryToken(Profile),
-    );
   });
 
   it('should be defined', () => {

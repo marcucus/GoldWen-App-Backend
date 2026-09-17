@@ -89,7 +89,7 @@ describe('UsersService Role Management', () => {
 
       jest
         .spyOn(userRepository, 'findAndCount')
-        .mockResolvedValue([mockUsers, mockTotal]);
+        .mockResolvedValue([mockUsers, mockTotal] as any);
 
       const result = await service.getUsersWithRoles(1, 10);
 
@@ -181,7 +181,7 @@ describe('UsersService Role Management', () => {
       jest.spyOn(userRepository, 'findOne').mockResolvedValue({
         ...mockUser,
         role: null,
-      } as User);
+      } as unknown as User);
 
       const result = await service.getUserRole(mockUser.id);
 

@@ -10,6 +10,17 @@ export interface NotificationPayload {
   imageUrl?: string;
 }
 
+interface FcmLegacySendResponse {
+  success: number;
+  results?: { message_id?: string; error?: string }[];
+}
+
+interface FcmLegacyTopicResponse {
+  success?: number;
+  message_id?: string;
+  error?: string;
+}
+
 export interface FcmResponse {
   success: boolean;
   messageId?: string;
@@ -27,7 +38,8 @@ export class FcmService {
     private readonly logger: CustomLoggerService,
     private readonly firebaseService: FirebaseService,
   ) {
-    this.serverKey = this.configService.get('notification.fcmServerKey') || '';
+    this.serverKey =
+      this.configService.get<string>('notification.fcmServerKey') || '';
   }
 
   async sendToDevice(
@@ -86,7 +98,7 @@ export class FcmService {
         body: JSON.stringify(message),
       });
 
-      const result = await response.json();
+      const result = (await response.json()) as FcmLegacySendResponse;
 
       if (response.ok && result.success === 1) {
         this.logger.info('Push notification sent successfully (HTTP API)', {
@@ -110,16 +122,17 @@ export class FcmService {
           error: result.results?.[0]?.error || 'Unknown error',
         };
       }
-    } catch (error) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       this.logger.error(
         'Error sending push notification',
-        error.message,
+        message,
         'FcmService',
       );
 
       return {
         success: false,
-        error: error.message,
+        error: message,
       };
     }
   }
@@ -189,9 +202,9 @@ export class FcmService {
         body: JSON.stringify(message),
       });
 
-      const result = await response.json();
+      const result = (await response.json()) as FcmLegacyTopicResponse;
 
-      if (response.ok && result.success >= 1) {
+      if (response.ok && (result.success ?? 0) >= 1) {
         this.logger.info('Topic notification sent successfully (HTTP API)', {
           topic,
           messageId: result.message_id,
@@ -213,16 +226,17 @@ export class FcmService {
           error: result.error || 'Unknown error',
         };
       }
-    } catch (error) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       this.logger.error(
         'Error sending topic notification',
-        error.message,
+        message,
         'FcmService',
       );
 
       return {
         success: false,
-        error: error.message,
+        error: message,
       };
     }
   }

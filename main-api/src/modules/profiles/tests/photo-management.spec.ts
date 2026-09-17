@@ -12,6 +12,7 @@ import { PersonalityAnswer } from '../../../database/entities/personality-answer
 import { Prompt } from '../../../database/entities/prompt.entity';
 import { PromptAnswer } from '../../../database/entities/prompt-answer.entity';
 import { ModerationService } from '../../moderation/services/moderation.service';
+import { StorageService } from '../../../common/services/storage.service';
 
 describe('ProfilesService - Photo Management', () => {
   let service: ProfilesService;
@@ -73,6 +74,13 @@ describe('ProfilesService - Photo Management', () => {
         {
           provide: ModerationService,
           useValue: mockModerationService,
+        },
+        {
+          provide: StorageService,
+          useValue: {
+            uploadFile: jest.fn(),
+            deleteFile: jest.fn(),
+          },
         },
       ],
     }).compile();

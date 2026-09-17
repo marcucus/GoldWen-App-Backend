@@ -73,7 +73,10 @@ export class MatchingScheduler {
       });
 
       if (!usersAtNoon.length) {
-        this.logger.debug('No users at local noon — skipping', 'MatchingScheduler');
+        this.logger.debug(
+          'No users at local noon — skipping',
+          'MatchingScheduler',
+        );
         return;
       }
 
@@ -101,26 +104,32 @@ export class MatchingScheduler {
           } catch (notifError) {
             // Log notification error but don't fail the whole job
             this.logger.warn(
-              `Failed to send daily selection notification for user ${user.id}: ${notifError.message}`,
+              `Failed to send daily selection notification for user ${user.id}: ${notifError instanceof Error ? notifError.message : String(notifError)}`,
               'MatchingScheduler',
             );
           }
 
           successCount++;
-        } catch (error) {
+        } catch (error: unknown) {
           // Check if selection already exists (not an error, just skip)
-          if (error.message?.includes('already has a selection')) {
+          if (
+            (error instanceof Error ? error.message : String(error))?.includes(
+              'already has a selection',
+            )
+          ) {
             skippedCount++;
           } else {
             errorCount++;
             errors.push({
               userId: user.id,
-              error: error.message || 'Unknown error',
+              error:
+                (error instanceof Error ? error.message : String(error)) ||
+                'Unknown error',
             });
 
             this.logger.error(
               `Failed to generate daily selection for user ${user.id}`,
-              error.stack,
+              error instanceof Error ? error.stack : undefined,
               'MatchingScheduler',
             );
           }
@@ -158,18 +167,18 @@ export class MatchingScheduler {
         //   });
         // }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       const executionTime = Date.now() - startTime;
 
       this.logger.error(
-        `Daily selection generation job failed catastrophically after ${executionTime}ms: ${error.message}`,
-        error.stack,
+        `Daily selection generation job failed catastrophically after ${executionTime}ms: ${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
         'MatchingScheduler',
       );
 
       // TODO: Send critical alert
       // await this.sendCriticalAlert('Daily selection generation catastrophic failure', {
-      //   error: error.message,
+      //   error: (error instanceof Error ? error.message : String(error)),
       // });
 
       throw error; // Re-throw to ensure it's logged by NestJS scheduler
@@ -212,10 +221,10 @@ export class MatchingScheduler {
         cutoffDate: thirtyDaysAgo.toISOString(),
         executionTimeMs: executionTime,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
-        `Daily selections cleanup job failed: ${error.message}`,
-        error.stack,
+        `Daily selections cleanup job failed: ${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
         'MatchingScheduler',
       );
 
@@ -228,14 +237,14 @@ export class MatchingScheduler {
    * Can be called from admin endpoints or for testing
    */
   async triggerDailySelectionGeneration() {
-    if (this.configService.get('app.environment') === 'production') {
+    if (this.configService.get<string>('app.environment') === 'production') {
       throw new Error(
         'Manual trigger not allowed in production. Use scheduled jobs.',
       );
     }
 
     this.logger.info('Manual trigger: Daily selection generation', {
-      environment: this.configService.get('app.environment'),
+      environment: this.configService.get<string>('app.environment'),
     });
 
     await this.generateDailySelectionsForAllUsers();
@@ -245,14 +254,14 @@ export class MatchingScheduler {
    * Manual trigger for cleanup testing
    */
   async triggerCleanup() {
-    if (this.configService.get('app.environment') === 'production') {
+    if (this.configService.get<string>('app.environment') === 'production') {
       throw new Error(
         'Manual trigger not allowed in production. Use scheduled jobs.',
       );
     }
 
     this.logger.info('Manual trigger: Daily selections cleanup', {
-      environment: this.configService.get('app.environment'),
+      environment: this.configService.get<string>('app.environment'),
     });
 
     await this.cleanupOldDailySelections();

@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import { ExecutionContext, CallHandler } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { of } from 'rxjs';
-import { CacheInterceptor, CACHE_STRATEGY_KEY } from './cache.interceptor';
+import { CacheInterceptor } from './cache.interceptor';
 import { CacheStrategy, CacheHeaders } from '../enums/cache-strategy.enum';
 
 describe('CacheInterceptor', () => {
@@ -73,37 +73,33 @@ describe('CacheInterceptor', () => {
     it('should apply medium cache headers when strategy is MEDIUM_CACHE', (done) => {
       reflector.get.mockReturnValue(CacheStrategy.MEDIUM_CACHE);
 
-      interceptor
-        .intercept(mockContext, mockCallHandler)
-        .subscribe((result) => {
-          expect(mockResponse.setHeader).toHaveBeenCalledWith(
-            'Cache-Control',
-            CacheHeaders[CacheStrategy.MEDIUM_CACHE]['Cache-Control'],
-          );
-          expect(mockResponse.setHeader).toHaveBeenCalledWith(
-            'ETag',
-            expect.any(String),
-          );
-          done();
-        });
+      interceptor.intercept(mockContext, mockCallHandler).subscribe(() => {
+        expect(mockResponse.setHeader).toHaveBeenCalledWith(
+          'Cache-Control',
+          CacheHeaders[CacheStrategy.MEDIUM_CACHE]['Cache-Control'],
+        );
+        expect(mockResponse.setHeader).toHaveBeenCalledWith(
+          'ETag',
+          expect.any(String),
+        );
+        done();
+      });
     });
 
     it('should apply no-cache headers when strategy is NO_CACHE', (done) => {
       reflector.get.mockReturnValue(CacheStrategy.NO_CACHE);
 
-      interceptor
-        .intercept(mockContext, mockCallHandler)
-        .subscribe((result) => {
-          const noCacheHeaders = CacheHeaders[CacheStrategy.NO_CACHE];
-          Object.entries(noCacheHeaders).forEach(([key, value]) => {
-            expect(mockResponse.setHeader).toHaveBeenCalledWith(key, value);
-          });
-          expect(mockResponse.setHeader).not.toHaveBeenCalledWith(
-            'ETag',
-            expect.any(String),
-          );
-          done();
+      interceptor.intercept(mockContext, mockCallHandler).subscribe(() => {
+        const noCacheHeaders = CacheHeaders[CacheStrategy.NO_CACHE];
+        Object.entries(noCacheHeaders).forEach(([key, value]) => {
+          expect(mockResponse.setHeader).toHaveBeenCalledWith(key, value);
         });
+        expect(mockResponse.setHeader).not.toHaveBeenCalledWith(
+          'ETag',
+          expect.any(String),
+        );
+        done();
+      });
     });
 
     it('should not apply cache headers when no strategy is defined', (done) => {

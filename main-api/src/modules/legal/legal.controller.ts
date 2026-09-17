@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Header } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { LegalService } from './legal.service';
 import { GetPrivacyPolicyDto } from './dto/privacy-policy.dto';
@@ -58,7 +58,7 @@ export class LegalController {
 
     return {
       version: policy.version,
-      content: JSON.parse(policy.content),
+      content: JSON.parse(policy.content) as unknown,
       lastUpdated: policy.effectiveDate,
       effectiveDate: policy.effectiveDate,
     };

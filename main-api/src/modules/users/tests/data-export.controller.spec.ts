@@ -33,7 +33,7 @@ describe('UsersController - Data Export (RGPD)', () => {
       id: 'user-uuid-123',
       email: 'test@example.com',
     },
-  } as Request;
+  } as unknown as Request;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

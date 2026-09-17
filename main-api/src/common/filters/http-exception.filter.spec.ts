@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import { HttpExceptionFilter } from './http-exception.filter';
 import { CustomLoggerService } from '../logger';
+import { SentryService } from '../monitoring';
 import {
   StandardErrorCode,
   ErrorRecoveryActions,
@@ -45,6 +46,12 @@ describe('HttpExceptionFilter', () => {
         {
           provide: CustomLoggerService,
           useValue: mockLogger,
+        },
+        {
+          provide: SentryService,
+          useValue: {
+            captureException: jest.fn(),
+          },
         },
       ],
     }).compile();

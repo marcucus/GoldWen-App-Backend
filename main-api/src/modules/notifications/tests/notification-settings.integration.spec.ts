@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+
 import request from 'supertest';
 
 import { NotificationsController } from '../notifications.controller';
@@ -20,7 +20,6 @@ import { AdminGuard } from '../../auth/guards/admin.guard';
 
 describe('Notification Settings Integration Tests', () => {
   let app: INestApplication;
-  let notificationsService: NotificationsService;
 
   const mockUser = {
     id: 'test-user-123',
@@ -151,8 +150,7 @@ describe('Notification Settings Integration Tests', () => {
     app.useGlobalPipes(new ValidationPipe({ transform: true }));
     await app.init();
 
-    notificationsService =
-      moduleFixture.get<NotificationsService>(NotificationsService);
+    moduleFixture.get<NotificationsService>(NotificationsService);
   });
 
   afterAll(async () => {

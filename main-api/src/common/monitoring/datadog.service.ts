@@ -72,10 +72,10 @@ export class DatadogService {
         'DatadogService',
       );
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Failed to send metric to DataDog',
-        error.stack,
+        error instanceof Error ? error.stack : undefined,
         'DatadogService',
       );
       return false;
@@ -113,10 +113,10 @@ export class DatadogService {
         'DatadogService',
       );
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Failed to send event to DataDog',
-        error.stack,
+        error instanceof Error ? error.stack : undefined,
         'DatadogService',
       );
       return false;

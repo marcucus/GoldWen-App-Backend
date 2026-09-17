@@ -1,3 +1,4 @@
+import type { Request as ExpressRequest } from 'express';
 import {
   Injectable,
   CanActivate,
@@ -17,8 +18,8 @@ export class PremiumGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
-    const userId = request.user?.id;
+    const request = context.switchToHttp().getRequest<ExpressRequest>();
+    const userId = (request.user as { id?: string } | undefined)?.id;
 
     if (!userId) {
       throw new ForbiddenException('User not authenticated');

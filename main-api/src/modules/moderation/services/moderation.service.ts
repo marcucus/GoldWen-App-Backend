@@ -49,19 +49,20 @@ export class ModerationService {
     // call silently "succeeded" via the auto-approve fallback below.
     // moderateImageFromUrl() was already written for exactly this but was
     // never called from here.
-    const moderationResult = await this.imageModerationService.moderateImageFromUrl(
-      photo.url,
-    );
+    const moderationResult =
+      await this.imageModerationService.moderateImageFromUrl(photo.url);
 
     // A photo is approved ONLY when moderation actually ran and found
     // nothing to block. Anything else — blocked, or moderation itself
     // failed/unavailable (needsManualReview) — leaves isApproved false so a
     // human has to look at it before it can appear anywhere (Phase 0.8).
-    photo.isApproved = !moderationResult.shouldBlock && !moderationResult.needsManualReview;
+    photo.isApproved =
+      !moderationResult.shouldBlock && !moderationResult.needsManualReview;
     if (moderationResult.shouldBlock) {
       photo.rejectionReason = moderationResult.reason || null;
     } else if (moderationResult.needsManualReview) {
-      photo.rejectionReason = moderationResult.reason || 'Pending manual review';
+      photo.rejectionReason =
+        moderationResult.reason || 'Pending manual review';
     } else {
       photo.rejectionReason = null;
     }
@@ -241,10 +242,10 @@ export class ModerationService {
           reason,
         });
       }
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         `Error handling blocked photo notification: ${photo.id}`,
-        error.stack,
+        error instanceof Error ? error.stack : undefined,
         'ModerationService',
       );
     }
@@ -282,10 +283,10 @@ export class ModerationService {
           reason,
         });
       }
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         `Error handling blocked text content notification: ${userId}`,
-        error.stack,
+        error instanceof Error ? error.stack : undefined,
         'ModerationService',
       );
     }

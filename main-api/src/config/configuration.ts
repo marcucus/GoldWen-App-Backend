@@ -90,8 +90,12 @@ export const storageConfig = registerAs(
     provider: (process.env.STORAGE_PROVIDER as 'local' | 's3') || 'local',
     bucket: process.env.S3_BUCKET || '',
     region: process.env.S3_REGION || 'eu-west-3',
-    accessKeyId: process.env.S3_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY || '',
+    accessKeyId:
+      process.env.S3_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey:
+      process.env.S3_SECRET_ACCESS_KEY ||
+      process.env.AWS_SECRET_ACCESS_KEY ||
+      '',
     cdnUrl: process.env.CDN_URL || '',
   }),
 );

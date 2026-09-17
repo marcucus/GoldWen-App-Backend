@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan } from 'typeorm';
+import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 
 import { CustomLoggerService } from '../../../common/logger';
@@ -49,12 +49,12 @@ export class CleanupScheduler {
         executionTimeMs: executionTime,
         executionTimeSec: (executionTime / 1000).toFixed(2),
       });
-    } catch (error) {
+    } catch (error: unknown) {
       const executionTime = Date.now() - startTime;
 
       this.logger.error(
-        `General data cleanup job failed after ${executionTime}ms: ${error.message}`,
-        error.stack,
+        `General data cleanup job failed after ${executionTime}ms: ${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
         'CleanupScheduler',
       );
 
@@ -89,14 +89,14 @@ export class CleanupScheduler {
    * Manual trigger for testing in development
    */
   async triggerCleanup() {
-    if (this.configService.get('app.environment') === 'production') {
+    if (this.configService.get<string>('app.environment') === 'production') {
       throw new Error(
         'Manual trigger not allowed in production. Use scheduled jobs.',
       );
     }
 
     this.logger.info('Manual trigger: General data cleanup', {
-      environment: this.configService.get('app.environment'),
+      environment: this.configService.get<string>('app.environment'),
     });
 
     await this.cleanupOldData();

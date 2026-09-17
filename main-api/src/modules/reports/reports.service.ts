@@ -2,11 +2,10 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
-  ForbiddenException,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual, LessThan } from 'typeorm';
+import { Repository, MoreThanOrEqual } from 'typeorm';
 import { Report } from '../../database/entities/report.entity';
 import { User } from '../../database/entities/user.entity';
 import { Message } from '../../database/entities/message.entity';
@@ -110,7 +109,7 @@ export class ReportsService {
     const reportsToday = await this.reportRepository.count({
       where: {
         reporterId,
-        createdAt: MoreThanOrEqual(today) as any,
+        createdAt: MoreThanOrEqual(today),
       },
     });
 
@@ -137,9 +136,12 @@ export class ReportsService {
     // Send notification to admins/moderators about new report
     try {
       await this.sendReportNotification(savedReport);
-    } catch (error) {
+    } catch (error: unknown) {
       // Log error but don't fail the report creation
-      this.logger.error('Failed to send report notification', error?.stack || error);
+      this.logger.error(
+        'Failed to send report notification',
+        (error instanceof Error ? error.stack : undefined) || error,
+      );
     }
 
     return savedReport;
@@ -175,7 +177,9 @@ export class ReportsService {
     // Parse evidence JSON for each report
     const reportsWithParsedEvidence = reports.map((report) => ({
       ...report,
-      evidence: report.evidence ? JSON.parse(report.evidence) : null,
+      evidence: report.evidence
+        ? (JSON.parse(report.evidence) as unknown)
+        : null,
     }));
 
     return {
@@ -194,10 +198,7 @@ export class ReportsService {
   /**
    * Get reports submitted by a specific user
    */
-  async getUserReports(
-    userId: string,
-    getReportsDto: GetReportsDto,
-  ): Promise<any> {
+  async getUserReports(userId: string, getReportsDto: GetReportsDto) {
     const { page = 1, limit = 10, status, type } = getReportsDto;
     const skip = (page - 1) * limit;
 
@@ -227,7 +228,9 @@ export class ReportsService {
       status: report.status,
       reason: report.reason,
       description: report.description,
-      evidence: report.evidence ? JSON.parse(report.evidence) : null,
+      evidence: report.evidence
+        ? (JSON.parse(report.evidence) as unknown)
+        : null,
       createdAt: report.createdAt,
       updatedAt: report.updatedAt,
       reviewedAt: report.reviewedAt,
@@ -285,8 +288,11 @@ export class ReportsService {
     // Notify the reporter about the resolution
     try {
       await this.sendResolutionNotification(updatedReport);
-    } catch (error) {
-      this.logger.error('Failed to send resolution notification', error?.stack || error);
+    } catch (error: unknown) {
+      this.logger.error(
+        'Failed to send resolution notification',
+        (error instanceof Error ? error.stack : undefined) || error,
+      );
     }
 
     return updatedReport;
@@ -295,7 +301,9 @@ export class ReportsService {
   /**
    * Get report by ID (admin/moderator only)
    */
-  async getReportById(reportId: string): Promise<Report> {
+  async getReportById(
+    reportId: string,
+  ): Promise<Omit<Report, 'evidence'> & { evidence: unknown }> {
     const report = await this.reportRepository.findOne({
       where: { id: reportId },
       relations: ['reporter', 'reportedUser', 'reviewedBy'],
@@ -308,19 +316,23 @@ export class ReportsService {
     // Parse evidence JSON
     return {
       ...report,
-      evidence: report.evidence ? JSON.parse(report.evidence) : null,
+      evidence: report.evidence
+        ? (JSON.parse(report.evidence) as unknown)
+        : null,
     };
   }
 
   /**
    * Send notification to admins about new report
    */
-  private async sendReportNotification(report: Report): Promise<void> {
+  private sendReportNotification(report: Report): Promise<void> {
     // This would typically send notifications to all admins/moderators
     // For now, we'll just implement the basic structure
     // In a real implementation, you'd query admin users and send notifications
 
-    const message = `New report received: ${report.type} from user ${report.reporterId}`;
+    this.logger.debug(
+      `New report received: ${report.type} from user ${report.reporterId}`,
+    );
 
     // Implementation would depend on your notification system
     // For example:
@@ -330,6 +342,8 @@ export class ReportsService {
     //   body: message,
     //   data: { reportId: report.id }
     // });
+
+    return Promise.resolve();
   }
 
   /**
@@ -349,15 +363,18 @@ export class ReportsService {
           status: report.status,
         },
       });
-    } catch (error) {
-      this.logger.error('Failed to send resolution notification', error?.stack || error);
+    } catch (error: unknown) {
+      this.logger.error(
+        'Failed to send resolution notification',
+        (error instanceof Error ? error.stack : undefined) || error,
+      );
     }
   }
 
   /**
    * Get report statistics (admin only)
    */
-  async getReportStatistics(): Promise<any> {
+  async getReportStatistics() {
     const total = await this.reportRepository.count();
     const pending = await this.reportRepository.count({
       where: { status: ReportStatus.PENDING },
@@ -375,7 +392,7 @@ export class ReportsService {
       .select('report.type', 'type')
       .addSelect('COUNT(*)', 'count')
       .groupBy('report.type')
-      .getRawMany();
+      .getRawMany<{ type: string; count: string }>();
 
     return {
       total,
@@ -387,7 +404,7 @@ export class ReportsService {
           where: { status: ReportStatus.REVIEWED },
         }),
       },
-      byType: reportsByType.reduce((acc, item) => {
+      byType: reportsByType.reduce<Record<string, number>>((acc, item) => {
         acc[item.type] = parseInt(item.count);
         return acc;
       }, {}),

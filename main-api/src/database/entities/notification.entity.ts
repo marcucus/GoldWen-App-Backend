@@ -33,7 +33,7 @@ export class Notification {
   body: string;
 
   @Column({ type: 'json', nullable: true })
-  data: any;
+  data: Record<string, unknown> | null;
 
   @Column({ default: false })
   isRead: boolean;

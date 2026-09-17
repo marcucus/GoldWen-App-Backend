@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
 
 import { StatsService } from '../stats.service';
 import { CustomLoggerService } from '../../../common/logger';
+import { GlobalStatsResponseDto, ActivityStatsResponseDto } from '../dto';
 
 import { User } from '../../../database/entities/user.entity';
 import { Match } from '../../../database/entities/match.entity';
@@ -13,14 +14,6 @@ import { Message } from '../../../database/entities/message.entity';
 import { Subscription } from '../../../database/entities/subscription.entity';
 import { Report } from '../../../database/entities/report.entity';
 import { DailySelection } from '../../../database/entities/daily-selection.entity';
-
-import {
-  UserStatus,
-  MatchStatus,
-  ChatStatus,
-  SubscriptionStatus,
-  ReportStatus,
-} from '../../../common/enums';
 
 describe('StatsService', () => {
   let service: StatsService;
@@ -178,7 +171,7 @@ describe('StatsService', () => {
       await expect(service.getGlobalStats()).rejects.toThrow(error);
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Failed to fetch global statistics',
-        error,
+        error instanceof Error ? error.stack : undefined,
       );
     });
   });
@@ -201,7 +194,7 @@ describe('StatsService', () => {
     it('should return user statistics', async () => {
       jest
         .spyOn(userRepository, 'findOne')
-        .mockResolvedValueOnce(mockUser as any);
+        .mockResolvedValueOnce(mockUser as unknown as User);
       jest.spyOn(matchRepository, 'count').mockResolvedValueOnce(5);
 
       // Mock chat query builder
@@ -214,7 +207,9 @@ describe('StatsService', () => {
       };
       jest
         .spyOn(chatRepository, 'createQueryBuilder')
-        .mockReturnValue(mockChatQueryBuilder as any);
+        .mockReturnValue(
+          mockChatQueryBuilder as unknown as SelectQueryBuilder<Chat>,
+        );
 
       jest.spyOn(messageRepository, 'count').mockResolvedValueOnce(20); // messagesSent
 
@@ -228,7 +223,9 @@ describe('StatsService', () => {
       };
       jest
         .spyOn(messageRepository, 'createQueryBuilder')
-        .mockReturnValue(mockMessageQueryBuilder as any);
+        .mockReturnValue(
+          mockMessageQueryBuilder as unknown as SelectQueryBuilder<Message>,
+        );
 
       jest.spyOn(dailySelectionRepository, 'count').mockResolvedValueOnce(10);
 
@@ -241,11 +238,13 @@ describe('StatsService', () => {
       };
       jest
         .spyOn(dailySelectionRepository, 'createQueryBuilder')
-        .mockReturnValue(mockDailySelectionQueryBuilder as any);
+        .mockReturnValue(
+          mockDailySelectionQueryBuilder as unknown as SelectQueryBuilder<DailySelection>,
+        );
 
       jest.spyOn(subscriptionRepository, 'findOne').mockResolvedValueOnce({
         plan: 'premium',
-      } as any);
+      } as unknown as Subscription);
 
       const result = await service.getUserStats(userId);
 
@@ -275,7 +274,7 @@ describe('StatsService', () => {
       );
       expect(mockLogger.error).toHaveBeenCalledWith(
         `Failed to fetch user statistics for user: ${userId}`,
-        expect.any(NotFoundException),
+        expect.stringContaining('User not found'),
       );
     });
   });
@@ -300,16 +299,24 @@ describe('StatsService', () => {
 
       jest
         .spyOn(userRepository, 'createQueryBuilder')
-        .mockReturnValue(mockQueryBuilder as any);
+        .mockReturnValue(
+          mockQueryBuilder as unknown as SelectQueryBuilder<User>,
+        );
       jest
         .spyOn(matchRepository, 'createQueryBuilder')
-        .mockReturnValue(mockQueryBuilder as any);
+        .mockReturnValue(
+          mockQueryBuilder as unknown as SelectQueryBuilder<Match>,
+        );
       jest
         .spyOn(messageRepository, 'createQueryBuilder')
-        .mockReturnValue(mockQueryBuilder as any);
+        .mockReturnValue(
+          mockQueryBuilder as unknown as SelectQueryBuilder<Message>,
+        );
       jest
         .spyOn(subscriptionRepository, 'createQueryBuilder')
-        .mockReturnValue(mockQueryBuilder as any);
+        .mockReturnValue(
+          mockQueryBuilder as unknown as SelectQueryBuilder<Subscription>,
+        );
 
       const result = await service.getActivityStats({});
 
@@ -341,7 +348,9 @@ describe('StatsService', () => {
 
       jest
         .spyOn(service, 'getGlobalStats')
-        .mockResolvedValueOnce(mockGlobalStats as any);
+        .mockResolvedValueOnce(
+          mockGlobalStats as unknown as GlobalStatsResponseDto,
+        );
 
       const result = await service.exportStats('global');
 
@@ -360,7 +369,9 @@ describe('StatsService', () => {
 
       jest
         .spyOn(service, 'getActivityStats')
-        .mockResolvedValueOnce(mockActivityStats as any);
+        .mockResolvedValueOnce(
+          mockActivityStats as unknown as ActivityStatsResponseDto,
+        );
 
       const result = await service.exportStats('activity', {});
 

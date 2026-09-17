@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 
 import { AdminService } from '../admin.service';
 import { Admin } from '../../../database/entities/admin.entity';
@@ -246,7 +246,9 @@ describe('AdminService - Prompt Management', () => {
       jest
         .spyOn(promptRepository, 'findOne')
         .mockResolvedValue(existingPrompt as any);
-      jest.spyOn(promptRepository, 'remove').mockResolvedValue(undefined);
+      jest
+        .spyOn(promptRepository, 'remove')
+        .mockResolvedValue(undefined as any);
 
       await service.deletePrompt(promptId);
 

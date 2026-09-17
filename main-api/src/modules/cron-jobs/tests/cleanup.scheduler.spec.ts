@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { Repository } from 'typeorm';
 
 import { CleanupScheduler } from '../schedulers/cleanup.scheduler';
 import { Notification } from '../../../database/entities/notification.entity';
@@ -9,9 +8,6 @@ import { CustomLoggerService } from '../../../common/logger';
 
 describe('CleanupScheduler', () => {
   let scheduler: CleanupScheduler;
-  let notificationRepository: Repository<Notification>;
-  let configService: ConfigService;
-  let logger: CustomLoggerService;
 
   const mockNotificationRepository = {
     createQueryBuilder: jest.fn(() => ({
@@ -22,7 +18,7 @@ describe('CleanupScheduler', () => {
   };
 
   const mockConfigService = {
-    get: jest.fn((key: string) => {
+    get: jest.fn((key: string): string | undefined => {
       if (key === 'app.environment') return 'development';
       return undefined;
     }),
@@ -55,11 +51,6 @@ describe('CleanupScheduler', () => {
     }).compile();
 
     scheduler = module.get<CleanupScheduler>(CleanupScheduler);
-    notificationRepository = module.get<Repository<Notification>>(
-      getRepositoryToken(Notification),
-    );
-    configService = module.get<ConfigService>(ConfigService);
-    logger = module.get<CustomLoggerService>(CustomLoggerService);
   });
 
   afterEach(() => {

@@ -72,7 +72,7 @@ export class AnalyticsService {
     try {
       this.mixpanel = Mixpanel.init(token);
       this.logger.log('Mixpanel analytics service initialized');
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.stack : String(error);
       this.logger.error('Failed to initialize Mixpanel', errorMessage);
       this.enabled = false;
@@ -93,7 +93,7 @@ export class AnalyticsService {
 
       // Check if analytics consent is explicitly given
       return consent.analytics === true;
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.stack : String(error);
       this.logger.error(
         `Failed to check analytics consent for user ${userId}`,
@@ -126,7 +126,7 @@ export class AnalyticsService {
       const properties: Record<string, unknown> = {
         ...event.properties,
         timestamp: event.timestamp || new Date(),
-        environment: this.configService.get('app.environment'),
+        environment: this.configService.get<string>('app.environment'),
       };
 
       if (event.userId) {
@@ -141,7 +141,7 @@ export class AnalyticsService {
       this.logger.debug(`Event tracked: ${event.name}`, {
         userId: event.userId,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.stack : String(error);
       this.logger.error(`Failed to track event: ${event.name}`, errorMessage);
     }
@@ -172,7 +172,7 @@ export class AnalyticsService {
       });
 
       this.logger.debug(`User identified: ${userId}`);
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.stack : String(error);
       this.logger.error(`Failed to identify user: ${userId}`, errorMessage);
     }
@@ -262,39 +262,43 @@ export class AnalyticsService {
   /**
    * Opt user out of analytics (GDPR)
    */
-  async optOut(userId: string): Promise<void> {
+  optOut(userId: string): Promise<void> {
     if (!this.enabled || !this.mixpanel) {
-      return;
+      return Promise.resolve();
     }
 
     try {
       // Mixpanel opt-out
       this.mixpanel.people.delete_user(userId);
       this.logger.log(`User ${userId} opted out of analytics`);
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.stack : String(error);
       this.logger.error(`Failed to opt out user ${userId}`, errorMessage);
     }
+
+    return Promise.resolve();
   }
 
   /**
    * Delete all analytics data for a user (GDPR - Right to be Forgotten)
    */
-  async deleteUserData(userId: string): Promise<void> {
+  deleteUserData(userId: string): Promise<void> {
     if (!this.enabled || !this.mixpanel) {
-      return;
+      return Promise.resolve();
     }
 
     try {
       // Delete user profile and all associated data in Mixpanel
       this.mixpanel.people.delete_user(userId);
       this.logger.log(`Analytics data deleted for user ${userId}`);
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.stack : String(error);
       this.logger.error(
         `Failed to delete analytics data for user ${userId}`,
         errorMessage,
       );
     }
+
+    return Promise.resolve();
   }
 }

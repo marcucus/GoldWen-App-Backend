@@ -1,12 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { UsersService } from './users.service';
+import { User } from '../../database/entities/user.entity';
+import { Profile } from '../../database/entities/profile.entity';
+import { Match } from '../../database/entities/match.entity';
+import { Message } from '../../database/entities/message.entity';
+import { Subscription } from '../../database/entities/subscription.entity';
+import { DailySelection } from '../../database/entities/daily-selection.entity';
+import { PushToken } from '../../database/entities/push-token.entity';
 import { UserConsent } from '../../database/entities/user-consent.entity';
+import { CustomLoggerService } from '../../common/logger';
 import { ConsentDto } from './dto/consent.dto';
 
 describe('UsersService GDPR Features', () => {
   let service: UsersService;
-  let userConsentRepository: any;
 
   const mockRepository = {
     findOne: jest.fn(),
@@ -23,42 +30,51 @@ describe('UsersService GDPR Features', () => {
       providers: [
         UsersService,
         {
-          provide: getRepositoryToken('UserRepository'),
+          provide: getRepositoryToken(User),
           useValue: mockRepository,
         },
         {
-          provide: getRepositoryToken('ProfileRepository'),
+          provide: getRepositoryToken(Profile),
           useValue: mockRepository,
         },
         {
-          provide: getRepositoryToken('MatchRepository'),
+          provide: getRepositoryToken(Match),
           useValue: mockRepository,
         },
         {
-          provide: getRepositoryToken('MessageRepository'),
+          provide: getRepositoryToken(Message),
           useValue: mockRepository,
         },
         {
-          provide: getRepositoryToken('SubscriptionRepository'),
+          provide: getRepositoryToken(Subscription),
           useValue: mockRepository,
         },
         {
-          provide: getRepositoryToken('DailySelectionRepository'),
+          provide: getRepositoryToken(DailySelection),
           useValue: mockRepository,
         },
         {
-          provide: getRepositoryToken('PushTokenRepository'),
+          provide: getRepositoryToken(PushToken),
           useValue: mockRepository,
         },
         {
           provide: getRepositoryToken(UserConsent),
           useValue: mockRepository,
         },
+        {
+          provide: CustomLoggerService,
+          useValue: {
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            debug: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<UsersService>(UsersService);
-    userConsentRepository = module.get(getRepositoryToken(UserConsent));
+    module.get(getRepositoryToken(UserConsent));
   });
 
   describe('recordConsent', () => {

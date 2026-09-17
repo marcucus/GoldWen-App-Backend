@@ -126,10 +126,10 @@ export class AiModerationService {
         shouldBlock,
         reason,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Error moderating text content',
-        error.stack,
+        error instanceof Error ? error.stack : undefined,
         'AiModerationService',
       );
       // On error, return safe result (don't block)
@@ -177,7 +177,7 @@ export class AiModerationService {
    */
   private getBlockReason(categories: Record<string, boolean>): string {
     const flaggedCategories = Object.entries(categories)
-      .filter(([_, flagged]) => flagged)
+      .filter(([, flagged]) => flagged)
       .map(([category]) => this.formatCategoryName(category));
 
     if (flaggedCategories.length === 0) {

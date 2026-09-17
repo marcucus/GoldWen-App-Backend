@@ -272,7 +272,7 @@ describe('GdprController', () => {
       expect(gdprService.getCurrentConsent).toHaveBeenCalledWith(mockUser.id);
       expect(result.success).toBe(true);
       expect(result.data).toBeTruthy();
-      expect(result.data.id).toBe(mockConsent.id);
+      expect(result.data!.id).toBe(mockConsent.id);
     });
 
     it('should return null when no consent exists', async () => {

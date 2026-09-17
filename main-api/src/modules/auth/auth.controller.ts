@@ -1,3 +1,4 @@
+import type { SocialLoginDto } from './dto/auth.dto';
 import {
   Controller,
   Post,
@@ -76,7 +77,11 @@ export class AuthController {
   async login(@Body() loginDto: LoginWithTwoFactorDto) {
     const result = await this.authService.login(loginDto);
     if (result.requiresTwoFactor) {
-      return { success: true, requiresTwoFactor: true, message: '2FA token required' };
+      return {
+        success: true,
+        requiresTwoFactor: true,
+        message: '2FA token required',
+      };
     }
     return {
       success: true,
@@ -128,7 +133,7 @@ export class AuthController {
         audience: process.env.GOOGLE_CLIENT_ID,
       });
       payload = ticket.getPayload();
-    } catch (e) {
+    } catch {
       throw new UnauthorizedException('Invalid Google token');
     }
 
@@ -169,7 +174,9 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleAuthCallback(@Req() req: Request, @Res() res: Response) {
-    const result = await this.authService.socialLogin(req.user as any);
+    const result = await this.authService.socialLogin(
+      req.user as SocialLoginDto,
+    );
 
     // Redirect to frontend with token
     const redirectUrl = `${process.env.FRONTEND_URL}/auth/callback?token=${result.accessToken}`;
@@ -205,14 +212,23 @@ export class AuthController {
         audience: process.env.APPLE_CLIENT_ID,
         ignoreExpiration: false,
       });
-    } catch (e) {
-      throw new UnauthorizedException('Invalid Apple token or verification failed');
+    } catch {
+      throw new UnauthorizedException(
+        'Invalid Apple token or verification failed',
+      );
+    }
+
+    const appleEmail = appleIdTokenClaims.email || user?.email;
+    if (!appleEmail) {
+      throw new UnauthorizedException(
+        'Apple did not provide an email for this sign-in; the client must resend the cached email on repeat logins',
+      );
     }
 
     const appleUserData = {
       socialId: appleIdTokenClaims.sub,
       provider: 'apple',
-      email: appleIdTokenClaims.email || user?.email,
+      email: appleEmail,
       firstName: user?.name?.firstName || 'Utilisateur',
       lastName: user?.name?.lastName || 'Apple',
     };
@@ -239,7 +255,9 @@ export class AuthController {
   @Get('apple/callback')
   @UseGuards(AuthGuard('apple'))
   async appleAuthCallback(@Req() req: Request, @Res() res: Response) {
-    const result = await this.authService.socialLogin(req.user as any);
+    const result = await this.authService.socialLogin(
+      req.user as SocialLoginDto,
+    );
 
     // Redirect to frontend with token
     const redirectUrl = `${process.env.FRONTEND_URL}/auth/callback?token=${result.accessToken}`;
@@ -275,7 +293,7 @@ export class AuthController {
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
     await this.authService.changePassword(
-      (req.user as any).id,
+      (req.user as { id: string }).id,
       changePasswordDto,
     );
     return new SuccessResponseDto('Password changed successfully');
@@ -295,9 +313,9 @@ export class AuthController {
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
   @Get('me')
-  async getProfile(@Req() req: Request) {
+  getProfile(@Req() req: Request) {
     const user = req.user as User;
-    return {
+    return Promise.resolve({
       success: true,
       data: {
         id: user.id,
@@ -307,11 +325,14 @@ export class AuthController {
         isEmailVerified: user.isEmailVerified,
         profile: user.profile,
       },
-    };
+    });
   }
 
   @ApiOperation({ summary: 'Refresh access token using refresh token' })
-  @ApiResponse({ status: 200, description: 'New access + refresh token pair issued' })
+  @ApiResponse({
+    status: 200,
+    description: 'New access + refresh token pair issued',
+  })
   @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
   @Post('refresh')
   async refresh(@Body() dto: RefreshTokenDto) {
@@ -331,7 +352,7 @@ export class AuthController {
   @UseGuards(AuthGuard('jwt'))
   @Post('logout')
   async logout(@Req() req: Request) {
-    const userId = (req.user as any).id;
+    const userId = (req.user as { id: string }).id;
     const token = req.headers.authorization?.replace('Bearer ', '');
 
     await this.authService.logout(userId, token);
@@ -345,13 +366,17 @@ export class AuthController {
   // ─── Two-Factor Authentication ───────────────────────────────────────────────
 
   @ApiOperation({ summary: 'Generate 2FA secret and QR code' })
-  @ApiResponse({ status: 200, description: 'QR code and backup secret returned' })
+  @ApiResponse({
+    status: 200,
+    description: 'QR code and backup secret returned',
+  })
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
   @Post('2fa/generate')
   async generate2fa(@Req() req: Request) {
-    const userId = (req.user as any).id;
-    const { qrCodeUrl, secret } = await this.twoFactorService.generateSecret(userId);
+    const userId = (req.user as { id: string }).id;
+    const { qrCodeUrl, secret } =
+      await this.twoFactorService.generateSecret(userId);
     return { success: true, data: { qrCodeUrl, secret } };
   }
 
@@ -362,7 +387,10 @@ export class AuthController {
   @UseGuards(AuthGuard('jwt'))
   @Post('2fa/enable')
   async enable2fa(@Req() req: Request, @Body() dto: TwoFactorTokenDto) {
-    await this.twoFactorService.enableTwoFactor((req.user as any).id, dto.token);
+    await this.twoFactorService.enableTwoFactor(
+      (req.user as { id: string }).id,
+      dto.token,
+    );
     return new SuccessResponseDto('2FA enabled successfully');
   }
 
@@ -373,7 +401,10 @@ export class AuthController {
   @UseGuards(AuthGuard('jwt'))
   @Post('2fa/disable')
   async disable2fa(@Req() req: Request, @Body() dto: TwoFactorTokenDto) {
-    await this.twoFactorService.disableTwoFactor((req.user as any).id, dto.token);
+    await this.twoFactorService.disableTwoFactor(
+      (req.user as { id: string }).id,
+      dto.token,
+    );
     return new SuccessResponseDto('2FA disabled successfully');
   }
 }

@@ -17,7 +17,7 @@ jest.mock('firebase-admin', () => ({
 
 describe('FirebaseService', () => {
   let service: FirebaseService;
-  let configService: ConfigService;
+
   let loggerService: CustomLoggerService;
 
   const mockConfigService = {
@@ -48,7 +48,7 @@ describe('FirebaseService', () => {
     }).compile();
 
     service = module.get<FirebaseService>(FirebaseService);
-    configService = module.get<ConfigService>(ConfigService);
+
     loggerService = module.get<CustomLoggerService>(CustomLoggerService);
   });
 
@@ -61,19 +61,21 @@ describe('FirebaseService', () => {
   });
 
   describe('initialization', () => {
-    it('should warn if Firebase configuration is missing', async () => {
+    it('should warn if Firebase configuration is missing', () => {
       mockConfigService.get.mockReturnValue(undefined);
 
-      await service.onModuleInit();
+      service.onModuleInit();
 
       expect(loggerService.warn).toHaveBeenCalledWith(
         'Firebase configuration not found, Firebase notifications will be disabled',
         'FirebaseService',
       );
       expect(service.isInitialized()).toBe(false);
+
+      return Promise.resolve();
     });
 
-    it('should initialize with environment credentials', async () => {
+    it('should initialize with environment credentials', () => {
       const mockFirebaseConfig = {
         projectId: 'test-project',
         clientEmail: 'test@test.com',
@@ -82,34 +84,38 @@ describe('FirebaseService', () => {
 
       mockConfigService.get.mockReturnValue(mockFirebaseConfig);
 
-      await service.onModuleInit();
+      service.onModuleInit();
 
       expect(admin.credential.cert).toHaveBeenCalledWith({
         projectId: mockFirebaseConfig.projectId,
         clientEmail: mockFirebaseConfig.clientEmail,
         privateKey: mockFirebaseConfig.privateKey,
       });
+
+      return Promise.resolve();
     });
 
-    it('should warn if credentials are incomplete', async () => {
+    it('should warn if credentials are incomplete', () => {
       mockConfigService.get.mockReturnValue({
         projectId: 'test-project',
         // Missing clientEmail and privateKey
       });
 
-      await service.onModuleInit();
+      service.onModuleInit();
 
       expect(loggerService.warn).toHaveBeenCalledWith(
         'Firebase credentials not configured, Firebase notifications will be disabled',
         'FirebaseService',
       );
+
+      return Promise.resolve();
     });
   });
 
   describe('sendToDevice', () => {
     it('should return error if Firebase is not initialized', async () => {
       mockConfigService.get.mockReturnValue(undefined);
-      await service.onModuleInit();
+      service.onModuleInit();
 
       const result = await service.sendToDevice('test-token', {
         title: 'Test',
@@ -123,7 +129,7 @@ describe('FirebaseService', () => {
 
     it('should return error if device token is missing when Firebase is not initialized', async () => {
       mockConfigService.get.mockReturnValue(undefined);
-      await service.onModuleInit();
+      service.onModuleInit();
 
       const result = await service.sendToDevice('', {
         title: 'Test',
@@ -139,7 +145,7 @@ describe('FirebaseService', () => {
   describe('sendToMultipleDevices', () => {
     it('should return errors for all tokens if Firebase is not initialized', async () => {
       mockConfigService.get.mockReturnValue(undefined);
-      await service.onModuleInit();
+      service.onModuleInit();
 
       const tokens = ['token1', 'token2', 'token3'];
       const results = await service.sendToMultipleDevices(tokens, {
@@ -180,7 +186,7 @@ describe('FirebaseService', () => {
   describe('sendToTopic', () => {
     it('should return error if Firebase is not initialized', async () => {
       mockConfigService.get.mockReturnValue(undefined);
-      await service.onModuleInit();
+      service.onModuleInit();
 
       const result = await service.sendToTopic('test-topic', {
         title: 'Test',

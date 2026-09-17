@@ -183,13 +183,17 @@ export class GdprService {
       });
 
       this.logger.log(`Account deletion ${requestId} completed successfully`);
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         `Error processing deletion request ${requestId}:`,
         error,
       );
       const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+        error instanceof Error
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : 'Unknown error';
       await this.accountDeletionRepository.update(requestId, {
         status: DeletionStatus.FAILED,
         errorMessage,

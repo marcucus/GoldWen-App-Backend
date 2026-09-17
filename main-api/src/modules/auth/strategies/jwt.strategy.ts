@@ -24,7 +24,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private configService: ConfigService,
     @InjectRedis() private redis: Redis,
   ) {
-    const secret = configService.get('jwt.secret');
+    const secret = configService.get<string>('jwt.secret');
     if (!secret) {
       throw new Error('JWT secret not configured');
     }
@@ -42,7 +42,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     // Extract token from request
     const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
-    
+
     // Check if token is blacklisted
     if (token) {
       const isBlacklisted = await this.redis.get(`blacklist:token:${token}`);

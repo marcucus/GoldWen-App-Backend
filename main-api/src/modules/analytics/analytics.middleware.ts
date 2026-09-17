@@ -17,8 +17,8 @@ export class AnalyticsMiddleware implements NestMiddleware {
     const { method, path, ip } = req;
 
     // Extract user ID from request if authenticated
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-    const userId = (req as any).user?.id || (req as any).user?.userId;
+    const user = req.user as { id?: string; userId?: string } | undefined;
+    const userId = user?.id || user?.userId;
 
     // Track API request
     res.on('finish', () => {

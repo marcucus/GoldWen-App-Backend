@@ -2,14 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { ConsentGuard, SKIP_CONSENT_CHECK } from './consent.guard';
+import { ConsentGuard } from './consent.guard';
 import { UserConsent } from '../../../database/entities/user-consent.entity';
 
 describe('ConsentGuard', () => {
   let guard: ConsentGuard;
-  let repository: Repository<UserConsent>;
-  let reflector: Reflector;
 
   const mockUserConsent: UserConsent = {
     id: '123e4567-e89b-12d3-a456-426614174000',
@@ -20,10 +17,10 @@ describe('ConsentGuard', () => {
     consentedAt: new Date(),
     ipAddress: '127.0.0.1',
     isActive: true,
-    revokedAt: null,
+    revokedAt: undefined,
     createdAt: new Date(),
     updatedAt: new Date(),
-    user: null,
+    user: undefined as unknown as UserConsent['user'],
   };
 
   const mockRepository = {
@@ -50,10 +47,6 @@ describe('ConsentGuard', () => {
     }).compile();
 
     guard = module.get<ConsentGuard>(ConsentGuard);
-    repository = module.get<Repository<UserConsent>>(
-      getRepositoryToken(UserConsent),
-    );
-    reflector = module.get<Reflector>(Reflector);
 
     jest.clearAllMocks();
   });
@@ -139,7 +132,7 @@ describe('ConsentGuard', () => {
       try {
         await guard.canActivate(context);
         fail('Should have thrown ForbiddenException');
-      } catch (error) {
+      } catch (error: any) {
         expect(error).toBeInstanceOf(ForbiddenException);
         expect(error.getResponse()).toMatchObject({
           message: expect.stringContaining('consent required'),

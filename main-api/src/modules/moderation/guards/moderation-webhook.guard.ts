@@ -1,3 +1,4 @@
+import type { Request as ExpressRequest } from 'express';
 import {
   Injectable,
   CanActivate,
@@ -21,7 +22,7 @@ export class ModerationWebhookGuard implements CanActivate {
   constructor(private configService: ConfigService) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<ExpressRequest>();
     const expected = this.configService.get<string>(
       'MODERATION_WEBHOOK_SECRET',
     );
@@ -29,9 +30,7 @@ export class ModerationWebhookGuard implements CanActivate {
     if (!expected) {
       // Fail closed: an unconfigured secret must never be treated as "no
       // secret required".
-      throw new UnauthorizedException(
-        'Moderation webhook is not configured',
-      );
+      throw new UnauthorizedException('Moderation webhook is not configured');
     }
 
     const provided = request.headers['x-moderation-webhook-secret'];

@@ -1,14 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { PresenceService } from '../services/presence.service';
 import { User } from '../../../database/entities/user.entity';
 import { CustomLoggerService } from '../../../common/logger';
 
 describe('PresenceService', () => {
   let service: PresenceService;
-  let userRepository: Repository<User>;
-  let logger: CustomLoggerService;
 
   const mockUserRepository = {
     update: jest.fn(),
@@ -38,8 +35,6 @@ describe('PresenceService', () => {
     }).compile();
 
     service = module.get<PresenceService>(PresenceService);
-    userRepository = module.get<Repository<User>>(getRepositoryToken(User));
-    logger = module.get<CustomLoggerService>(CustomLoggerService);
 
     jest.clearAllMocks();
   });

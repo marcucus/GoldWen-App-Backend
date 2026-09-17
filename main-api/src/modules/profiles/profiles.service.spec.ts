@@ -11,6 +11,7 @@ import { Prompt } from '../../database/entities/prompt.entity';
 import { PromptAnswer } from '../../database/entities/prompt-answer.entity';
 import { UserStatus } from '../../common/enums';
 import { ModerationService } from '../moderation/services/moderation.service';
+import { StorageService } from '../../common/services/storage.service';
 
 describe('ProfilesService', () => {
   let service: ProfilesService;
@@ -105,6 +106,13 @@ describe('ProfilesService', () => {
         {
           provide: ModerationService,
           useValue: mockModerationService,
+        },
+        {
+          provide: StorageService,
+          useValue: {
+            uploadFile: jest.fn(),
+            deleteFile: jest.fn(),
+          },
         },
       ],
     }).compile();

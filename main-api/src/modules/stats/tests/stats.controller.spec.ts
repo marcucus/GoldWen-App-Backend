@@ -8,6 +8,7 @@ import {
   UserStatsResponseDto,
   ActivityStatsResponseDto,
   ExportFormat,
+  ActivityPeriod,
 } from '../dto';
 
 describe('StatsController', () => {
@@ -116,7 +117,7 @@ describe('StatsController', () => {
       const query = {
         startDate: '2024-01-01',
         endDate: '2024-01-31',
-        period: 'daily' as const,
+        period: ActivityPeriod.DAILY,
       };
 
       const mockStats: ActivityStatsResponseDto = {
@@ -174,7 +175,7 @@ describe('StatsController', () => {
       };
 
       const mockExportResult = {
-        data: { totalUsers: 1000 },
+        data: { totalUsers: 1000 } as unknown as GlobalStatsResponseDto,
         format: ExportFormat.JSON,
         filename: 'global-stats-2024-01-15.json',
       };
@@ -212,13 +213,13 @@ describe('StatsController', () => {
       const query = {
         startDate: '2024-01-01',
         endDate: '2024-01-31',
-        period: 'daily' as const,
+        period: ActivityPeriod.DAILY,
         format: ExportFormat.CSV,
         includeDetails: true,
       };
 
       const mockExportResult = {
-        data: { userRegistrations: [] },
+        data: { userRegistrations: [] } as unknown as ActivityStatsResponseDto,
         format: ExportFormat.CSV,
         filename: 'activity-stats-2024-01-15.csv',
       };

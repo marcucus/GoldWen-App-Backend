@@ -1,3 +1,4 @@
+import type { FindOptionsWhere } from 'typeorm';
 import {
   Injectable,
   NotFoundException,
@@ -84,7 +85,7 @@ export class SubscriptionsService {
       currency: createSubscriptionDto.currency,
       purchaseToken: createSubscriptionDto.purchaseToken,
       platform: createSubscriptionDto.platform,
-      metadata: createSubscriptionDto.metadata,
+      metadata: createSubscriptionDto.metadata as Record<string, unknown>,
     });
 
     return this.subscriptionRepository.save(subscription);
@@ -139,7 +140,7 @@ export class SubscriptionsService {
     subscriptionId: string,
     userId?: string,
   ): Promise<Subscription> {
-    const where: any = { id: subscriptionId };
+    const where: FindOptionsWhere<Subscription> = { id: subscriptionId };
     if (userId) {
       where.userId = userId;
     }

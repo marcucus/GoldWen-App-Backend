@@ -20,13 +20,17 @@ describe('BruteForceGuard', () => {
   beforeEach(() => {
     mockConfigService = {
       get: jest.fn((key: string) => {
-        const config = {
+        const config: Record<string, number> = {
           'throttler.auth.ttl': 900000, // 15 minutes
           'throttler.auth.limit': 5,
         };
         return config[key];
       }),
     } as any;
+
+    const mockThrottlerOptions: any = {
+      throttlers: [{ name: 'default', ttl: 60000, limit: 10 }],
+    };
 
     mockLogger = {
       logSecurityEvent: jest.fn(),
@@ -80,11 +84,12 @@ describe('BruteForceGuard', () => {
 
     // Create guard instance directly with mocked dependencies
     guard = new BruteForceGuard(
+      mockThrottlerOptions,
+      mockStorage,
+      mockReflector,
       mockConfigService,
       mockLogger,
       mockAlerting,
-      mockStorage,
-      mockReflector,
     );
   });
 
@@ -194,11 +199,12 @@ describe('BruteForceGuard', () => {
       } as any;
 
       const guardInstance = new BruteForceGuard(
+        { throttlers: [{ name: 'default', ttl: 60000, limit: 10 }] } as any,
+        mockStorage,
+        mockReflector,
         customConfigService,
         mockLogger,
         mockAlerting,
-        mockStorage,
-        mockReflector,
       );
 
       expect(guardInstance).toBeDefined();
@@ -209,7 +215,7 @@ describe('BruteForceGuard', () => {
     it('should integrate with security logging and alerting', async () => {
       try {
         await guard['throwThrottlingException'](mockContext);
-      } catch (error) {
+      } catch {
         // Expected to throw
       }
 

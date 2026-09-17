@@ -129,10 +129,10 @@ export class ImageModerationService {
         reason,
         moderationModelVersion: response.ModerationModelVersion,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         `Error moderating image: ${imagePath}`,
-        error.stack,
+        error instanceof Error ? error.stack : undefined,
         'ImageModerationService',
       );
       // SECURITY (Phase 0.7): an error here means we don't know whether the
@@ -160,7 +160,7 @@ export class ImageModerationService {
 
     try {
       // Check if it's an S3 URL
-      const s3Match = imageUrl.match(/s3:\/\/([^\/]+)\/(.+)/);
+      const s3Match = imageUrl.match(/s3:\/\/([^/]+)\/(.+)/);
 
       let params: DetectModerationLabelsCommandInput;
 
@@ -221,10 +221,10 @@ export class ImageModerationService {
         reason,
         moderationModelVersion: awsResponse.ModerationModelVersion,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         `Error moderating image from URL: ${imageUrl}`,
-        error.stack,
+        error instanceof Error ? error.stack : undefined,
         'ImageModerationService',
       );
       // SECURITY (Phase 0.7): same as above — an inspection failure is not

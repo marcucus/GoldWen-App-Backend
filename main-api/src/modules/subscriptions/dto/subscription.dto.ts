@@ -54,7 +54,7 @@ export class CreateSubscriptionDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsObject()
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 export class UpdateSubscriptionDto {
@@ -71,7 +71,7 @@ export class UpdateSubscriptionDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsObject()
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 // RevenueCat webhook DTOs

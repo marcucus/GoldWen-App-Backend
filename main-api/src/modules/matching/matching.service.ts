@@ -1,3 +1,4 @@
+import type { FindOptionsWhere } from 'typeorm';
 import {
   Injectable,
   NotFoundException,
@@ -30,7 +31,6 @@ import { CustomLoggerService } from '../../common/logger';
 
 import {
   MatchStatus,
-  SubscriptionTier,
   SubscriptionStatus,
   ChatStatus,
 } from '../../common/enums';
@@ -61,7 +61,7 @@ export class MatchingService {
     private notificationsService: NotificationsService,
     private matchingIntegrationService: MatchingIntegrationService,
     private logger: CustomLoggerService,
-  ) { }
+  ) {}
 
   async generateDailySelection(userId: string): Promise<DailySelection> {
     const user = await this.userRepository.findOne({
@@ -164,7 +164,7 @@ export class MatchingService {
           userId,
           userProfile,
           availableProfiles,
-          selectionSize
+          selectionSize,
         });
 
       const selectedProfileIds = selectionResult.selectedProfiles.map(
@@ -180,10 +180,10 @@ export class MatchingService {
       });
 
       return this.dailySelectionRepository.save(dailySelection);
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Failed to generate daily selection using external service, falling back to local calculation',
-        error.message,
+        error instanceof Error ? error.message : String(error),
         'MatchingService',
       );
 
@@ -233,6 +233,7 @@ export class MatchingService {
       refreshTime: string;
     };
   }> {
+    void preload; // Reserved preloading option; selection behavior is unchanged.
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -417,10 +418,10 @@ export class MatchingService {
               targetUser.profile?.firstName || 'Someone',
             );
           }
-        } catch (error) {
+        } catch (error: unknown) {
           this.logger.error(
             'Failed to send match notifications',
-            error.stack,
+            error instanceof Error ? error.stack : undefined,
             'MatchingService',
           );
           // Don't throw error as match creation succeeded
@@ -476,7 +477,10 @@ export class MatchingService {
   }
 
   async getUserMatches(userId: string, status?: MatchStatus): Promise<Match[]> {
-    const whereCondition: any = [{ user1Id: userId }, { user2Id: userId }];
+    const whereCondition: FindOptionsWhere<Match>[] = [
+      { user1Id: userId },
+      { user2Id: userId },
+    ];
 
     if (status) {
       whereCondition[0].status = status;
@@ -555,7 +559,7 @@ export class MatchingService {
     return this.calculateCompatibilityScore(user, targetUser);
   }
 
-  private async calculateCompatibilityScore(
+  private calculateCompatibilityScore(
     user1: User,
     user2: User,
   ): Promise<number> {
@@ -566,7 +570,7 @@ export class MatchingService {
     const user2Answers = user2.personalityAnswers || [];
 
     if (user1Answers.length === 0 || user2Answers.length === 0) {
-      return 0;
+      return Promise.resolve(0);
     }
 
     let totalScore = 0;
@@ -615,7 +619,7 @@ export class MatchingService {
           // Basic text similarity (can be enhanced)
           const similarity =
             answer1.textAnswer.toLowerCase() ===
-              answer2.textAnswer.toLowerCase()
+            answer2.textAnswer.toLowerCase()
               ? 100
               : 50;
           totalScore += similarity;
@@ -623,13 +627,15 @@ export class MatchingService {
       }
     }
 
-    return commonQuestions > 0 ? Math.round(totalScore / commonQuestions) : 0;
+    return Promise.resolve(
+      commonQuestions > 0 ? Math.round(totalScore / commonQuestions) : 0,
+    );
   }
 
-  private async getSelectionSize(userId: string): Promise<number> {
+  private getSelectionSize(): Promise<number> {
     // Default size is 5 profiles for free users
     // Premium users get 5 profiles but can choose from more
-    return 5;
+    return Promise.resolve(5);
   }
 
   private async getMaxChoicesPerDay(userId: string): Promise<number> {
@@ -793,7 +799,7 @@ export class MatchingService {
     const skip = (page - 1) * limit;
 
     // Build where clause for date range
-    const whereClause: any = { userId };
+    const whereClause: FindOptionsWhere<DailySelection> = { userId };
 
     if (options.startDate && options.endDate) {
       const startDate = new Date(options.startDate);
@@ -851,11 +857,11 @@ export class MatchingService {
             const match =
               userChoice.choiceType === ChoiceType.LIKE
                 ? await this.matchRepository.findOne({
-                  where: [
-                    { user1Id: userId, user2Id: userChoice.targetUserId },
-                    { user1Id: userChoice.targetUserId, user2Id: userId },
-                  ],
-                })
+                    where: [
+                      { user1Id: userId, user2Id: userChoice.targetUserId },
+                      { user1Id: userChoice.targetUserId, user2Id: userId },
+                    ],
+                  })
                 : null;
 
             return {

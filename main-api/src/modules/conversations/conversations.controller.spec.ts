@@ -1,9 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import type { Request } from 'express';
 import { BadRequestException } from '@nestjs/common';
 import { ConversationsController } from './conversations.controller';
 import { ChatService } from '../chat/chat.service';
 import { MatchingService } from '../matching/matching.service';
 import { MatchStatus, ChatStatus } from '../../common/enums';
+import { Match } from '../../database/entities/match.entity';
+import { Chat } from '../../database/entities/chat.entity';
 
 describe('ConversationsController', () => {
   let controller: ConversationsController;
@@ -64,11 +67,11 @@ describe('ConversationsController', () => {
         timeRemaining: 86400000, // 24 hours
       };
 
-      matchingService.getMutualMatch.mockResolvedValue(mockMatch as any);
-      chatService.createChatForMatch.mockResolvedValue(mockChat as any);
+      matchingService.getMutualMatch.mockResolvedValue(mockMatch as Match);
+      chatService.createChatForMatch.mockResolvedValue(mockChat as Chat);
 
       const result = await controller.createConversation(
-        { user: mockUser },
+        { user: mockUser } as unknown as Request,
         { matchId: 'match1' },
       );
 
@@ -94,7 +97,7 @@ describe('ConversationsController', () => {
 
       await expect(
         controller.createConversation(
-          { user: mockUser },
+          { user: mockUser } as unknown as Request,
           { matchId: 'match1' },
         ),
       ).rejects.toThrow(BadRequestException);

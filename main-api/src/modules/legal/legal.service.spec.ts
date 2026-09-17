@@ -1,12 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { LegalService } from './legal.service';
 import { PrivacyPolicy } from '../../database/entities/privacy-policy.entity';
 
 describe('LegalService', () => {
   let service: LegalService;
-  let repository: Repository<PrivacyPolicy>;
 
   const mockPrivacyPolicy: PrivacyPolicy = {
     id: '123e4567-e89b-12d3-a456-426614174000',
@@ -37,9 +35,6 @@ describe('LegalService', () => {
     }).compile();
 
     service = module.get<LegalService>(LegalService);
-    repository = module.get<Repository<PrivacyPolicy>>(
-      getRepositoryToken(PrivacyPolicy),
-    );
 
     jest.clearAllMocks();
   });

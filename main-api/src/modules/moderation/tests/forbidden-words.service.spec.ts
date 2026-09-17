@@ -9,7 +9,7 @@ describe('ForbiddenWordsService', () => {
 
   beforeEach(async () => {
     const mockConfigService = {
-      get: jest.fn((key: string, defaultValue?: unknown) => {
+      get: jest.fn((key: string, defaultValue?: any) => {
         if (key === 'moderation.forbiddenWords.enabled') {
           return true;
         }
@@ -120,11 +120,9 @@ describe('ForbiddenWordsService', () => {
     it('should log security event when forbidden words detected', () => {
       service.checkText('This has badword in it');
 
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(logger.logSecurityEvent).toHaveBeenCalledWith(
         'forbidden_words_detected',
         expect.objectContaining({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           foundWords: expect.arrayContaining(['badword']),
         }),
       );
@@ -177,7 +175,7 @@ describe('ForbiddenWordsService', () => {
   describe('when disabled', () => {
     beforeEach(async () => {
       const mockConfigService = {
-        get: jest.fn((key: string, defaultValue?: unknown) => {
+        get: jest.fn((key: string, defaultValue?: any) => {
           if (key === 'moderation.forbiddenWords.enabled') {
             return false;
           }

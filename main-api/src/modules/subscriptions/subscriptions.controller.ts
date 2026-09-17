@@ -1,3 +1,4 @@
+import type { Request as ExpressRequest } from 'express';
 import {
   Controller,
   Get,
@@ -18,6 +19,7 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { SubscriptionsService } from './subscriptions.service';
+import { User } from '../../database/entities/user.entity';
 import {
   CreateSubscriptionDto,
   UpdateSubscriptionDto,
@@ -37,11 +39,11 @@ export class SubscriptionsController {
     description: 'Subscription created successfully',
   })
   async createSubscription(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Body() createSubscriptionDto: CreateSubscriptionDto,
   ) {
     return this.subscriptionsService.createSubscription(
-      req.user.id,
+      (req.user as User).id,
       createSubscriptionDto,
     );
   }
@@ -51,8 +53,10 @@ export class SubscriptionsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get active subscription' })
   @ApiResponse({ status: 200, description: 'Active subscription retrieved' })
-  async getActiveSubscription(@Request() req: any) {
-    return this.subscriptionsService.getActiveSubscription(req.user.id);
+  async getActiveSubscription(@Request() req: ExpressRequest) {
+    return this.subscriptionsService.getActiveSubscription(
+      (req.user as User).id,
+    );
   }
 
   @Get()
@@ -63,8 +67,10 @@ export class SubscriptionsController {
     status: 200,
     description: 'Subscriptions retrieved successfully',
   })
-  async getUserSubscriptions(@Request() req: any) {
-    return this.subscriptionsService.getUserSubscriptions(req.user.id);
+  async getUserSubscriptions(@Request() req: ExpressRequest) {
+    return this.subscriptionsService.getUserSubscriptions(
+      (req.user as User).id,
+    );
   }
 
   @Get('features')
@@ -72,8 +78,10 @@ export class SubscriptionsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get subscription features' })
   @ApiResponse({ status: 200, description: 'Subscription features retrieved' })
-  async getSubscriptionFeatures(@Request() req: any) {
-    return this.subscriptionsService.getSubscriptionFeatures(req.user.id);
+  async getSubscriptionFeatures(@Request() req: ExpressRequest) {
+    return this.subscriptionsService.getSubscriptionFeatures(
+      (req.user as User).id,
+    );
   }
 
   @Put(':subscriptionId/activate')
@@ -97,12 +105,12 @@ export class SubscriptionsController {
     description: 'Subscription cancelled successfully',
   })
   async cancelSubscription(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Param('subscriptionId') subscriptionId: string,
   ) {
     return this.subscriptionsService.cancelSubscription(
       subscriptionId,
-      req.user.id,
+      (req.user as User).id,
     );
   }
 
@@ -140,8 +148,10 @@ export class SubscriptionsController {
     status: 200,
     description: 'Current subscription retrieved successfully',
   })
-  async getCurrentSubscription(@Request() req: any) {
-    return this.subscriptionsService.getActiveSubscription(req.user.id);
+  async getCurrentSubscription(@Request() req: ExpressRequest) {
+    return this.subscriptionsService.getActiveSubscription(
+      (req.user as User).id,
+    );
   }
 
   @Put('cancel')
@@ -153,11 +163,11 @@ export class SubscriptionsController {
     description: 'Subscription cancelled successfully',
   })
   async cancelUserSubscription(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Body() cancelDto?: { reason?: string },
   ) {
     return this.subscriptionsService.cancelUserSubscription(
-      req.user.id,
+      (req.user as User).id,
       cancelDto?.reason,
     );
   }
@@ -170,8 +180,10 @@ export class SubscriptionsController {
     status: 200,
     description: 'Subscriptions restored successfully',
   })
-  async restoreSubscriptions(@Request() req: any) {
-    return this.subscriptionsService.restoreSubscriptions(req.user.id);
+  async restoreSubscriptions(@Request() req: ExpressRequest) {
+    return this.subscriptionsService.restoreSubscriptions(
+      (req.user as User).id,
+    );
   }
 
   @Get('usage')
@@ -182,8 +194,8 @@ export class SubscriptionsController {
     status: 200,
     description: 'Usage statistics retrieved successfully',
   })
-  async getUsage(@Request() req: any) {
-    return this.subscriptionsService.getUsage(req.user.id);
+  async getUsage(@Request() req: ExpressRequest) {
+    return this.subscriptionsService.getUsage((req.user as User).id);
   }
 
   @Get('plans')
@@ -192,7 +204,7 @@ export class SubscriptionsController {
     status: 200,
     description: 'Plans retrieved successfully',
   })
-  async getPlans() {
+  getPlans() {
     return this.subscriptionsService.getPlans();
   }
 
@@ -204,8 +216,10 @@ export class SubscriptionsController {
     status: 200,
     description: 'User subscription tier retrieved successfully',
   })
-  async getUserTier(@Request() req: any) {
-    return this.subscriptionsService.getUserSubscriptionTier(req.user.id);
+  async getUserTier(@Request() req: ExpressRequest) {
+    return this.subscriptionsService.getUserSubscriptionTier(
+      (req.user as User).id,
+    );
   }
 
   @Delete(':id')
@@ -217,12 +231,12 @@ export class SubscriptionsController {
     description: 'Subscription cancelled successfully',
   })
   async deleteSubscription(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Param('id') subscriptionId: string,
   ) {
     return this.subscriptionsService.cancelSubscription(
       subscriptionId,
-      req.user.id,
+      (req.user as User).id,
     );
   }
 

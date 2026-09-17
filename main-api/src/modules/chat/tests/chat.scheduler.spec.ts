@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { Repository } from 'typeorm';
 
 import { ChatScheduler } from '../chat.scheduler';
 import { NotificationsService } from '../../notifications/notifications.service';
@@ -12,11 +11,6 @@ import { ChatStatus } from '../../../common/enums';
 
 describe('ChatScheduler', () => {
   let scheduler: ChatScheduler;
-  let notificationsService: NotificationsService;
-  let chatRepository: Repository<Chat>;
-  let messageRepository: Repository<Message>;
-  let configService: ConfigService;
-  let logger: CustomLoggerService;
 
   const mockChatRepository = {
     find: jest.fn(),
@@ -44,7 +38,7 @@ describe('ChatScheduler', () => {
   };
 
   const mockConfigService = {
-    get: jest.fn((key: string) => {
+    get: jest.fn((key: string): string | undefined => {
       if (key === 'app.environment') return 'development';
       return undefined;
     }),
@@ -85,14 +79,6 @@ describe('ChatScheduler', () => {
     }).compile();
 
     scheduler = module.get<ChatScheduler>(ChatScheduler);
-    notificationsService =
-      module.get<NotificationsService>(NotificationsService);
-    chatRepository = module.get<Repository<Chat>>(getRepositoryToken(Chat));
-    messageRepository = module.get<Repository<Message>>(
-      getRepositoryToken(Message),
-    );
-    configService = module.get<ConfigService>(ConfigService);
-    logger = module.get<CustomLoggerService>(CustomLoggerService);
   });
 
   afterEach(() => {
@@ -417,7 +403,7 @@ describe('ChatScheduler', () => {
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
         getMany: jest.fn().mockRejectedValue(new Error('Database error')),
-      });
+      } as any);
 
       await expect(scheduler.cleanupOldChats()).rejects.toThrow(
         'Database error',

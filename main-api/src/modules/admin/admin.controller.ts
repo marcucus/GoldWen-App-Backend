@@ -1,3 +1,4 @@
+import type { Request as ExpressRequest } from 'express';
 import {
   Controller,
   Get,
@@ -183,10 +184,10 @@ export class AdminController {
     description: 'Support reply sent successfully',
   })
   async replySupportTicket(
-    @Req() req: any,
+    @Req() req: ExpressRequest,
     @Body() supportReplyDto: SupportReplyDto,
   ) {
-    const adminEmail = req.admin.email;
+    const adminEmail = req.admin!.email;
     const ticket = await this.adminService.replySupportTicket(
       supportReplyDto,
       adminEmail,

@@ -1,3 +1,4 @@
+import type { Request as ExpressRequest } from 'express';
 import {
   Injectable,
   CanActivate,
@@ -11,8 +12,8 @@ import { User } from '../../../database/entities/user.entity';
 export const ROLES_KEY = 'roles';
 export const Roles =
   (roles: UserRole[]) =>
-  (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
-    Reflect.defineMetadata(ROLES_KEY, roles, descriptor.value);
+  (target: object, propertyKey: string, descriptor: PropertyDescriptor) => {
+    Reflect.defineMetadata(ROLES_KEY, roles, descriptor.value as object);
   };
 
 @Injectable()
@@ -29,8 +30,8 @@ export class RoleGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
-    const user: User = request.user;
+    const request = context.switchToHttp().getRequest<ExpressRequest>();
+    const user = request.user as User | undefined;
 
     if (!user) {
       throw new ForbiddenException('Authentication required');

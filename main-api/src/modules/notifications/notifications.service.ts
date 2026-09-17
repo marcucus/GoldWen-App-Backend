@@ -4,13 +4,13 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 
 import { Notification } from '../../database/entities/notification.entity';
 import { User } from '../../database/entities/user.entity';
 import { NotificationPreferences } from '../../database/entities/notification-preferences.entity';
-import { PushToken } from '../../database/entities/push-token.entity';
+import { Platform, PushToken } from '../../database/entities/push-token.entity';
 import { NotificationType } from '../../common/enums';
 import { CustomLoggerService } from '../../common/logger';
 import { FcmService } from './fcm.service';
@@ -54,7 +54,7 @@ export class NotificationsService {
     const { page = 1, limit = 20, type, read } = getNotificationsDto;
     const skip = (page - 1) * limit;
 
-    const whereCondition: any = { userId };
+    const whereCondition: FindOptionsWhere<Notification> = { userId };
 
     if (type) {
       whereCondition.type = type;
@@ -217,7 +217,7 @@ export class NotificationsService {
     testNotificationDto: TestNotificationDto,
   ): Promise<Notification> {
     // Only allow in development
-    if (this.configService.get('app.environment') === 'production') {
+    if (this.configService.get<string>('app.environment') === 'production') {
       throw new ForbiddenException(
         'Test notifications are only available in development',
       );
@@ -549,12 +549,16 @@ export class NotificationsService {
           }
 
           return result;
-        } catch (error) {
+        } catch (error: unknown) {
+          const err = error instanceof Error ? error : new Error(String(error));
           this.logger.error(
-            `Error sending to push token ${pushToken.id}: ${error.message}`,
+            `Error sending to push token ${pushToken.id}: ${err instanceof Error ? err.message : String(err)}`,
             'NotificationsService',
           );
-          return { success: false, error: error.message };
+          return {
+            success: false,
+            error: err instanceof Error ? err.message : String(err),
+          };
         }
       });
 
@@ -577,37 +581,44 @@ export class NotificationsService {
           sentAt: new Date(),
         });
       }
-    } catch (error) {
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(
         'Failed to send push notification',
-        error.stack,
+        err instanceof Error ? err.stack : undefined,
         'NotificationsService',
       );
 
       // Implement simple retry logic
       if (notification.retryCount < 3) {
         setTimeout(
-          async () => {
-            try {
-              await this.notificationRepository.update(notification.id, {
-                retryCount: (notification.retryCount || 0) + 1,
-              });
-
-              const retryNotification =
-                await this.notificationRepository.findOne({
-                  where: { id: notification.id },
+          () => {
+            void (async () => {
+              try {
+                await this.notificationRepository.update(notification.id, {
+                  retryCount: (notification.retryCount || 0) + 1,
                 });
 
-              if (retryNotification) {
-                await this.sendPushNotification(retryNotification);
+                const retryNotification =
+                  await this.notificationRepository.findOne({
+                    where: { id: notification.id },
+                  });
+
+                if (retryNotification) {
+                  await this.sendPushNotification(retryNotification);
+                }
+              } catch (retryError) {
+                const retryErr =
+                  retryError instanceof Error
+                    ? retryError
+                    : new Error(String(retryError));
+                this.logger.error(
+                  'Retry push notification failed',
+                  retryErr.stack,
+                  'NotificationsService',
+                );
               }
-            } catch (retryError) {
-              this.logger.error(
-                'Retry push notification failed',
-                retryError.stack,
-                'NotificationsService',
-              );
-            }
+            })();
           },
           Math.pow(2, notification.retryCount || 0) * 1000,
         ); // Exponential backoff
@@ -760,7 +771,7 @@ export class NotificationsService {
     if (existingToken) {
       // Update existing token
       existingToken.userId = userId;
-      existingToken.platform = platform as any;
+      existingToken.platform = platform as Platform;
       existingToken.appVersion = appVersion;
       existingToken.deviceId = deviceId;
       existingToken.isActive = true;
@@ -781,7 +792,7 @@ export class NotificationsService {
     const pushToken = this.pushTokenRepository.create({
       userId,
       token,
-      platform: platform as any,
+      platform: platform as Platform,
       appVersion,
       deviceId,
       isActive: true,

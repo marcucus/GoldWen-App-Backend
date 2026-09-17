@@ -13,6 +13,7 @@ import { Prompt } from '../../../database/entities/prompt.entity';
 import { PromptAnswer } from '../../../database/entities/prompt-answer.entity';
 import { ModerationService } from '../../moderation/services/moderation.service';
 import { UpdateProfileDto } from '../dto/profiles.dto';
+import { StorageService } from '../../../common/services/storage.service';
 
 /**
  * Tests for bio field validation
@@ -97,6 +98,13 @@ describe('ProfilesService - Bio Validation', () => {
         {
           provide: ModerationService,
           useValue: mockModerationService,
+        },
+        {
+          provide: StorageService,
+          useValue: {
+            uploadFile: jest.fn(),
+            deleteFile: jest.fn(),
+          },
         },
       ],
     }).compile();

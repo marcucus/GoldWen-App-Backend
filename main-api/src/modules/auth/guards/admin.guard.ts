@@ -1,3 +1,4 @@
+import type { Request as ExpressRequest } from 'express';
 import {
   Injectable,
   CanActivate,
@@ -44,7 +45,7 @@ export class AdminGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<ExpressRequest>();
     const token = ExtractJwt.fromAuthHeaderAsBearerToken()(request);
 
     if (!token) {

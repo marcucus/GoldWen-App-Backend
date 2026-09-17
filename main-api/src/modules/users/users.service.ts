@@ -92,16 +92,16 @@ export class UsersService {
 
   async updateOnboardingStep(id: string, step: string): Promise<User> {
     const user = await this.findById(id);
-    
+
     // Using any for casting string to enum dynamically
-    user.onboardingStep = step as any;
-    
+    user.onboardingStep = step as User['onboardingStep'];
+
     // Automatically flag completed and unlock account
     if (step === 'completed') {
       user.isOnboardingCompleted = true;
       user.status = UserStatus.ACTIVE;
     }
-    
+
     await this.userRepository.save(user);
     return this.findById(id);
   }
@@ -132,7 +132,7 @@ export class UsersService {
     await this.userRepository.save(user);
   }
 
-  async getUserStats(id: string): Promise<any> {
+  async getUserStats(id: string) {
     const user = await this.findById(id);
 
     // Get user's matches
@@ -158,7 +158,7 @@ export class UsersService {
       .createQueryBuilder('ds')
       .select('SUM(ds.choicesUsed)', 'total')
       .where('ds.userId = :userId', { userId: id })
-      .getRawOne();
+      .getRawOne<{ total: string | null }>();
 
     // Get current subscription
     const currentSubscription = await this.subscriptionRepository.findOne({

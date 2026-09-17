@@ -5,13 +5,14 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { CustomLoggerService } from '../../common/logger';
 import { ConfigService } from '@nestjs/config';
+import { MonitoringConfig } from '../../config/config.interface';
 
 export interface LogEntry {
   timestamp: string;
   level: string;
   message: string;
   context?: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 export interface SystemMetrics {
@@ -39,7 +40,7 @@ export interface SystemMetrics {
 @Injectable()
 export class MonitoringService {
   private logs: LogEntry[] = [];
-  private alerts: any[] = [];
+  private alerts: Record<string, unknown>[] = [];
   private maxLogsToKeep = 10000;
   private maxAlertsToKeep = 1000;
 
@@ -102,11 +103,7 @@ export class MonitoringService {
     };
   }
 
-  async getRecentLogs(options: {
-    level?: string;
-    limit: number;
-    offset: number;
-  }) {
+  getRecentLogs(options: { level?: string; limit: number; offset: number }) {
     let filteredLogs = this.logs;
 
     if (options.level) {
@@ -121,7 +118,7 @@ export class MonitoringService {
     };
   }
 
-  async getRecentAlerts() {
+  getRecentAlerts() {
     return {
       alerts: this.alerts.slice(-50),
       total: this.alerts.length,
@@ -137,7 +134,7 @@ export class MonitoringService {
     return {
       database: dbPerf,
       redis: redisPerf,
-      api: await this.getApiPerformanceMetrics(),
+      api: this.getApiPerformanceMetrics(),
     };
   }
 
@@ -156,7 +153,9 @@ export class MonitoringService {
 
   private async getDatabaseStats() {
     try {
-      const result = await this.dataSource.query(`
+      const result = await this.dataSource.query<
+        { total_connections: string; active_connections: string }[]
+      >(`
         SELECT 
           count(*) as total_connections,
           sum(case when state = 'active' then 1 else 0 end) as active_connections
@@ -169,15 +168,15 @@ export class MonitoringService {
         totalConnections: parseInt(result[0]?.total_connections || '0'),
         activeConnections: parseInt(result[0]?.active_connections || '0'),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Failed to get database stats',
-        error.stack,
+        error instanceof Error ? error.stack : String(error),
         'MonitoringService',
       );
       return {
         status: 'error',
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -193,15 +192,15 @@ export class MonitoringService {
         memoryPeak: memoryInfo.used_memory_peak_human || 'N/A',
         connectedClients: 1, // Simplified for now - would need different Redis command
       };
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Failed to get Redis stats',
-        error.stack,
+        error instanceof Error ? error.stack : String(error),
         'MonitoringService',
       );
       return {
         status: 'error',
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -217,7 +216,7 @@ export class MonitoringService {
         queries: 0, // Would track in real implementation
         responseTime,
       };
-    } catch (error) {
+    } catch {
       return {
         connections: 0,
         queries: 0,
@@ -237,7 +236,7 @@ export class MonitoringService {
         memory: 0, // Would get from Redis info
         responseTime,
       };
-    } catch (error) {
+    } catch {
       return {
         connections: 0,
         memory: 0,
@@ -262,12 +261,12 @@ export class MonitoringService {
           responseTime: Date.now() - start,
           status: 'success',
         });
-      } catch (error) {
+      } catch (error: unknown) {
         results.push({
           name,
           responseTime: -1,
           status: 'error',
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
         });
       }
     }
@@ -297,12 +296,12 @@ export class MonitoringService {
           responseTime: Date.now() - start,
           status: 'success',
         });
-      } catch (error) {
+      } catch (error: unknown) {
         results.push({
           name,
           responseTime: -1,
           status: 'error',
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
         });
       }
     }
@@ -310,7 +309,7 @@ export class MonitoringService {
     return results;
   }
 
-  private async getApiPerformanceMetrics() {
+  private getApiPerformanceMetrics() {
     // This would track API response times, throughput, etc.
     // For now, return placeholder data
     return {
@@ -342,7 +341,7 @@ export class MonitoringService {
     }
   }
 
-  addAlert(alert: any) {
+  addAlert(alert: Record<string, unknown>) {
     this.alerts.push({
       ...alert,
       timestamp: new Date().toISOString(),
@@ -352,8 +351,9 @@ export class MonitoringService {
     }
   }
 
-  private async getMonitoringStatus() {
-    const monitoringConfig = this.configService.get('monitoring');
+  private getMonitoringStatus() {
+    const monitoringConfig =
+      this.configService.get<MonitoringConfig>('monitoring');
 
     return {
       sentry: {
@@ -371,17 +371,19 @@ export class MonitoringService {
         webhookConfigured: !!monitoringConfig?.alerts?.webhookUrl,
         slackConfigured: !!monitoringConfig?.alerts?.slackWebhookUrl,
         emailConfigured: !!(
-          monitoringConfig?.alerts?.emailRecipients?.length > 0
+          (monitoringConfig?.alerts?.emailRecipients?.length ?? 0) > 0
         ),
         totalChannels: [
           monitoringConfig?.alerts?.webhookUrl,
           monitoringConfig?.alerts?.slackWebhookUrl,
-          monitoringConfig?.alerts?.emailRecipients?.length > 0 && 'email',
+          (monitoringConfig?.alerts?.emailRecipients?.length ?? 0) > 0 &&
+            'email',
         ].filter(Boolean).length,
       },
       logging: {
-        level: this.configService.get('app.logLevel') || 'info',
-        environment: this.configService.get('app.environment') || 'development',
+        level: this.configService.get<string>('app.logLevel') || 'info',
+        environment:
+          this.configService.get<string>('app.environment') || 'development',
       },
     };
   }

@@ -8,7 +8,12 @@ import {
   OneToMany,
   Index,
 } from 'typeorm';
-import { UserStatus, FontSize, UserRole, OnboardingStep } from '../../common/enums';
+import {
+  UserStatus,
+  FontSize,
+  UserRole,
+  OnboardingStep,
+} from '../../common/enums';
 import { Profile } from './profile.entity';
 import { PersonalityAnswer } from './personality-answer.entity';
 import { DailySelection } from './daily-selection.entity';
@@ -59,13 +64,13 @@ export class User {
   isEmailVerified?: boolean;
 
   @Column({ nullable: true })
-  emailVerificationToken?: string;
+  emailVerificationToken?: string | null;
 
   @Column({ nullable: true })
-  resetPasswordToken?: string;
+  resetPasswordToken?: string | null;
 
   @Column({ nullable: true })
-  resetPasswordExpires?: Date;
+  resetPasswordExpires?: Date | null;
 
   @Column({ default: false })
   isOnboardingCompleted?: boolean;

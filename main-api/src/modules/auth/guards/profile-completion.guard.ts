@@ -1,3 +1,4 @@
+import type { Request as ExpressRequest } from 'express';
 import {
   Injectable,
   CanActivate,
@@ -30,8 +31,8 @@ export class ProfileCompletionGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
-    const user = request.user;
+    const request = context.switchToHttp().getRequest<ExpressRequest>();
+    const user = request.user as User | undefined;
 
     if (!user) {
       return false;

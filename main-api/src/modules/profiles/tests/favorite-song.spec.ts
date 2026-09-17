@@ -10,6 +10,7 @@ import { Photo } from '../../../database/entities/photo.entity';
 import { Prompt } from '../../../database/entities/prompt.entity';
 import { PromptAnswer } from '../../../database/entities/prompt-answer.entity';
 import { ModerationService } from '../../moderation/services/moderation.service';
+import { StorageService } from '../../../common/services/storage.service';
 
 describe('ProfilesService - Favorite Song Field', () => {
   let service: ProfilesService;
@@ -91,6 +92,13 @@ describe('ProfilesService - Favorite Song Field', () => {
           provide: ModerationService,
           useValue: mockModerationService,
         },
+        {
+          provide: StorageService,
+          useValue: {
+            uploadFile: jest.fn(),
+            deleteFile: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -129,7 +137,7 @@ describe('ProfilesService - Favorite Song Field', () => {
       });
 
       expect(result.favoriteSong).toBe('Bohemian Rhapsody by Queen');
-      // eslint-disable-next-line @typescript-eslint/unbound-method
+
       expect(profileRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({
           favoriteSong: 'Bohemian Rhapsody by Queen',
@@ -166,7 +174,6 @@ describe('ProfilesService - Favorite Song Field', () => {
         favoriteSong: undefined,
       });
 
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(profileRepository.save).toHaveBeenCalled();
     });
 

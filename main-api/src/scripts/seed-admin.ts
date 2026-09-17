@@ -49,9 +49,7 @@ async function seedAdmin() {
     });
 
     console.log(`✅ Admin ready: ${admin.email} (role: ${admin.role})`);
-    console.log(
-      'If this admin already existed, its password was NOT changed.',
-    );
+    console.log('If this admin already existed, its password was NOT changed.');
   } finally {
     await app.close();
   }

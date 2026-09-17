@@ -107,7 +107,9 @@ export class AppleLoginUserDto {
 }
 
 export class AppleLoginDto {
-  @ApiProperty({ description: "Apple identity token (JWT) from Sign in with Apple" })
+  @ApiProperty({
+    description: 'Apple identity token (JWT) from Sign in with Apple',
+  })
   @IsString()
   identityToken: string;
 
@@ -177,14 +179,20 @@ export class RefreshTokenDto {
 }
 
 export class TwoFactorTokenDto {
-  @ApiProperty({ example: '123456', description: '6-digit TOTP code from authenticator app' })
+  @ApiProperty({
+    example: '123456',
+    description: '6-digit TOTP code from authenticator app',
+  })
   @IsString()
   @MinLength(6)
   token: string;
 }
 
 export class LoginWithTwoFactorDto extends LoginDto {
-  @ApiPropertyOptional({ example: '123456', description: 'Required if 2FA is enabled' })
+  @ApiPropertyOptional({
+    example: '123456',
+    description: 'Required if 2FA is enabled',
+  })
   @IsOptional()
   @IsString()
   twoFactorToken?: string;

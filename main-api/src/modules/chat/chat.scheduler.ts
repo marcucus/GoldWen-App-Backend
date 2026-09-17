@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, Between } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
+import { AppConfig } from '../../config/config.interface';
 
 import { Chat } from '../../database/entities/chat.entity';
 import { Message } from '../../database/entities/message.entity';
@@ -70,16 +71,19 @@ export class ChatScheduler {
             `Chat ${chat.id} expired successfully (users: ${chat.match.user1Id}, ${chat.match.user2Id})`,
             'ChatScheduler',
           );
-        } catch (error) {
+        } catch (error: unknown) {
           errorCount++;
+          const err = error instanceof Error ? error : new Error(String(error));
           errors.push({
             chatId: chat.id,
-            error: error.message || 'Unknown error',
+            error:
+              (err instanceof Error ? err.message : String(err)) ||
+              'Unknown error',
           });
 
           this.logger.error(
             `Failed to expire chat ${chat.id}`,
-            error.stack,
+            err instanceof Error ? err.stack : undefined,
             'ChatScheduler',
           );
         }
@@ -102,12 +106,13 @@ export class ChatScheduler {
           'ChatScheduler',
         );
       }
-    } catch (error) {
+    } catch (error: unknown) {
       const executionTime = Date.now() - startTime;
+      const err = error instanceof Error ? error : new Error(String(error));
 
       this.logger.error(
-        `Chat expiration job failed after ${executionTime}ms: ${error.message}`,
-        error.stack,
+        `Chat expiration job failed after ${executionTime}ms: ${err instanceof Error ? err.message : String(err)}`,
+        err instanceof Error ? err.stack : undefined,
         'ChatScheduler',
       );
 
@@ -178,8 +183,12 @@ export class ChatScheduler {
               hoursLeft,
             );
           } catch (notifError) {
+            const err =
+              notifError instanceof Error
+                ? notifError
+                : new Error(String(notifError));
             this.logger.warn(
-              `Failed to send expiration warning to user ${user1.id}: ${notifError.message}`,
+              `Failed to send expiration warning to user ${user1.id}: ${err instanceof Error ? err.message : String(err)}`,
               'ChatScheduler',
             );
           }
@@ -191,8 +200,12 @@ export class ChatScheduler {
               hoursLeft,
             );
           } catch (notifError) {
+            const err =
+              notifError instanceof Error
+                ? notifError
+                : new Error(String(notifError));
             this.logger.warn(
-              `Failed to send expiration warning to user ${user2.id}: ${notifError.message}`,
+              `Failed to send expiration warning to user ${user2.id}: ${err instanceof Error ? err.message : String(err)}`,
               'ChatScheduler',
             );
           }
@@ -203,16 +216,19 @@ export class ChatScheduler {
             `Expiration warnings sent for chat ${chat.id} to users ${user1.id} and ${user2.id}, ${hoursLeft} hours left`,
             'ChatScheduler',
           );
-        } catch (error) {
+        } catch (error: unknown) {
           errorCount++;
+          const err = error instanceof Error ? error : new Error(String(error));
           errors.push({
             chatId: chat.id,
-            error: error.message || 'Unknown error',
+            error:
+              (err instanceof Error ? err.message : String(err)) ||
+              'Unknown error',
           });
 
           this.logger.error(
             `Failed to send expiration warnings for chat ${chat.id}`,
-            error.stack,
+            err instanceof Error ? err.stack : undefined,
             'ChatScheduler',
           );
         }
@@ -235,12 +251,13 @@ export class ChatScheduler {
           'ChatScheduler',
         );
       }
-    } catch (error) {
+    } catch (error: unknown) {
       const executionTime = Date.now() - startTime;
+      const err = error instanceof Error ? error : new Error(String(error));
 
       this.logger.error(
-        `Chat expiration warning job failed after ${executionTime}ms: ${error.message}`,
-        error.stack,
+        `Chat expiration warning job failed after ${executionTime}ms: ${err instanceof Error ? err.message : String(err)}`,
+        err instanceof Error ? err.stack : undefined,
         'ChatScheduler',
       );
 
@@ -312,12 +329,13 @@ export class ChatScheduler {
         cutoffDate: ninetyDaysAgo.toISOString(),
         executionTimeMs: executionTime,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       const executionTime = Date.now() - startTime;
+      const err = error instanceof Error ? error : new Error(String(error));
 
       this.logger.error(
-        `Old chats cleanup job failed after ${executionTime}ms: ${error.message}`,
-        error.stack,
+        `Old chats cleanup job failed after ${executionTime}ms: ${err instanceof Error ? err.message : String(err)}`,
+        err instanceof Error ? err.stack : undefined,
         'ChatScheduler',
       );
 
@@ -329,14 +347,18 @@ export class ChatScheduler {
    * Manual trigger for testing chat expiration
    */
   async triggerChatExpiration() {
-    if (this.configService.get('app.environment') === 'production') {
+    if (
+      this.configService.get<AppConfig['environment']>('app.environment') ===
+      'production'
+    ) {
       throw new Error(
         'Manual trigger not allowed in production. Use scheduled jobs.',
       );
     }
 
     this.logger.info('Manual trigger: Chat expiration', {
-      environment: this.configService.get('app.environment'),
+      environment:
+        this.configService.get<AppConfig['environment']>('app.environment'),
     });
 
     await this.expireChats();
@@ -346,14 +368,18 @@ export class ChatScheduler {
    * Manual trigger for testing expiration warnings
    */
   async triggerExpirationWarnings() {
-    if (this.configService.get('app.environment') === 'production') {
+    if (
+      this.configService.get<AppConfig['environment']>('app.environment') ===
+      'production'
+    ) {
       throw new Error(
         'Manual trigger not allowed in production. Use scheduled jobs.',
       );
     }
 
     this.logger.info('Manual trigger: Expiration warnings', {
-      environment: this.configService.get('app.environment'),
+      environment:
+        this.configService.get<AppConfig['environment']>('app.environment'),
     });
 
     await this.warnAboutExpiringChats();
@@ -363,14 +389,18 @@ export class ChatScheduler {
    * Manual trigger for testing cleanup
    */
   async triggerCleanup() {
-    if (this.configService.get('app.environment') === 'production') {
+    if (
+      this.configService.get<AppConfig['environment']>('app.environment') ===
+      'production'
+    ) {
       throw new Error(
         'Manual trigger not allowed in production. Use scheduled jobs.',
       );
     }
 
     this.logger.info('Manual trigger: Old chats cleanup', {
-      environment: this.configService.get('app.environment'),
+      environment:
+        this.configService.get<AppConfig['environment']>('app.environment'),
     });
 
     await this.cleanupOldChats();

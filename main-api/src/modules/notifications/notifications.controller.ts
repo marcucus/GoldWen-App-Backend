@@ -1,3 +1,4 @@
+import type { Request as ExpressRequest } from 'express';
 import {
   Controller,
   Get,
@@ -32,6 +33,7 @@ import {
   SendGroupNotificationDto,
 } from './dto/notifications.dto';
 import { RegisterPushTokenDto, DeletePushTokenDto } from './dto/push-token.dto';
+import { User } from '../../database/entities/user.entity';
 
 @ApiTags('notifications')
 @Controller('notifications')
@@ -51,12 +53,12 @@ export class NotificationsController {
     description: 'Notifications retrieved successfully',
   })
   async getNotifications(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Query() getNotificationsDto: GetNotificationsDto,
   ) {
-    const userId = req.user.id;
+    const userId = (req.user as User).id;
 
-    this.logger.setContext({ userId, userEmail: req.user.email });
+    this.logger.setContext({ userId, userEmail: (req.user as User).email });
 
     const result = await this.notificationsService.getNotifications(
       userId,
@@ -74,12 +76,12 @@ export class NotificationsController {
   @ApiParam({ name: 'notificationId', description: 'Notification ID' })
   @ApiResponse({ status: 200, description: 'Notification marked as read' })
   async markAsRead(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Param('notificationId') notificationId: string,
   ) {
-    const userId = req.user.id;
+    const userId = (req.user as User).id;
 
-    this.logger.setContext({ userId, userEmail: req.user.email });
+    this.logger.setContext({ userId, userEmail: (req.user as User).email });
 
     const notification = await this.notificationsService.markAsRead(
       notificationId,
@@ -96,10 +98,10 @@ export class NotificationsController {
   @Put('read-all')
   @ApiOperation({ summary: 'Mark all notifications as read' })
   @ApiResponse({ status: 200, description: 'All notifications marked as read' })
-  async markAllAsRead(@Request() req: any) {
-    const userId = req.user.id;
+  async markAllAsRead(@Request() req: ExpressRequest) {
+    const userId = (req.user as User).id;
 
-    this.logger.setContext({ userId, userEmail: req.user.email });
+    this.logger.setContext({ userId, userEmail: (req.user as User).email });
 
     const result = await this.notificationsService.markAllAsRead(userId);
 
@@ -118,12 +120,12 @@ export class NotificationsController {
     description: 'Notification deleted successfully',
   })
   async deleteNotification(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Param('notificationId') notificationId: string,
   ) {
-    const userId = req.user.id;
+    const userId = (req.user as User).id;
 
-    this.logger.setContext({ userId, userEmail: req.user.email });
+    this.logger.setContext({ userId, userEmail: (req.user as User).email });
 
     await this.notificationsService.deleteNotification(notificationId, userId);
 
@@ -136,10 +138,10 @@ export class NotificationsController {
   @Get('settings')
   @ApiOperation({ summary: 'Get notification settings' })
   @ApiResponse({ status: 200, description: 'Notification settings retrieved' })
-  async getSettings(@Request() req: any) {
-    const userId = req.user.id;
+  async getSettings(@Request() req: ExpressRequest) {
+    const userId = (req.user as User).id;
 
-    this.logger.setContext({ userId, userEmail: req.user.email });
+    this.logger.setContext({ userId, userEmail: (req.user as User).email });
 
     const settings =
       await this.notificationsService.getNotificationSettings(userId);
@@ -154,12 +156,12 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Update notification settings' })
   @ApiResponse({ status: 200, description: 'Notification settings updated' })
   async updateSettings(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Body() updateSettingsDto: UpdateNotificationSettingsDto,
   ) {
-    const userId = req.user.id;
+    const userId = (req.user as User).id;
 
-    this.logger.setContext({ userId, userEmail: req.user.email });
+    this.logger.setContext({ userId, userEmail: (req.user as User).email });
 
     const result = await this.notificationsService.updateNotificationSettings(
       userId,
@@ -180,12 +182,12 @@ export class NotificationsController {
   @ApiResponse({ status: 200, description: 'Test notification sent' })
   @ApiResponse({ status: 403, description: 'Not available in production' })
   async sendTestNotification(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Body() testNotificationDto: TestNotificationDto,
   ) {
-    const userId = req.user.id;
+    const userId = (req.user as User).id;
 
-    this.logger.setContext({ userId, userEmail: req.user.email });
+    this.logger.setContext({ userId, userEmail: (req.user as User).email });
 
     const notification = await this.notificationsService.sendTestNotification(
       userId,
@@ -209,12 +211,12 @@ export class NotificationsController {
   @ApiResponse({ status: 201, description: 'Group notification sent' })
   @ApiResponse({ status: 403, description: 'Admin role required' })
   async sendGroupNotification(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Body() sendGroupNotificationDto: SendGroupNotificationDto,
   ) {
-    const userId = req.user.id;
+    const userId = (req.user as User).id;
 
-    this.logger.setContext({ userId, userEmail: req.user.email });
+    this.logger.setContext({ userId, userEmail: (req.user as User).email });
 
     const notifications = await this.notificationsService.sendGroupNotification(
       sendGroupNotificationDto,
@@ -251,10 +253,10 @@ export class NotificationsController {
     status: 201,
     description: 'Daily selection notifications triggered',
   })
-  async triggerDailySelectionNotifications(@Request() req: any) {
+  async triggerDailySelectionNotifications(@Request() req: ExpressRequest) {
     this.logger.setContext({
-      adminId: req.admin.id,
-      adminEmail: req.admin.email,
+      adminId: req.admin!.id,
+      adminEmail: req.admin!.email,
     });
 
     await this.scheduledNotificationsService.triggerDailySelectionNotifications();
@@ -272,12 +274,12 @@ export class NotificationsController {
     description: 'Push token registered successfully',
   })
   async registerPushToken(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Body() registerPushTokenDto: RegisterPushTokenDto,
   ) {
-    const userId = req.user.id;
+    const userId = (req.user as User).id;
 
-    this.logger.setContext({ userId, userEmail: req.user.email });
+    this.logger.setContext({ userId, userEmail: (req.user as User).email });
 
     const pushToken = await this.notificationsService.registerPushToken(
       userId,
@@ -305,12 +307,12 @@ export class NotificationsController {
     description: 'Push token deleted successfully',
   })
   async deletePushToken(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Body() deletePushTokenDto: DeletePushTokenDto,
   ) {
-    const userId = req.user.id;
+    const userId = (req.user as User).id;
 
-    this.logger.setContext({ userId, userEmail: req.user.email });
+    this.logger.setContext({ userId, userEmail: (req.user as User).email });
 
     await this.notificationsService.deletePushToken(
       userId,
@@ -329,10 +331,10 @@ export class NotificationsController {
     status: 200,
     description: 'Push tokens retrieved successfully',
   })
-  async getPushTokens(@Request() req: any) {
-    const userId = req.user.id;
+  async getPushTokens(@Request() req: ExpressRequest) {
+    const userId = (req.user as User).id;
 
-    this.logger.setContext({ userId, userEmail: req.user.email });
+    this.logger.setContext({ userId, userEmail: (req.user as User).email });
 
     const pushTokens =
       await this.notificationsService.getUserPushTokens(userId);

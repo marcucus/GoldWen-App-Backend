@@ -11,7 +11,7 @@ describe('AiModerationService', () => {
   beforeEach(async () => {
     const mockConfigService = {
       get: jest.fn((key: string, defaultValue?: any) => {
-        const config = {
+        const config: Record<string, any> = {
           'moderation.openai.apiKey': '',
           'moderation.openai.model': 'text-moderation-latest',
           'moderation.autoBlock.textThreshold': 0.7,

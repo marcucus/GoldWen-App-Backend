@@ -18,8 +18,10 @@ export class StorageService {
   constructor(private readonly configService: ConfigService) {
     this.bucket = this.configService.get<string>('storage.bucket') || '';
     this.cdnUrl = this.configService.get<string>('storage.cdnUrl') || '';
-    const accessKeyId = this.configService.get<string>('storage.accessKeyId') || '';
-    const secretAccessKey = this.configService.get<string>('storage.secretAccessKey') || '';
+    const accessKeyId =
+      this.configService.get<string>('storage.accessKeyId') || '';
+    const secretAccessKey =
+      this.configService.get<string>('storage.secretAccessKey') || '';
 
     this.isS3Configured = !!(this.bucket && accessKeyId && secretAccessKey);
 
@@ -31,7 +33,9 @@ export class StorageService {
     this.localUploadDir = path.join(process.cwd(), 'uploads');
 
     if (!this.isS3Configured) {
-      this.logger.warn('S3 not configured — using local disk storage (dev only)');
+      this.logger.warn(
+        'S3 not configured — using local disk storage (dev only)',
+      );
       fs.mkdirSync(this.localUploadDir, { recursive: true });
     }
   }
@@ -43,7 +47,10 @@ export class StorageService {
     return this.uploadS3(file, folder);
   }
 
-  private async uploadS3(file: Express.Multer.File, folder: string): Promise<string> {
+  private async uploadS3(
+    file: Express.Multer.File,
+    folder: string,
+  ): Promise<string> {
     const key = `${folder}/${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`;
 
     const upload = new Upload({
@@ -58,7 +65,9 @@ export class StorageService {
 
     await upload.done();
     this.logger.log(`Fichier uploadé sur S3: ${key}`);
-    return this.cdnUrl ? `${this.cdnUrl}/${key}` : `https://${this.bucket}.s3.amazonaws.com/${key}`;
+    return this.cdnUrl
+      ? `${this.cdnUrl}/${key}`
+      : `https://${this.bucket}.s3.amazonaws.com/${key}`;
   }
 
   private uploadLocal(file: Express.Multer.File, folder: string): string {
@@ -70,7 +79,8 @@ export class StorageService {
     fs.writeFileSync(filepath, file.buffer);
 
     const port = this.configService.get<number>('app.port') || 3000;
-    const appUrl = this.configService.get<string>('app.url') || `http://localhost:${port}`;
+    const appUrl =
+      this.configService.get<string>('app.url') || `http://localhost:${port}`;
     const url = `${appUrl}/uploads/${folder}/${filename}`;
     this.logger.log(`Fichier sauvegardé localement: ${url}`);
     return url;
@@ -90,7 +100,7 @@ export class StorageService {
         new DeleteObjectCommand({ Bucket: this.bucket, Key: key }),
       );
       this.logger.log(`Fichier supprimé de S3: ${key}`);
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(`Erreur suppression S3 ${key}:`, error);
     }
   }

@@ -1,3 +1,4 @@
+import type { Request as ExpressRequest } from 'express';
 import {
   Controller,
   Get,
@@ -25,11 +26,11 @@ import { SkipProfileCompletion } from '../auth/decorators/skip-profile-completio
 import { ProfilesService } from './profiles.service';
 import { CacheControl } from '../../common/interceptors/cache.interceptor';
 import { CacheStrategy } from '../../common/enums/cache-strategy.enum';
+import { User } from '../../database/entities/user.entity';
 import {
   ProfileResponseDto,
   UpdateProfileDto,
   SubmitPersonalityAnswersDto,
-  UploadPhotosDto,
   SubmitPromptAnswersDto,
   UpdatePromptAnswersDto,
   UpdateProfileStatusDto,
@@ -55,8 +56,8 @@ export class ProfilesController {
       'Profile retrieved successfully. The response includes the pseudo field (username).',
     type: ProfileResponseDto,
   })
-  async getProfile(@Request() req: any) {
-    return this.profilesService.getProfile(req.user.id);
+  async getProfile(@Request() req: ExpressRequest) {
+    return this.profilesService.getProfile((req.user as User).id);
   }
 
   @Put('me')
@@ -78,10 +79,13 @@ export class ProfilesController {
       'Invalid request or content moderation failed. Text fields contain forbidden words or inappropriate content.',
   })
   async updateProfile(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Body() updateProfileDto: UpdateProfileDto,
   ) {
-    return this.profilesService.updateProfile(req.user.id, updateProfileDto);
+    return this.profilesService.updateProfile(
+      (req.user as User).id,
+      updateProfileDto,
+    );
   }
 
   @Get('completion')
@@ -92,8 +96,8 @@ export class ProfilesController {
       'Returns detailed profile completion status including requirements: 3 photos, exactly 3 prompts, personality questionnaire, and basic info (birthDate, bio).',
   })
   @ApiResponse({ status: 200, description: 'Profile completion status' })
-  async getProfileCompletion(@Request() req: any) {
-    return this.profilesService.getProfileCompletion(req.user.id);
+  async getProfileCompletion(@Request() req: ExpressRequest) {
+    return this.profilesService.getProfileCompletion((req.user as User).id);
   }
 
   @Get('personality-questions')
@@ -113,12 +117,14 @@ export class ProfilesController {
     description: 'Personality answers submitted successfully',
   })
   async submitPersonalityAnswers(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Body() answersDto: SubmitPersonalityAnswersDto,
   ) {
-    this.logger.log(`Received personality answers for user: ${req.user.id}`);
+    this.logger.log(
+      `Received personality answers for user: ${(req.user as User).id}`,
+    );
     await this.profilesService.submitPersonalityAnswers(
-      req.user.id,
+      (req.user as User).id,
       answersDto,
     );
     return { message: 'Personality answers submitted successfully' };
@@ -131,10 +137,10 @@ export class ProfilesController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FilesInterceptor('photos', 6)) // Max 6 photos as per requirements
   async uploadPhotos(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
-    return this.profilesService.uploadPhotos(req.user.id, files);
+    return this.profilesService.uploadPhotos((req.user as User).id, files);
   }
 
   @Post('me/media')
@@ -149,18 +155,21 @@ export class ProfilesController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FilesInterceptor('photos', 6)) // Max 6 photos as per requirements
   async uploadMedia(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
-    return this.profilesService.uploadPhotos(req.user.id, files);
+    return this.profilesService.uploadPhotos((req.user as User).id, files);
   }
 
   @Delete('me/photos/:photoId')
   @SkipProfileCompletion()
   @ApiOperation({ summary: 'Delete a profile photo' })
   @ApiResponse({ status: 200, description: 'Photo deleted successfully' })
-  async deletePhoto(@Request() req: any, @Param('photoId') photoId: string) {
-    await this.profilesService.deletePhoto(req.user.id, photoId);
+  async deletePhoto(
+    @Request() req: ExpressRequest,
+    @Param('photoId') photoId: string,
+  ) {
+    await this.profilesService.deletePhoto((req.user as User).id, photoId);
     return { message: 'Photo deleted successfully' };
   }
 
@@ -172,10 +181,10 @@ export class ProfilesController {
     description: 'Primary photo updated successfully',
   })
   async setPrimaryPhoto(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Param('photoId') photoId: string,
   ) {
-    return this.profilesService.setPrimaryPhoto(req.user.id, photoId);
+    return this.profilesService.setPrimaryPhoto((req.user as User).id, photoId);
   }
 
   @Put('me/photos/:photoId/order')
@@ -186,12 +195,12 @@ export class ProfilesController {
     description: 'Photo order updated successfully',
   })
   async updatePhotoOrder(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Param('photoId') photoId: string,
     @Body() orderDto: UpdatePhotoOrderDto,
   ) {
     return this.profilesService.updatePhotoOrder(
-      req.user.id,
+      (req.user as User).id,
       photoId,
       orderDto.newOrder,
     );
@@ -227,11 +236,11 @@ export class ProfilesController {
       'Invalid request - must provide exactly 3 answers, or content moderation failed',
   })
   async submitPromptAnswers(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Body() promptAnswersDto: SubmitPromptAnswersDto,
   ) {
     await this.profilesService.submitPromptAnswers(
-      req.user.id,
+      (req.user as User).id,
       promptAnswersDto,
     );
     return { message: 'Prompt answers submitted successfully' };
@@ -244,8 +253,8 @@ export class ProfilesController {
     status: 200,
     description: 'User prompt answers retrieved successfully',
   })
-  async getUserPromptAnswers(@Request() req: any) {
-    return this.profilesService.getUserPromptAnswers(req.user.id);
+  async getUserPromptAnswers(@Request() req: ExpressRequest) {
+    return this.profilesService.getUserPromptAnswers((req.user as User).id);
   }
 
   @Put('me/prompt-answers')
@@ -265,11 +274,11 @@ export class ProfilesController {
       'Invalid request - must provide exactly 3 answers, or content moderation failed',
   })
   async updatePromptAnswers(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Body() updateDto: UpdatePromptAnswersDto,
   ) {
     const updated = await this.profilesService.updatePromptAnswers(
-      req.user.id,
+      (req.user as User).id,
       updateDto,
     );
     return { success: true, promptAnswers: updated };
@@ -283,10 +292,13 @@ export class ProfilesController {
     description: 'Profile status updated successfully',
   })
   async updateProfileStatus(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Body() statusDto: UpdateProfileStatusDto,
   ) {
-    await this.profilesService.updateProfileStatus(req.user.id, statusDto);
+    await this.profilesService.updateProfileStatus(
+      (req.user as User).id,
+      statusDto,
+    );
     return { message: 'Profile status updated successfully' };
   }
 }

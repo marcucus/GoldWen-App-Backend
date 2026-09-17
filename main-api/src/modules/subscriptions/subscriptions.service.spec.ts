@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+
 import { NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
@@ -76,8 +76,8 @@ describe('SubscriptionsService', () => {
   });
 
   describe('getPlans', () => {
-    it('should return available subscription plans', async () => {
-      const result = await service.getPlans();
+    it('should return available subscription plans', () => {
+      const result = service.getPlans();
 
       expect(result).toHaveProperty('plans');
       expect(result.plans).toHaveLength(3);
@@ -94,6 +94,8 @@ describe('SubscriptionsService', () => {
           'Profil prioritaire',
         ],
       });
+
+      return Promise.resolve();
     });
   });
 
@@ -240,7 +242,14 @@ describe('SubscriptionsService', () => {
 
   describe('cancelUserSubscription', () => {
     it('should cancel active subscription', async () => {
-      const mockSubscription = {
+      const mockSubscription: {
+        id: string;
+        userId: string;
+        plan: SubscriptionPlan;
+        status: SubscriptionStatus;
+        cancelledAt?: Date;
+        metadata: { cancellationReason?: string; cancelledBy?: string };
+      } = {
         id: '123',
         userId: 'user1',
         plan: SubscriptionPlan.GOLDWEN_PLUS,

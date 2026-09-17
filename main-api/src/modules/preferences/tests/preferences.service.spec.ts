@@ -175,7 +175,7 @@ describe('PreferencesService', () => {
     });
 
     it('should throw NotFoundException when user does not exist', async () => {
-      jest.spyN(userRepository, 'findOne').mockResolvedValue(null);
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
 
       await expect(
         service.getUserPreferences('nonexistent-user'),

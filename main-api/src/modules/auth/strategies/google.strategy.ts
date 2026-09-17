@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { Strategy, VerifyCallback } from 'passport-google-oauth20';
+import { Strategy, VerifyCallback, Profile } from 'passport-google-oauth20';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -8,7 +8,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(private configService: ConfigService) {
     const clientId = configService.get<string>('oauth.google.clientId');
     const clientSecret = configService.get<string>('oauth.google.clientSecret');
-    const environment = configService.get('app.environment');
+    const environment = configService.get<string>('app.environment');
 
     // SECURITY (Phase 0.10): fail fast in production instead of silently
     // initializing passport-google-oauth20 with hardcoded placeholder
@@ -29,23 +29,25 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     });
   }
 
-  async validate(
+  validate(
     accessToken: string,
     refreshToken: string,
-    profile: any,
+    profile: Profile,
     done: VerifyCallback,
-  ): Promise<any> {
+  ): Promise<void> {
     const { id, name, emails, photos } = profile;
 
     const user = {
       socialId: id,
       provider: 'google',
-      email: emails[0].value,
-      firstName: name.givenName,
-      lastName: name.familyName,
-      profilePicture: photos[0].value,
+      email: emails?.[0]?.value || '',
+      firstName: name?.givenName || '',
+      lastName: name?.familyName || '',
+      profilePicture: photos?.[0]?.value,
     };
 
     done(null, user);
+
+    return Promise.resolve();
   }
 }

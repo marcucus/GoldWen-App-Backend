@@ -12,6 +12,7 @@ import { PersonalityAnswer } from '../../../database/entities/personality-answer
 import { Prompt } from '../../../database/entities/prompt.entity';
 import { PromptAnswer } from '../../../database/entities/prompt-answer.entity';
 import { ModerationService } from '../../moderation/services/moderation.service';
+import { StorageService } from '../../../common/services/storage.service';
 
 /**
  * Integration tests for POST /api/v1/profiles/me/media endpoint
@@ -87,6 +88,13 @@ describe('ProfilesService - Media Upload Endpoint', () => {
         {
           provide: ModerationService,
           useValue: mockModerationService,
+        },
+        {
+          provide: StorageService,
+          useValue: {
+            uploadFile: jest.fn(),
+            deleteFile: jest.fn(),
+          },
         },
       ],
     }).compile();

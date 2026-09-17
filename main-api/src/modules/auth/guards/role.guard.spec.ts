@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
+
 import { ForbiddenException } from '@nestjs/common';
-import { Repository } from 'typeorm';
-import { RoleGuard, Roles } from './role.guard';
+
+import { RoleGuard } from './role.guard';
 import { Reflector } from '@nestjs/core';
 import { UserRole } from '../../../common/enums';
 import { User } from '../../../database/entities/user.entity';

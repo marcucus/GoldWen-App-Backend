@@ -55,10 +55,6 @@ describe('RevenueCatService', () => {
     }).compile();
 
     service = module.get<RevenueCatService>(RevenueCatService);
-    subscriptionsService =
-      module.get<SubscriptionsService>(SubscriptionsService);
-    configService = module.get<ConfigService>(ConfigService);
-    logger = module.get<CustomLoggerService>(CustomLoggerService);
   });
 
   afterEach(() => {
@@ -358,13 +354,14 @@ describe('RevenueCatService', () => {
     const mockRevenueCatSubscriber = (activeProductId: string) => {
       fetchSpy = jest.spyOn(global, 'fetch' as any).mockResolvedValue({
         ok: true,
-        json: async () => ({
-          subscriber: {
-            subscriptions: {
-              [activeProductId]: { expires_date: '2999-01-01T00:00:00Z' },
+        json: () =>
+          Promise.resolve({
+            subscriber: {
+              subscriptions: {
+                [activeProductId]: { expires_date: '2999-01-01T00:00:00Z' },
+              },
             },
-          },
-        }),
+          }),
       } as any);
     };
 

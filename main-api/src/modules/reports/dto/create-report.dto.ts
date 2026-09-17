@@ -5,7 +5,6 @@ import {
   IsString,
   MaxLength,
   IsOptional,
-  IsArray,
   IsIn,
 } from 'class-validator';
 import { ReportType } from '../../../common/enums';

@@ -35,7 +35,7 @@ export class RevenueCatService {
         'RevenueCatService',
       );
       // In development, allow webhooks without signature verification
-      if (this.configService.get('app.environment') === 'development') {
+      if (this.configService.get<string>('app.environment') === 'development') {
         return true;
       }
       return false;
@@ -50,7 +50,7 @@ export class RevenueCatService {
         Buffer.from(signature),
         Buffer.from(expectedSignature),
       );
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Error verifying webhook signature',
         (error as Error).stack,
@@ -81,7 +81,7 @@ export class RevenueCatService {
         userId,
         eventId: event.id,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         `Error processing RevenueCat webhook: ${(error as Error).message}`,
         (error as Error).stack,
@@ -165,7 +165,7 @@ export class RevenueCatService {
         willRenew,
         platform: subscription.platform,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         `Error getting subscription status: ${(error as Error).message}`,
         (error as Error).stack,
@@ -220,9 +220,7 @@ export class RevenueCatService {
     const activeProductIds = new Set<string>();
 
     const collect = (
-      entries:
-        | Record<string, { expires_date?: string | null }>
-        | undefined,
+      entries: Record<string, { expires_date?: string | null }> | undefined,
       keyIsProductId: boolean,
     ) => {
       if (!entries) return;
@@ -233,8 +231,8 @@ export class RevenueCatService {
           activeProductIds.add(
             keyIsProductId
               ? key
-              : (value as { product_identifier?: string })
-                  .product_identifier || key,
+              : (value as { product_identifier?: string }).product_identifier ||
+                  key,
           );
         }
       }
@@ -324,7 +322,7 @@ export class RevenueCatService {
         },
         message: 'Purchase validated and subscription activated successfully',
       };
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         `Error validating purchase: ${(error as Error).message}`,
         (error as Error).stack,

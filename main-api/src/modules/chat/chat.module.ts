@@ -24,9 +24,9 @@ import { User } from '../../database/entities/user.entity';
     TypeOrmModule.forFeature([Chat, Message, Match, User]),
     JwtModule.registerAsync({
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get('jwt.secret'),
+        secret: configService.get<string>('jwt.secret'),
         signOptions: {
-          expiresIn: configService.get('jwt.expiresIn'),
+          expiresIn: configService.get<string>('jwt.expiresIn'),
         },
       }),
       inject: [ConfigService],

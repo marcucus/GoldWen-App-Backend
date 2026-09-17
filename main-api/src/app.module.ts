@@ -98,10 +98,14 @@ import { LegalModule } from './modules/legal/legal.module';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
         const ttl = configService.get<number>('throttler.global.ttl') || 60000;
-        const limit = configService.get<number>('throttler.global.limit') || 100;
-        const redisHost = configService.get<string>('redis.host') || 'localhost';
+        const limit =
+          configService.get<number>('throttler.global.limit') || 100;
+        const redisHost =
+          configService.get<string>('redis.host') || 'localhost';
         const redisPort = configService.get<number>('redis.port') || 6379;
-        const redisPassword = configService.get<string | undefined>('redis.password');
+        const redisPassword = configService.get<string | undefined>(
+          'redis.password',
+        );
 
         return {
           throttlers: [{ name: 'default', ttl, limit }],
@@ -126,10 +130,12 @@ import { LegalModule } from './modules/legal/legal.module';
         password: configService.get('database.password'),
         database: configService.get('database.database'),
         autoLoadEntities: true,
-        synchronize: configService.get('app.environment') === 'development',
-        migrationsRun: configService.get('app.environment') !== 'development',
+        synchronize:
+          configService.get<string>('app.environment') === 'development',
+        migrationsRun:
+          configService.get<string>('app.environment') !== 'development',
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        logging: configService.get('app.environment') === 'development',
+        logging: configService.get<string>('app.environment') === 'development',
       }),
       inject: [ConfigService],
     }),
@@ -139,8 +145,8 @@ import { LegalModule } from './modules/legal/legal.module';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         redis: {
-          host: configService.get('redis.host'),
-          port: configService.get('redis.port'),
+          host: configService.get<string>('redis.host'),
+          port: configService.get<number>('redis.port'),
           password: configService.get('redis.password'),
         },
       }),
@@ -152,7 +158,7 @@ import { LegalModule } from './modules/legal/legal.module';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         type: 'single',
-        url: `redis://${configService.get('redis.host')}:${configService.get('redis.port')}`,
+        url: `redis://${configService.get<string>('redis.host')}:${configService.get<number>('redis.port')}`,
         options: {
           password: configService.get('redis.password') || undefined,
         },

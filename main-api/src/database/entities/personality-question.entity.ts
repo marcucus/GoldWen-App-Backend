@@ -5,7 +5,6 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
-  Index,
 } from 'typeorm';
 import { QuestionType } from '../../common/enums';
 import { PersonalityAnswer } from './personality-answer.entity';

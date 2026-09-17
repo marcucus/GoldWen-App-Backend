@@ -12,12 +12,12 @@ import { NotificationType } from '../../../common/enums';
 export class GetNotificationsDto {
   @ApiPropertyOptional({ description: 'Page number', default: 1 })
   @IsOptional()
-  @Transform(({ value }) => parseInt(value))
+  @Transform(({ value }) => parseInt(String(value)))
   page?: number = 1;
 
   @ApiPropertyOptional({ description: 'Number of items per page', default: 20 })
   @IsOptional()
-  @Transform(({ value }) => parseInt(value))
+  @Transform(({ value }) => parseInt(String(value)))
   limit?: number = 20;
 
   @ApiPropertyOptional({
@@ -97,7 +97,7 @@ export class CreateNotificationDto {
   @ApiPropertyOptional({ description: 'Additional notification data' })
   @IsOptional()
   @IsObject()
-  data?: any;
+  data?: Record<string, unknown>;
 
   @ApiPropertyOptional({ description: 'Schedule notification for later' })
   @IsOptional()
@@ -154,5 +154,5 @@ export class SendGroupNotificationDto {
   @ApiPropertyOptional({ description: 'Additional notification data' })
   @IsOptional()
   @IsObject()
-  data?: any;
+  data?: Record<string, unknown>;
 }

@@ -1,3 +1,4 @@
+import type { Request as ExpressRequest } from 'express';
 import {
   Controller,
   Get,
@@ -23,6 +24,7 @@ import { QuotaGuard } from './guards/quota.guard';
 import { DevOnlyGuard } from '../../common/guards';
 import { MatchingService } from './matching.service';
 import { GetMatchesDto } from './dto/matching.dto';
+import { User } from '../../database/entities/user.entity';
 
 @ApiTags('matching')
 @Controller('matching')
@@ -37,8 +39,14 @@ export class MatchingController {
     status: 200,
     description: 'User choices retrieved successfully',
   })
-  async getUserChoices(@Request() req: any, @Query('date') date?: string) {
-    const data = await this.matchingService.getUserChoices(req.user.id, date);
+  async getUserChoices(
+    @Request() req: ExpressRequest,
+    @Query('date') date?: string,
+  ) {
+    const data = await this.matchingService.getUserChoices(
+      (req.user as User).id,
+      date,
+    );
     return {
       success: true,
       data,
@@ -51,8 +59,8 @@ export class MatchingController {
     status: 200,
     description: 'Daily selection status retrieved successfully',
   })
-  async getDailySelectionStatus(@Request() req: any) {
-    return this.matchingService.getDailySelectionStatus(req.user.id);
+  async getDailySelectionStatus(@Request() req: ExpressRequest) {
+    return this.matchingService.getDailySelectionStatus((req.user as User).id);
   }
 
   @Get('daily-selection')
@@ -62,11 +70,11 @@ export class MatchingController {
     description: 'Daily selection retrieved successfully',
   })
   async getDailySelection(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Query('preload') preload?: boolean,
   ) {
     const data = await this.matchingService.getDailySelection(
-      req.user.id,
+      (req.user as User).id,
       preload,
     );
     return {
@@ -82,14 +90,16 @@ export class MatchingController {
   // as "for testing" and was never meant to be reachable in production.
   @Post('daily-selection/generate')
   @UseGuards(DevOnlyGuard)
-  @ApiOperation({ summary: 'Manually generate daily selection (dev/testing only)' })
+  @ApiOperation({
+    summary: 'Manually generate daily selection (dev/testing only)',
+  })
   @ApiResponse({
     status: 201,
     description: 'Daily selection generated successfully',
   })
   @ApiResponse({ status: 403, description: 'Not available in production' })
-  async generateDailySelection(@Request() req: any) {
-    return this.matchingService.generateDailySelection(req.user.id);
+  async generateDailySelection(@Request() req: ExpressRequest) {
+    return this.matchingService.generateDailySelection((req.user as User).id);
   }
 
   @Post('choose/:targetUserId')
@@ -104,12 +114,12 @@ export class MatchingController {
     description: 'Daily quota exceeded',
   })
   async chooseProfile(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Param('targetUserId') targetUserId: string,
     @Body() body: { choice: 'like' | 'pass' },
   ) {
     return this.matchingService.chooseProfile(
-      req.user.id,
+      (req.user as User).id,
       targetUserId,
       body.choice,
     );
@@ -118,9 +128,12 @@ export class MatchingController {
   @Get('matches')
   @ApiOperation({ summary: 'Get user matches' })
   @ApiResponse({ status: 200, description: 'Matches retrieved successfully' })
-  async getMatches(@Request() req: any, @Query() query: GetMatchesDto) {
+  async getMatches(
+    @Request() req: ExpressRequest,
+    @Query() query: GetMatchesDto,
+  ) {
     const matches = await this.matchingService.getUserMatches(
-      req.user.id,
+      (req.user as User).id,
       query.status,
     );
     return {
@@ -135,9 +148,9 @@ export class MatchingController {
     status: 200,
     description: 'Pending matches retrieved successfully',
   })
-  async getPendingMatches(@Request() req: any) {
+  async getPendingMatches(@Request() req: ExpressRequest) {
     const pendingMatches = await this.matchingService.getPendingMatches(
-      req.user.id,
+      (req.user as User).id,
     );
     return {
       success: true,
@@ -151,8 +164,13 @@ export class MatchingController {
     status: 200,
     description: 'Match details retrieved successfully',
   })
-  async getMatch(@Request() req: any, @Param('matchId') matchId: string) {
-    const matches = await this.matchingService.getUserMatches(req.user.id);
+  async getMatch(
+    @Request() req: ExpressRequest,
+    @Param('matchId') matchId: string,
+  ) {
+    const matches = await this.matchingService.getUserMatches(
+      (req.user as User).id,
+    );
     const match = matches.find((m) => m.id === matchId);
 
     if (!match) {
@@ -165,8 +183,11 @@ export class MatchingController {
   @Delete('matches/:matchId')
   @ApiOperation({ summary: 'Delete a match' })
   @ApiResponse({ status: 200, description: 'Match deleted successfully' })
-  async deleteMatch(@Request() req: any, @Param('matchId') matchId: string) {
-    await this.matchingService.deleteMatch(req.user.id, matchId);
+  async deleteMatch(
+    @Request() req: ExpressRequest,
+    @Param('matchId') matchId: string,
+  ) {
+    await this.matchingService.deleteMatch((req.user as User).id, matchId);
     return { message: 'Match deleted successfully' };
   }
 
@@ -174,11 +195,11 @@ export class MatchingController {
   @ApiOperation({ summary: 'Get compatibility score with another user' })
   @ApiResponse({ status: 200, description: 'Compatibility score calculated' })
   async getCompatibilityScore(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Param('targetUserId') targetUserId: string,
   ) {
     const score = await this.matchingService.getCompatibilityScore(
-      req.user.id,
+      (req.user as User).id,
       targetUserId,
     );
     return { compatibilityScore: score };
@@ -191,7 +212,7 @@ export class MatchingController {
     description: 'Matching history retrieved successfully',
   })
   async getMatchingHistory(
-    @Request() req: any,
+    @Request() req: ExpressRequest,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('page') page?: string,
@@ -204,7 +225,7 @@ export class MatchingController {
       limit: limit ? parseInt(limit, 10) : 20,
     };
 
-    return this.matchingService.getHistory(req.user.id, options);
+    return this.matchingService.getHistory((req.user as User).id, options);
   }
 
   @Get('who-liked-me')
@@ -220,8 +241,10 @@ export class MatchingController {
     status: 403,
     description: 'Premium subscription required',
   })
-  async getWhoLikedMe(@Request() req: any) {
-    const likedBy = await this.matchingService.getWhoLikedMe(req.user.id);
+  async getWhoLikedMe(@Request() req: ExpressRequest) {
+    const likedBy = await this.matchingService.getWhoLikedMe(
+      (req.user as User).id,
+    );
     return {
       success: true,
       data: likedBy,

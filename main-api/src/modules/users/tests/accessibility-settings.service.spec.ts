@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+
 import { UsersService } from '../users.service';
 import { User } from '../../../database/entities/user.entity';
 import { Profile } from '../../../database/entities/profile.entity';
@@ -9,6 +9,8 @@ import { Message } from '../../../database/entities/message.entity';
 import { Subscription } from '../../../database/entities/subscription.entity';
 import { DailySelection } from '../../../database/entities/daily-selection.entity';
 import { PushToken } from '../../../database/entities/push-token.entity';
+import { UserConsent } from '../../../database/entities/user-consent.entity';
+import { CustomLoggerService } from '../../../common/logger';
 import { FontSize, UserStatus } from '../../../common/enums';
 import { UpdateAccessibilitySettingsDto } from '../dto/accessibility-settings.dto';
 import { NotFoundException } from '@nestjs/common';
@@ -67,6 +69,25 @@ describe('UsersService - Accessibility Settings', () => {
             create: jest.fn(),
             save: jest.fn(),
             remove: jest.fn(),
+          },
+        },
+        {
+          provide: getRepositoryToken(UserConsent),
+          useValue: {
+            findOne: jest.fn(),
+            find: jest.fn(),
+            create: jest.fn(),
+            save: jest.fn(),
+            update: jest.fn(),
+          },
+        },
+        {
+          provide: CustomLoggerService,
+          useValue: {
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            debug: jest.fn(),
           },
         },
       ],

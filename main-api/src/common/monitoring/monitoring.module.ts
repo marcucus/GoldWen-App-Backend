@@ -11,7 +11,14 @@ import { AdminGuard } from '../../modules/auth/guards/admin.guard';
 @Global()
 @Module({
   imports: [ConfigModule],
-  providers: [SentryService, AlertingService, DatadogService, MetricsService, AdminGuard, Reflector],
+  providers: [
+    SentryService,
+    AlertingService,
+    DatadogService,
+    MetricsService,
+    AdminGuard,
+    Reflector,
+  ],
   controllers: [MetricsController],
   exports: [SentryService, AlertingService, DatadogService, MetricsService],
 })

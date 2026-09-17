@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 import { ReportsService } from '../reports.service';
@@ -13,10 +12,6 @@ import { CreateReportDto } from '../dto/create-report.dto';
 
 describe('ReportsService', () => {
   let service: ReportsService;
-  let reportRepository: Repository<Report>;
-  let userRepository: Repository<User>;
-  let messageRepository: Repository<Message>;
-  let notificationsService: NotificationsService;
 
   const mockReportRepository = {
     create: jest.fn(),
@@ -62,15 +57,6 @@ describe('ReportsService', () => {
     }).compile();
 
     service = module.get<ReportsService>(ReportsService);
-    reportRepository = module.get<Repository<Report>>(
-      getRepositoryToken(Report),
-    );
-    userRepository = module.get<Repository<User>>(getRepositoryToken(User));
-    messageRepository = module.get<Repository<Message>>(
-      getRepositoryToken(Message),
-    );
-    notificationsService =
-      module.get<NotificationsService>(NotificationsService);
   });
 
   afterEach(() => {

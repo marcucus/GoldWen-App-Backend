@@ -46,7 +46,7 @@ export class MonitoringController {
   @Get('logs')
   @ApiOperation({ summary: 'Get recent logs' })
   @ApiResponse({ status: 200, description: 'Recent logs' })
-  async getLogs(
+  getLogs(
     @Query('level') level?: string,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
@@ -56,23 +56,25 @@ export class MonitoringController {
       { level, limit, offset },
       'info',
     );
-    return this.monitoringService.getRecentLogs({
-      level,
-      limit: limit || 100,
-      offset: offset || 0,
-    });
+    return Promise.resolve(
+      this.monitoringService.getRecentLogs({
+        level,
+        limit: limit || 100,
+        offset: offset || 0,
+      }),
+    );
   }
 
   @Get('alerts')
   @ApiOperation({ summary: 'Get recent alerts' })
   @ApiResponse({ status: 200, description: 'Recent alerts' })
-  async getAlerts() {
+  getAlerts() {
     this.logger.logSecurityEvent(
       'admin_monitoring_alerts_accessed',
       {},
       'info',
     );
-    return this.monitoringService.getRecentAlerts();
+    return Promise.resolve(this.monitoringService.getRecentAlerts());
   }
 
   @Get('performance')

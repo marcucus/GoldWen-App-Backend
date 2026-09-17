@@ -122,7 +122,7 @@ describe('RateLimitGuard', () => {
     it('should log security events with correct parameters', async () => {
       try {
         await guard['throwThrottlingException'](mockContext);
-      } catch (error) {
+      } catch {
         // Expected to throw
       }
 

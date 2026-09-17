@@ -1,3 +1,7 @@
+import type {
+  Request as ExpressRequest,
+  Response as ExpressResponse,
+} from 'express';
 import {
   Injectable,
   NestInterceptor,
@@ -6,13 +10,12 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { ThrottlerStorageService } from '@nestjs/throttler';
 
 @Injectable()
 export class RateLimitHeadersInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const response = context.switchToHttp().getResponse();
-    const request = context.switchToHttp().getRequest();
+    const response = context.switchToHttp().getResponse<ExpressResponse>();
+    const request = context.switchToHttp().getRequest<ExpressRequest>();
 
     return next.handle().pipe(
       tap(() => {

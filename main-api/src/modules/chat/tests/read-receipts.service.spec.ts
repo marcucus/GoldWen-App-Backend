@@ -1,14 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { ReadReceiptsService } from '../services/read-receipts.service';
 import { Message } from '../../../database/entities/message.entity';
 import { CustomLoggerService } from '../../../common/logger';
 
 describe('ReadReceiptsService', () => {
   let service: ReadReceiptsService;
-  let messageRepository: Repository<Message>;
-  let logger: CustomLoggerService;
 
   const mockMessageRepository = {
     find: jest.fn(),
@@ -41,10 +38,6 @@ describe('ReadReceiptsService', () => {
     }).compile();
 
     service = module.get<ReadReceiptsService>(ReadReceiptsService);
-    messageRepository = module.get<Repository<Message>>(
-      getRepositoryToken(Message),
-    );
-    logger = module.get<CustomLoggerService>(CustomLoggerService);
 
     jest.clearAllMocks();
   });

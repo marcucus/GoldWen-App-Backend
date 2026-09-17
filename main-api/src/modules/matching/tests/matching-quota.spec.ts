@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { BadRequestException } from '@nestjs/common';
 import { MatchingService } from '../matching.service';
 import { Match } from '../../../database/entities/match.entity';
@@ -17,9 +16,6 @@ import { CustomLoggerService } from '../../../common/logger';
 
 describe('MatchingService - Quota Enforcement', () => {
   let service: MatchingService;
-  let dailySelectionRepository: Repository<DailySelection>;
-  let matchRepository: Repository<Match>;
-  let userRepository: Repository<User>;
 
   const mockDailySelectionRepository = {
     findOne: jest.fn(),
@@ -126,11 +122,6 @@ describe('MatchingService - Quota Enforcement', () => {
     }).compile();
 
     service = module.get<MatchingService>(MatchingService);
-    dailySelectionRepository = module.get<Repository<DailySelection>>(
-      getRepositoryToken(DailySelection),
-    );
-    matchRepository = module.get<Repository<Match>>(getRepositoryToken(Match));
-    userRepository = module.get<Repository<User>>(getRepositoryToken(User));
   });
 
   afterEach(() => {

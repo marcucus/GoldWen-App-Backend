@@ -9,7 +9,6 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { UseGuards, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -45,9 +44,10 @@ interface AuthenticatedSocket extends Socket {
 // (cookie/credentialed) WebSocket connection cross-origin. This mirrors the
 // explicit-allowlist CORS check already used for the REST API in main.ts —
 // no origin is ever accepted just because nothing was configured.
-const chatAllowedOrigins = [process.env.FRONTEND_URL, process.env.WEB_URL].filter(
-  (origin): origin is string => !!origin,
-);
+const chatAllowedOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.WEB_URL,
+].filter((origin): origin is string => !!origin);
 
 @WebSocketGateway({
   cors: {
@@ -69,7 +69,7 @@ export class ChatGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   constructor(
     private readonly chatService: ChatService,
@@ -88,15 +88,22 @@ export class ChatGateway
   afterInit(server: Server) {
     const redisHost = this.configService.get<string>('redis.host', 'localhost');
     const redisPort = this.configService.get<number>('redis.port', 6379);
-    const redisPassword = this.configService.get<string | undefined>('redis.password');
+    const redisPassword = this.configService.get<string | undefined>(
+      'redis.password',
+    );
 
-    const redisOptions = { host: redisHost, port: redisPort, password: redisPassword || undefined };
+    const redisOptions = {
+      host: redisHost,
+      port: redisPort,
+      password: redisPassword || undefined,
+    };
     const pubClient = new Redis(redisOptions);
     const subClient = pubClient.duplicate();
 
     // When a namespace is configured, afterInit receives the Namespace object,
     // not the main Server. The adapter must be set on the root Server instance.
-    const io: Server = (server as unknown as { server: Server }).server ?? server;
+    const io: Server =
+      (server as unknown as { server: Server }).server ?? server;
     io.adapter(createAdapter(pubClient, subClient));
     this.logger.info('WebSocket Gateway initialized with Redis adapter');
   }
@@ -104,8 +111,9 @@ export class ChatGateway
   async handleConnection(client: AuthenticatedSocket) {
     try {
       // Extract token from auth object or query
-      const token =
+      const rawToken: unknown =
         client.handshake.auth?.token || client.handshake.query?.token;
+      const token = typeof rawToken === 'string' ? rawToken : undefined;
 
       if (!token) {
         this.logger.warn('WebSocket connection rejected: No token provided');
@@ -114,7 +122,7 @@ export class ChatGateway
       }
 
       // Verify JWT token
-      const payload = this.jwtService.verify(token) as JwtSocketPayload;
+      const payload = this.jwtService.verify<JwtSocketPayload>(token);
 
       // SECURITY (Phase 0.10): the REST API's JwtStrategy already checks
       // both of these (blacklist + account status) — the WebSocket gateway
@@ -122,9 +130,10 @@ export class ChatGateway
       // account's token could still open a chat connection indefinitely.
       const isBlacklisted = await this.redis.get(`blacklist:token:${token}`);
       if (isBlacklisted) {
-        this.logger.warn('WebSocket connection rejected: token revoked', {
-          clientId: client.id,
-        });
+        this.logger.warn(
+          `WebSocket connection rejected: token revoked (client ${client.id})`,
+          'ChatGateway',
+        );
         client.disconnect();
         return;
       }
@@ -134,8 +143,8 @@ export class ChatGateway
       });
       if (!user || user.status !== UserStatus.ACTIVE) {
         this.logger.warn(
-          'WebSocket connection rejected: account not active',
-          { clientId: client.id, userId: payload.sub },
+          `WebSocket connection rejected: account not active (client ${client.id}, user ${payload.sub})`,
+          'ChatGateway',
         );
         client.disconnect();
         return;
@@ -153,7 +162,7 @@ export class ChatGateway
       await client.join(`user:${client.userId}`);
 
       // Mark user as online
-      await this.presenceService.setUserOnline(client.userId!);
+      await this.presenceService.setUserOnline(client.userId);
 
       // Emit presence status to all connections
       this.server.emit('user_presence_changed', {
@@ -161,10 +170,10 @@ export class ChatGateway
         isOnline: true,
         timestamp: new Date(),
       });
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'WebSocket authentication failed',
-        error.message,
+        error instanceof Error ? error.message : String(error),
         'ChatGateway',
       );
       client.disconnect();
@@ -233,8 +242,12 @@ export class ChatGateway
       client.emit('joined_chat', {
         conversationId: data.conversationId,
       });
-    } catch (error) {
-      this.logger.error('Error joining chat', error.message, 'ChatGateway');
+    } catch (error: unknown) {
+      this.logger.error(
+        'Error joining chat',
+        error instanceof Error ? error.message : String(error),
+        'ChatGateway',
+      );
       client.emit('error', { message: 'Failed to join chat' });
     }
   }
@@ -292,10 +305,10 @@ export class ChatGateway
         senderId: client.userId,
         conversationId: data.conversationId,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Error sending message via WebSocket',
-        error.message,
+        error instanceof Error ? error.message : String(error),
         'ChatGateway',
       );
       client.emit('error', { message: 'Failed to send message' });
@@ -379,10 +392,10 @@ export class ChatGateway
         userId: client.userId,
         conversationId: data.conversationId,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Error marking message as read',
-        error.message,
+        error instanceof Error ? error.message : String(error),
         'ChatGateway',
       );
       client.emit('error', { message: 'Failed to mark message as read' });
@@ -437,10 +450,10 @@ export class ChatGateway
         userId: client.userId,
         messageCount: markedCount,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Error marking conversation as read',
-        error.message,
+        error instanceof Error ? error.message : String(error),
         'ChatGateway',
       );
       client.emit('error', {
@@ -471,10 +484,10 @@ export class ChatGateway
       client.emit('presence_status', {
         statuses: formattedStatuses,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         'Error getting presence status',
-        error.message,
+        error instanceof Error ? error.message : String(error),
         'ChatGateway',
       );
       client.emit('error', { message: 'Failed to get presence status' });
@@ -482,7 +495,7 @@ export class ChatGateway
   }
 
   // Method to send notifications from other services
-  async sendNotificationToUser(
+  sendNotificationToUser(
     userId: string,
     notification: {
       type: string;
@@ -500,7 +513,7 @@ export class ChatGateway
   }
 
   // Method to notify about new matches
-  async notifyNewMatch(
+  notifyNewMatch(
     userId: string,
     matchData: {
       conversationId: string;
@@ -517,7 +530,7 @@ export class ChatGateway
   }
 
   // Method to notify about chat expiration
-  async notifyChatExpiring(conversationId: string, expiresAt: Date) {
+  notifyChatExpiring(conversationId: string, expiresAt: Date) {
     this.server.to(`chat:${conversationId}`).emit('chat_expiring', {
       conversationId,
       expiresAt,
@@ -530,7 +543,7 @@ export class ChatGateway
   }
 
   // Method to notify about expired chats
-  async notifyChatExpired(conversationId: string) {
+  notifyChatExpired(conversationId: string) {
     this.server.to(`chat:${conversationId}`).emit('chat_expired', {
       conversationId,
     });

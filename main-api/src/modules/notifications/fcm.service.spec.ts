@@ -6,9 +6,8 @@ import { CustomLoggerService } from '../../common/logger';
 
 describe('FcmService', () => {
   let service: FcmService;
-  let configService: ConfigService;
+
   let firebaseService: FirebaseService;
-  let loggerService: CustomLoggerService;
 
   const mockConfigService = {
     get: jest.fn(),
@@ -49,9 +48,8 @@ describe('FcmService', () => {
     }).compile();
 
     service = module.get<FcmService>(FcmService);
-    configService = module.get<ConfigService>(ConfigService);
+
     firebaseService = module.get<FirebaseService>(FirebaseService);
-    loggerService = module.get<CustomLoggerService>(CustomLoggerService);
   });
 
   afterEach(() => {

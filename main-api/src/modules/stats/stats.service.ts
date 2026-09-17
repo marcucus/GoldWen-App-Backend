@@ -19,6 +19,18 @@ import {
   ReportStatus,
 } from '../../common/enums';
 
+// Raw aggregate rows: node-postgres always returns COUNT()/SUM() as
+// strings (not numbers), which is why every callsite below parseInt()s
+// them rather than using them as numbers directly.
+interface DateCountRow {
+  date: string;
+  count: string;
+}
+
+interface SumRow {
+  total: string | null;
+}
+
 import {
   GetActivityStatsDto,
   ExportStatsDto,
@@ -152,8 +164,11 @@ export class StatsService {
 
       this.logger.log('Global statistics fetched successfully');
       return stats;
-    } catch (error) {
-      this.logger.error('Failed to fetch global statistics', error);
+    } catch (error: unknown) {
+      this.logger.error(
+        'Failed to fetch global statistics',
+        error instanceof Error ? error.stack : String(error),
+      );
       throw error;
     }
   }
@@ -217,7 +232,7 @@ export class StatsService {
         .createQueryBuilder('ds')
         .select('SUM(ds.choicesUsed)', 'total')
         .where('ds.userId = :userId', { userId })
-        .getRawOne();
+        .getRawOne<SumRow>();
 
       // Get current subscription
       const currentSubscription = await this.subscriptionRepository.findOne({
@@ -275,10 +290,10 @@ export class StatsService {
         `User statistics fetched successfully for user: ${userId}`,
       );
       return stats;
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
         `Failed to fetch user statistics for user: ${userId}`,
-        error,
+        error instanceof Error ? error.stack : String(error),
       );
       throw error;
     }
@@ -329,7 +344,7 @@ export class StatsService {
         })
         .groupBy('date')
         .orderBy('date', 'ASC')
-        .getRawMany();
+        .getRawMany<DateCountRow>();
 
       // Matches created over time
       const matchesCreated = await this.matchRepository
@@ -344,7 +359,7 @@ export class StatsService {
         .andWhere('match.status = :status', { status: MatchStatus.MATCHED })
         .groupBy('date')
         .orderBy('date', 'ASC')
-        .getRawMany();
+        .getRawMany<DateCountRow>();
 
       // Messages sent over time
       const messagesSent = await this.messageRepository
@@ -358,7 +373,7 @@ export class StatsService {
         })
         .groupBy('date')
         .orderBy('date', 'ASC')
-        .getRawMany();
+        .getRawMany<DateCountRow>();
 
       // Daily active users (users who were active on each date)
       const dailyActiveUsers = await this.userRepository
@@ -372,7 +387,7 @@ export class StatsService {
         })
         .groupBy('date')
         .orderBy('date', 'ASC')
-        .getRawMany();
+        .getRawMany<DateCountRow>();
 
       // Subscription conversions over time
       const subscriptionConversions = await this.subscriptionRepository
@@ -389,7 +404,7 @@ export class StatsService {
         })
         .groupBy('date')
         .orderBy('date', 'ASC')
-        .getRawMany();
+        .getRawMany<DateCountRow>();
 
       // Calculate summary statistics
       const totalActivity =
@@ -460,8 +475,11 @@ export class StatsService {
 
       this.logger.log('Activity statistics fetched successfully');
       return stats;
-    } catch (error) {
-      this.logger.error('Failed to fetch activity statistics', error);
+    } catch (error: unknown) {
+      this.logger.error(
+        'Failed to fetch activity statistics',
+        error instanceof Error ? error.stack : String(error),
+      );
       throw error;
     }
   }
@@ -473,11 +491,15 @@ export class StatsService {
     type: 'global' | 'activity',
     query?: GetActivityStatsDto,
     exportOptions?: ExportStatsDto,
-  ): Promise<{ data: any; format: ExportFormat; filename: string }> {
+  ): Promise<{
+    data: GlobalStatsResponseDto | ActivityStatsResponseDto;
+    format: ExportFormat;
+    filename: string;
+  }> {
     this.logger.log(`Exporting ${type} statistics`);
 
     try {
-      let data: any;
+      let data: GlobalStatsResponseDto | ActivityStatsResponseDto;
       let filename: string;
 
       if (type === 'global') {
@@ -503,8 +525,11 @@ export class StatsService {
         format,
         filename,
       };
-    } catch (error) {
-      this.logger.error(`Failed to export ${type} statistics`, error);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to export ${type} statistics`,
+        error instanceof Error ? error.stack : String(error),
+      );
       throw error;
     }
   }

@@ -9,12 +9,10 @@ describe('Monitoring Services', () => {
   let sentryService: SentryService;
   let alertingService: AlertingService;
   let datadogService: DatadogService;
-  let configService: ConfigService;
-  let loggerService: CustomLoggerService;
 
   const mockConfigService = {
     get: jest.fn((key: string) => {
-      const config = {
+      const config: Record<string, any> = {
         'monitoring.sentry.dsn': '',
         'monitoring.sentry.environment': 'test',
         'monitoring.sentry.tracesSampleRate': 0.1,
@@ -57,8 +55,6 @@ describe('Monitoring Services', () => {
     sentryService = module.get<SentryService>(SentryService);
     alertingService = module.get<AlertingService>(AlertingService);
     datadogService = module.get<DatadogService>(DatadogService);
-    configService = module.get<ConfigService>(ConfigService);
-    loggerService = module.get<CustomLoggerService>(CustomLoggerService);
   });
 
   describe('SentryService', () => {
@@ -153,7 +149,6 @@ describe('Monitoring Services', () => {
       );
     });
   });
-});
 
   describe('DatadogService', () => {
     it('should be defined', () => {
@@ -163,11 +158,11 @@ describe('Monitoring Services', () => {
     it('should handle missing configuration gracefully', async () => {
       // DatadogService should be initialized without keys
       const result = await datadogService.sendGaugeMetric('test.metric', 1.0);
-      
+
       expect(result).toBe(false);
       expect(mockLoggerService.debug).toHaveBeenCalledWith(
         'DataDog not enabled, skipping metric: test.metric',
-        'DatadogService'
+        'DatadogService',
       );
     });
 
@@ -177,13 +172,13 @@ describe('Monitoring Services', () => {
 
     it('should track API metrics without errors', async () => {
       await expect(
-        datadogService.trackApiMetrics('/test', 'GET', 150, 200)
+        datadogService.trackApiMetrics('/test', 'GET', 150, 200),
       ).resolves.not.toThrow();
     });
 
     it('should track business metrics without errors', async () => {
       await expect(
-        datadogService.trackBusinessMetrics('user_login', 1, ['source:mobile'])
+        datadogService.trackBusinessMetrics('user_login', 1, ['source:mobile']),
       ).resolves.not.toThrow();
     });
   });

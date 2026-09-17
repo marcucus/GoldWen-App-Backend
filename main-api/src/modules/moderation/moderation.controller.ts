@@ -22,7 +22,6 @@ import { ModerationService } from './services/moderation.service';
 import {
   ModerateTextDto,
   ModerateTextBatchDto,
-  PhotoModerationStatusDto,
   PhotoModerationWebhookDto,
 } from './dto/moderation.dto';
 
@@ -34,9 +33,15 @@ export class ModerationController {
   @Post('webhook/photo')
   @UseGuards(ModerationWebhookGuard)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Photo moderation webhook (internal — requires X-Moderation-Webhook-Secret)' })
+  @ApiOperation({
+    summary:
+      'Photo moderation webhook (internal — requires X-Moderation-Webhook-Secret)',
+  })
   @ApiResponse({ status: 200, description: 'Photo moderation result' })
-  @ApiResponse({ status: 401, description: 'Missing or invalid webhook secret' })
+  @ApiResponse({
+    status: 401,
+    description: 'Missing or invalid webhook secret',
+  })
   async photoModerationWebhook(@Body() dto: PhotoModerationWebhookDto) {
     const result = await this.moderationService.moderatePhoto(dto.photoId);
     return {
@@ -77,7 +82,9 @@ export class ModerationController {
   @Post('admin/text')
   @UseGuards(AdminGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Moderate a text string for policy violations (admin)' })
+  @ApiOperation({
+    summary: 'Moderate a text string for policy violations (admin)',
+  })
   @ApiResponse({ status: 201, description: 'Moderation result' })
   async adminModerateText(@Body() dto: ModerateTextDto) {
     const result = await this.moderationService.moderateTextContent(dto.text);

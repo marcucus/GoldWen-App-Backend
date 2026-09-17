@@ -5,7 +5,6 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
-  Index,
 } from 'typeorm';
 import { PromptAnswer } from './prompt-answer.entity';
 

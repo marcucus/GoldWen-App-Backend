@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { MatchingService } from '../matching.service';
 import { Match } from '../../../database/entities/match.entity';
 import { User } from '../../../database/entities/user.entity';
@@ -17,16 +16,6 @@ import { MatchStatus } from '../../../common/enums';
 
 describe('MatchingService - Unidirectional Matching', () => {
   let service: MatchingService;
-  let matchRepository: Repository<Match>;
-  let userRepository: Repository<User>;
-  let profileRepository: Repository<Profile>;
-  let dailySelectionRepository: Repository<DailySelection>;
-  let personalityAnswerRepository: Repository<PersonalityAnswer>;
-  let subscriptionRepository: Repository<Subscription>;
-  let chatService: ChatService;
-  let notificationsService: NotificationsService;
-  let matchingIntegrationService: MatchingIntegrationService;
-  let logger: CustomLoggerService;
 
   const mockMatchRepository = {
     create: jest.fn(),
@@ -131,27 +120,6 @@ describe('MatchingService - Unidirectional Matching', () => {
     }).compile();
 
     service = module.get<MatchingService>(MatchingService);
-    matchRepository = module.get<Repository<Match>>(getRepositoryToken(Match));
-    userRepository = module.get<Repository<User>>(getRepositoryToken(User));
-    profileRepository = module.get<Repository<Profile>>(
-      getRepositoryToken(Profile),
-    );
-    dailySelectionRepository = module.get<Repository<DailySelection>>(
-      getRepositoryToken(DailySelection),
-    );
-    personalityAnswerRepository = module.get<Repository<PersonalityAnswer>>(
-      getRepositoryToken(PersonalityAnswer),
-    );
-    subscriptionRepository = module.get<Repository<Subscription>>(
-      getRepositoryToken(Subscription),
-    );
-    chatService = module.get<ChatService>(ChatService);
-    notificationsService =
-      module.get<NotificationsService>(NotificationsService);
-    matchingIntegrationService = module.get<MatchingIntegrationService>(
-      MatchingIntegrationService,
-    );
-    logger = module.get<CustomLoggerService>(CustomLoggerService);
   });
 
   afterEach(() => {

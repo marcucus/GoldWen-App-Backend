@@ -4,7 +4,6 @@ import { CustomLoggerService } from '../../../common/logger';
 
 describe('TypingIndicatorService', () => {
   let service: TypingIndicatorService;
-  let logger: CustomLoggerService;
 
   const mockLogger = {
     info: jest.fn(),
@@ -25,7 +24,6 @@ describe('TypingIndicatorService', () => {
     }).compile();
 
     service = module.get<TypingIndicatorService>(TypingIndicatorService);
-    logger = module.get<CustomLoggerService>(CustomLoggerService);
 
     jest.clearAllMocks();
   });

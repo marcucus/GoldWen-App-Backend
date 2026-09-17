@@ -93,7 +93,7 @@ export class ImageProcessorUtil {
         height: finalMetadata.height || 0,
         format: finalMetadata.format || format,
       };
-    } catch (_error) {
+    } catch {
       // If processing fails, copy the original file
       fs.copyFileSync(inputPath, outputPath);
 

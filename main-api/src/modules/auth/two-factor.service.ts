@@ -19,10 +19,13 @@ export class TwoFactorService {
     private userRepository: Repository<User>,
   ) {}
 
-  async generateSecret(userId: string): Promise<{ qrCodeUrl: string; secret: string }> {
+  async generateSecret(
+    userId: string,
+  ): Promise<{ qrCodeUrl: string; secret: string }> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('User not found');
-    if (user.twoFactorEnabled) throw new BadRequestException('2FA is already enabled');
+    if (user.twoFactorEnabled)
+      throw new BadRequestException('2FA is already enabled');
 
     const secret = speakeasy.generateSecret({
       name: `GoldWen (${user.email})`,
@@ -33,7 +36,7 @@ export class TwoFactorService {
     await this.userRepository
       .createQueryBuilder()
       .update(User)
-      .set({ twoFactorSecret: secret.base32 } as Partial<User>)
+      .set({ twoFactorSecret: secret.base32 })
       .where('id = :id', { id: userId })
       .execute();
 
@@ -49,8 +52,10 @@ export class TwoFactorService {
       .getOne();
 
     if (!user) throw new UnauthorizedException('User not found');
-    if (user.twoFactorEnabled) throw new BadRequestException('2FA is already enabled');
-    if (!user.twoFactorSecret) throw new BadRequestException('Generate a secret first');
+    if (user.twoFactorEnabled)
+      throw new BadRequestException('2FA is already enabled');
+    if (!user.twoFactorSecret)
+      throw new BadRequestException('Generate a secret first');
 
     const isValid = speakeasy.totp.verify({
       secret: user.twoFactorSecret,
@@ -74,7 +79,8 @@ export class TwoFactorService {
       .getOne();
 
     if (!user) throw new UnauthorizedException('User not found');
-    if (!user.twoFactorEnabled) throw new BadRequestException('2FA is not enabled');
+    if (!user.twoFactorEnabled)
+      throw new BadRequestException('2FA is not enabled');
 
     const isValid = speakeasy.totp.verify({
       secret: user.twoFactorSecret!,
@@ -88,7 +94,10 @@ export class TwoFactorService {
     await this.userRepository
       .createQueryBuilder()
       .update(User)
-      .set({ twoFactorEnabled: false, twoFactorSecret: undefined } as Partial<User>)
+      .set({
+        twoFactorEnabled: false,
+        twoFactorSecret: undefined,
+      })
       .where('id = :id', { id: userId })
       .execute();
 

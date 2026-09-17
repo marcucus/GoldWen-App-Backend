@@ -3,6 +3,7 @@ import { UsersController } from '../users.controller';
 import { UsersService } from '../users.service';
 import { ProfilesService } from '../../profiles/profiles.service';
 import { GdprService } from '../gdpr.service';
+import { GdprService as GdprModuleService } from '../../gdpr/gdpr.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Profile } from '../../../database/entities/profile.entity';
 import { PromptAnswer } from '../../../database/entities/prompt-answer.entity';
@@ -48,6 +49,11 @@ describe('UsersController - Delete Account', () => {
     exportUserData: jest.fn(),
   };
 
+  const mockGdprModuleService = {
+    requestDataExport: jest.fn(),
+    getExportRequestStatus: jest.fn(),
+  };
+
   const mockProfileRepository = {
     findOne: jest.fn(),
     save: jest.fn(),
@@ -74,6 +80,10 @@ describe('UsersController - Delete Account', () => {
         {
           provide: GdprService,
           useValue: mockGdprService,
+        },
+        {
+          provide: GdprModuleService,
+          useValue: mockGdprModuleService,
         },
         {
           provide: getRepositoryToken(Profile),
@@ -112,11 +122,10 @@ describe('UsersController - Delete Account', () => {
       // Mock GDPR service
       mockGdprService.deleteUserCompletely.mockResolvedValue(undefined);
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const result = await controller.deleteAccount(req, deleteAccountDto);
 
       expect(mockUsersService.findById).toHaveBeenCalledWith(mockUser.id);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
+
       expect(PasswordUtil.compare).toHaveBeenCalledWith(
         deleteAccountDto.password,
         mockUser.passwordHash,
@@ -141,12 +150,10 @@ describe('UsersController - Delete Account', () => {
       };
 
       await expect(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         controller.deleteAccount(req, deleteAccountDto),
       ).rejects.toThrow(BadRequestException);
 
       await expect(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         controller.deleteAccount(req, deleteAccountDto),
       ).rejects.toThrow('Invalid confirmation text. Must be exactly "DELETE"');
 
@@ -166,7 +173,6 @@ describe('UsersController - Delete Account', () => {
       };
 
       await expect(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         controller.deleteAccount(req, deleteAccountDto),
       ).rejects.toThrow(BadRequestException);
 
@@ -185,7 +191,6 @@ describe('UsersController - Delete Account', () => {
       };
 
       await expect(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         controller.deleteAccount(req, deleteAccountDto),
       ).rejects.toThrow(BadRequestException);
 
@@ -211,17 +216,15 @@ describe('UsersController - Delete Account', () => {
       jest.spyOn(PasswordUtil, 'compare').mockResolvedValue(false);
 
       await expect(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         controller.deleteAccount(req, deleteAccountDto),
       ).rejects.toThrow(UnauthorizedException);
 
       await expect(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         controller.deleteAccount(req, deleteAccountDto),
       ).rejects.toThrow('Invalid password');
 
       expect(mockUsersService.findById).toHaveBeenCalledWith(mockUser.id);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
+
       expect(PasswordUtil.compare).toHaveBeenCalledWith(
         deleteAccountDto.password,
         mockUser.passwordHash,
@@ -245,7 +248,6 @@ describe('UsersController - Delete Account', () => {
       jest.spyOn(PasswordUtil, 'compare').mockResolvedValue(false);
 
       await expect(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         controller.deleteAccount(req, deleteAccountDto),
       ).rejects.toThrow(UnauthorizedException);
 
@@ -264,7 +266,6 @@ describe('UsersController - Delete Account', () => {
 
       // First validation should fail on confirmation text
       await expect(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         controller.deleteAccount(req, deleteAccountDto),
       ).rejects.toThrow(BadRequestException);
 
@@ -286,7 +287,6 @@ describe('UsersController - Delete Account', () => {
       mockUsersService.findById.mockRejectedValue(new Error('User not found'));
 
       await expect(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         controller.deleteAccount(req, deleteAccountDto),
       ).rejects.toThrow('User not found');
 
@@ -313,7 +313,6 @@ describe('UsersController - Delete Account', () => {
       );
 
       await expect(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         controller.deleteAccount(req, deleteAccountDto),
       ).rejects.toThrow('Database deletion error');
 
