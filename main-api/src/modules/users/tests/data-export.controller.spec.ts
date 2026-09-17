@@ -52,7 +52,13 @@ describe('UsersController - Data Export (RGPD)', () => {
         },
         {
           provide: GdprModuleService,
-          useValue: { ...mockUsersGdprService, ...mockGdprModuleService, getExportDownloadUrl: jest.fn((request: { fileUrl?: string }) => request.fileUrl ?? null) },
+          useValue: {
+            ...mockUsersGdprService,
+            ...mockGdprModuleService,
+            getExportDownloadUrl: jest.fn(
+              (request: { fileUrl?: string }) => request.fileUrl ?? null,
+            ),
+          },
         },
         {
           provide: getRepositoryToken(Profile),

@@ -1,6 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, DeleteObjectCommand, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  DeleteObjectCommand,
+  PutObjectCommand,
+  GetObjectCommand,
+} from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import { Readable } from 'stream';
 import * as fs from 'fs';
@@ -23,15 +28,23 @@ export class StorageService {
     const secretAccessKey =
       this.configService.get<string>('storage.secretAccessKey') || '';
 
-    this.isS3Configured = this.configService.get<string>('storage.provider') === 's3';
-    if (this.isS3Configured && !this.bucket) throw new Error('S3_BUCKET is required for S3 storage');
+    this.isS3Configured =
+      this.configService.get<string>('storage.provider') === 's3';
+    if (this.isS3Configured && !this.bucket)
+      throw new Error('S3_BUCKET is required for S3 storage');
 
     this.s3Client = new S3Client({
       region: this.configService.get<string>('storage.region') || 'eu-west-3',
-      credentials: accessKeyId && secretAccessKey ? { accessKeyId, secretAccessKey } : undefined,
+      credentials:
+        accessKeyId && secretAccessKey
+          ? { accessKeyId, secretAccessKey }
+          : undefined,
     });
 
-    this.localUploadDir = path.resolve(process.cwd(), this.configService.get<string>('fileUpload.uploadDir') || 'uploads');
+    this.localUploadDir = path.resolve(
+      process.cwd(),
+      this.configService.get<string>('fileUpload.uploadDir') || 'uploads',
+    );
 
     if (!this.isS3Configured) {
       this.logger.warn(
@@ -42,15 +55,22 @@ export class StorageService {
   }
 
   private privateExportPath(key: string): string {
-    if (!/^exports\/[a-f0-9-]+\.json$/.test(key)) throw new Error('Invalid export key');
+    if (!/^exports\/[a-f0-9-]+\.json$/.test(key))
+      throw new Error('Invalid export key');
     return path.join(process.cwd(), '.private-exports', path.basename(key));
   }
 
   async uploadPrivateExport(key: string, content: Buffer): Promise<void> {
     const filename = this.privateExportPath(key);
     if (this.isS3Configured) {
-      await this.s3Client.send(new PutObjectCommand({ Bucket: this.bucket, Key: key,
-        Body: content, ContentType: 'application/json' }));
+      await this.s3Client.send(
+        new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+          Body: content,
+          ContentType: 'application/json',
+        }),
+      );
     } else {
       fs.mkdirSync(path.dirname(filename), { recursive: true, mode: 0o700 });
       fs.writeFileSync(filename, content, { mode: 0o600 });
@@ -60,9 +80,28 @@ export class StorageService {
   async readPrivateExport(key: string): Promise<Buffer> {
     const filename = this.privateExportPath(key);
     if (!this.isS3Configured) return fs.promises.readFile(filename);
-    const response = await this.s3Client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    const response = await this.s3Client.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
     if (!response.Body) throw new Error('Export file not found');
     return Buffer.from(await response.Body.transformToByteArray());
+  }
+
+  /**
+   * Politique de rétention : un export de données GDPR n'est plus
+   * accessible au téléchargement après 7 jours (voir DataExportRequest
+   * .expiresAt) ; ce fichier doit alors être effacé du stockage pour ne
+   * pas conserver de copie "orpheline" indéfiniment.
+   */
+  async deletePrivateExport(key: string): Promise<void> {
+    const filename = this.privateExportPath(key);
+    if (this.isS3Configured) {
+      await this.s3Client.send(
+        new DeleteObjectCommand({ Bucket: this.bucket, Key: key }),
+      );
+      return;
+    }
+    await fs.promises.rm(filename, { force: true });
   }
 
   async uploadFile(file: Express.Multer.File, folder: string): Promise<string> {

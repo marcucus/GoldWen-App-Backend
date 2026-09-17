@@ -17,9 +17,16 @@ const DEFAULT_TIMEZONE = 'Europe/Paris';
 /** Returns true when the current wall-clock hour in `timezone` is 12 (noon). */
 function isNoonInTimezone(timezone: string): boolean {
   try {
-    const parts = new Intl.DateTimeFormat('en-US', { timeZone: timezone, hour: 'numeric', minute: 'numeric', hour12: false }).formatToParts(new Date());
-    return parts.find((part) => part.type === 'hour')?.value === '12' &&
-      Number(parts.find((part) => part.type === 'minute')?.value) === 0;
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false,
+    }).formatToParts(new Date());
+    return (
+      parts.find((part) => part.type === 'hour')?.value === '12' &&
+      Number(parts.find((part) => part.type === 'minute')?.value) === 0
+    );
   } catch {
     return false;
   }
@@ -143,7 +150,8 @@ export class MatchingScheduler {
         skippedCount,
         executionTimeMs: executionTime,
         executionTimeSec: (executionTime / 1000).toFixed(2),
-        successRate: ((successCount / usersAtNoon.length) * 100).toFixed(2) + '%',
+        successRate:
+          ((successCount / usersAtNoon.length) * 100).toFixed(2) + '%',
       });
 
       // Alert if there are errors
@@ -156,9 +164,12 @@ export class MatchingScheduler {
           'MatchingScheduler',
         );
 
-        await this.alertingService.sendAlert({ level: errorRate > 10 ? 'critical' : 'warning',
-          title: 'Daily selection generation failure', message: `${errorCount} selections failed`,
-          metadata: { jobId, errorCount, errorRate } });
+        await this.alertingService.sendAlert({
+          level: errorRate > 10 ? 'critical' : 'warning',
+          title: 'Daily selection generation failure',
+          message: `${errorCount} selections failed`,
+          metadata: { jobId, errorCount, errorRate },
+        });
       }
     } catch (error: unknown) {
       const executionTime = Date.now() - startTime;
@@ -169,7 +180,11 @@ export class MatchingScheduler {
         'MatchingScheduler',
       );
 
-      await this.alertingService.sendCriticalAlert('Daily selection generation failed', 'The scheduler could not complete its run', { jobId });
+      await this.alertingService.sendCriticalAlert(
+        'Daily selection generation failed',
+        'The scheduler could not complete its run',
+        { jobId },
+      );
 
       throw error; // Re-throw to ensure it's logged by NestJS scheduler
     }

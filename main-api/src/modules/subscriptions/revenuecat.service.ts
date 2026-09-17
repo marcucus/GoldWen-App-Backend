@@ -48,7 +48,10 @@ export class RevenueCatService {
 
       const actual = Buffer.from(signature);
       const expected = Buffer.from(expectedSignature);
-      return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
+      return (
+        actual.length === expected.length &&
+        crypto.timingSafeEqual(actual, expected)
+      );
     } catch (error: unknown) {
       this.logger.error(
         'Error verifying webhook signature',

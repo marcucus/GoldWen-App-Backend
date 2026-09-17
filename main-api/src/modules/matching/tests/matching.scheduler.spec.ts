@@ -50,7 +50,10 @@ describe('MatchingScheduler', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        { provide: AlertingService, useValue: { sendAlert: jest.fn(), sendCriticalAlert: jest.fn() } },
+        {
+          provide: AlertingService,
+          useValue: { sendAlert: jest.fn(), sendCriticalAlert: jest.fn() },
+        },
         MatchingScheduler,
         {
           provide: getRepositoryToken(User),

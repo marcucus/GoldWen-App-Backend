@@ -32,7 +32,13 @@ async function bootstrap() {
   // deployment must configure S3 (with the CDN/signed URLs that implies)
   // instead of relying on this route.
   if (configService.get<string>('app.environment') !== 'production') {
-    app.useStaticAssets(join(process.cwd(), configService.get<string>('fileUpload.uploadDir') || 'uploads'), { prefix: '/uploads' });
+    app.useStaticAssets(
+      join(
+        process.cwd(),
+        configService.get<string>('fileUpload.uploadDir') || 'uploads',
+      ),
+      { prefix: '/uploads' },
+    );
   }
   const reflector = app.get(Reflector);
   const sentry = app.get(SentryService);

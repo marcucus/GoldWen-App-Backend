@@ -30,8 +30,6 @@ from models.schemas import (
     GenerateSelectionRequest,
     GenerateSelectionResponse,
     HealthCheckResponse,
-    RecommendationItem,
-    RecommendationsResponse,
     ScoreBreakdown,
     SelectionProfile,
 )

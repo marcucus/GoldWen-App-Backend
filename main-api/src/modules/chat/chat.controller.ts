@@ -63,8 +63,13 @@ export class ChatController {
   }
 
   @Get(':chatId')
-  @ApiOperation({ summary: 'Get an active conversation owned by the current user' })
-  async getChat(@Request() req: ExpressRequest, @Param('chatId') chatId: string) {
+  @ApiOperation({
+    summary: 'Get an active conversation owned by the current user',
+  })
+  async getChat(
+    @Request() req: ExpressRequest,
+    @Param('chatId') chatId: string,
+  ) {
     return this.chatService.getChatById(chatId, (req.user as User).id);
   }
 

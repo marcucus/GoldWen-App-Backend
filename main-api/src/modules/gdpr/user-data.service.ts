@@ -43,30 +43,24 @@ export class UserDataService {
    * Export all user data in a structured format
    */
   async exportUserData(userId: string, format: 'json' | 'pdf' = 'json') {
-    if (format !== 'json') throw new BadRequestException('Only JSON exports are supported');
+    // PDF generation isn't implemented; reject explicitly rather than
+    // silently returning JSON while claiming PDF (same choice as
+    // StatsService.exportStats for CSV/PDF). JSON alone already satisfies
+    // the GDPR Art. 20 "portable copy" requirement (specifications.md,
+    // Annexe A).
+    if (format !== 'json') {
+      throw new BadRequestException('Only JSON exports are supported');
+    }
     this.logger.log(
       `Starting data export for user ${userId} in ${format} format`,
     );
 
-    // Get all user data
     const userData = await this.collectUserData(userId);
 
-    if (format === 'json') {
-      return {
-        exportedAt: new Date().toISOString(),
-        userId: userId,
-        data: userData,
-      };
-    }
-
-    // For PDF format, we would need a PDF generation library
-    // For now, return JSON format with PDF indication
     return {
       exportedAt: new Date().toISOString(),
       userId: userId,
-      format: 'json', // Would be 'pdf' with proper implementation
       data: userData,
-      note: 'PDF export requires additional implementation with PDF generation library',
     };
   }
 
@@ -161,14 +155,31 @@ export class UserDataService {
 
     await this.userRepository.manager.transaction(async (manager) => {
       // Remove reports that reference a chat being erased, including reports by third parties.
-      await manager.createQueryBuilder().delete().from('reports')
-        .where(`"chatId" IN (SELECT chats.id FROM chats JOIN matches ON chats."matchId" = matches.id
+      await manager
+        .createQueryBuilder()
+        .delete()
+        .from('reports')
+        .where(
+          `"chatId" IN (SELECT chats.id FROM chats JOIN matches ON chats."matchId" = matches.id
           WHERE matches."user1Id" = :userId OR matches."user2Id" = :userId)
           OR "messageId" IN (SELECT messages.id FROM messages JOIN chats ON messages."chatId" = chats.id
           JOIN matches ON chats."matchId" = matches.id
-          WHERE matches."user1Id" = :userId OR matches."user2Id" = :userId)`, { userId }).execute();
-      await manager.createQueryBuilder().delete().from('support_tickets').where('"userId" = :userId', { userId }).execute();
-      await manager.createQueryBuilder().delete().from('feedback').where('"userId" = :userId', { userId }).execute();
+          WHERE matches."user1Id" = :userId OR matches."user2Id" = :userId)`,
+          { userId },
+        )
+        .execute();
+      await manager
+        .createQueryBuilder()
+        .delete()
+        .from('support_tickets')
+        .where('"userId" = :userId', { userId })
+        .execute();
+      await manager
+        .createQueryBuilder()
+        .delete()
+        .from('feedback')
+        .where('"userId" = :userId', { userId })
+        .execute();
       await manager.delete(User, { id: userId });
     });
 

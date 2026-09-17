@@ -535,7 +535,10 @@ export class UsersController {
 
     return {
       status,
-      downloadUrl: status === 'ready' ? this.gdprService.getExportDownloadUrl(exportData) : null,
+      downloadUrl:
+        status === 'ready'
+          ? this.gdprService.getExportDownloadUrl(exportData)
+          : null,
       expiresAt: exportData.expiresAt,
     };
   }
@@ -543,8 +546,17 @@ export class UsersController {
   @Get('me/deletion-status')
   @SkipConsentCheck()
   async getDeletionStatus(@Req() req: Request) {
-    const request = await this.gdprService.getLatestDeletionStatus((req.user as User).id);
-    return { success: true, data: { status: request?.status || 'none', requestId: request?.id, requestedAt: request?.requestedAt } };
+    const request = await this.gdprService.getLatestDeletionStatus(
+      (req.user as User).id,
+    );
+    return {
+      success: true,
+      data: {
+        status: request?.status || 'none',
+        requestId: request?.id,
+        requestedAt: request?.requestedAt,
+      },
+    };
   }
 
   @Post('me/cancel-deletion')

@@ -91,6 +91,17 @@ export class User {
   @Column({ nullable: true })
   lastActiveAt?: Date;
 
+  /**
+   * Horodatage du dernier avertissement d'inactivité envoyé (politique de
+   * rétention : compte supprimé 12 mois après la dernière activité, avec
+   * avertissement 30 jours avant). Utilisé par RetentionScheduler pour ne
+   * pas ré-avertir en boucle et pour ne supprimer que si l'avertissement a
+   * bien été envoyé pour la période d'inactivité en cours (voir
+   * retention.scheduler.ts pour la logique de validité).
+   */
+  @Column({ nullable: true })
+  inactivityWarningSentAt?: Date;
+
   @Column({ nullable: true })
   fcmToken?: string;
 

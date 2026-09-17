@@ -18,7 +18,6 @@ import {
   GlobalStatsResponseDto,
   UserStatsResponseDto,
   ActivityStatsResponseDto,
-  ExportFormat,
 } from './dto';
 
 @ApiTags('stats')
@@ -141,13 +140,13 @@ export class StatsController {
   @ApiOperation({
     summary: 'Export global statistics',
     description:
-      'Export global platform statistics in various formats (JSON, CSV, PDF). Admin access required.',
+      'Export global platform statistics as JSON. Admin access required. CSV/PDF are not implemented (see ExportStatsDto) — requesting them returns 400.',
   })
   @ApiQuery({
     name: 'format',
     required: false,
-    description: 'Export format',
-    enum: ['json', 'csv', 'pdf'],
+    description: 'Export format (only json is currently implemented)',
+    enum: ['json'],
   })
   @ApiQuery({
     name: 'includeDetails',
@@ -165,33 +164,20 @@ export class StatsController {
     @Query() exportOptions: ExportStatsDto,
     @Res() res: Response,
   ): Promise<void> {
+    // exportStats() throws for anything but JSON (see StatsService) —
+    // no dead CSV/PDF branches to keep in sync here.
     const exported = await this.statsService.exportStats(
       'global',
       undefined,
       exportOptions,
     );
 
-    // Set appropriate headers based on format
-    if (exported.format === ExportFormat.JSON) {
-      res.setHeader('Content-Type', 'application/json');
-    } else if (exported.format === ExportFormat.CSV) {
-      res.setHeader('Content-Type', 'text/csv');
-    } else if (exported.format === ExportFormat.PDF) {
-      res.setHeader('Content-Type', 'application/pdf');
-    }
-
+    res.setHeader('Content-Type', 'application/json');
     res.setHeader(
       'Content-Disposition',
       `attachment; filename="${exported.filename}"`,
     );
-
-    if (exported.format === ExportFormat.JSON) {
-      res.json(exported.data);
-    } else {
-      // For now, return JSON for other formats too
-      // In a real implementation, you would format the data appropriately
-      res.json(exported.data);
-    }
+    res.json(exported.data);
   }
 
   @Get('activity/export')
@@ -200,7 +186,7 @@ export class StatsController {
   @ApiOperation({
     summary: 'Export activity statistics',
     description:
-      'Export platform activity statistics in various formats (JSON, CSV, PDF). Admin access required.',
+      'Export platform activity statistics as JSON. Admin access required. CSV/PDF are not implemented — requesting them returns 400.',
   })
   @ApiQuery({
     name: 'startDate',
@@ -221,8 +207,8 @@ export class StatsController {
   @ApiQuery({
     name: 'format',
     required: false,
-    description: 'Export format',
-    enum: ['json', 'csv', 'pdf'],
+    description: 'Export format (only json is currently implemented)',
+    enum: ['json'],
   })
   @ApiResponse({
     status: 200,
@@ -246,26 +232,11 @@ export class StatsController {
       exportOptions,
     );
 
-    // Set appropriate headers based on format
-    if (exported.format === ExportFormat.JSON) {
-      res.setHeader('Content-Type', 'application/json');
-    } else if (exported.format === ExportFormat.CSV) {
-      res.setHeader('Content-Type', 'text/csv');
-    } else if (exported.format === ExportFormat.PDF) {
-      res.setHeader('Content-Type', 'application/pdf');
-    }
-
+    res.setHeader('Content-Type', 'application/json');
     res.setHeader(
       'Content-Disposition',
       `attachment; filename="${exported.filename}"`,
     );
-
-    if (exported.format === ExportFormat.JSON) {
-      res.json(exported.data);
-    } else {
-      // For now, return JSON for other formats too
-      // In a real implementation, you would format the data appropriately
-      res.json(exported.data);
-    }
+    res.json(exported.data);
   }
 }

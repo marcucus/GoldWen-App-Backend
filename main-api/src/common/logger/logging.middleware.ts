@@ -1,10 +1,14 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { CustomLoggerService } from './logger.service';
+import { MetricsService } from '../monitoring/metrics.service';
 
 @Injectable()
 export class LoggingMiddleware implements NestMiddleware {
-  constructor(private readonly logger: CustomLoggerService) {}
+  constructor(
+    private readonly logger: CustomLoggerService,
+    private readonly metricsService: MetricsService,
+  ) {}
 
   use(req: Request, res: Response, next: NextFunction) {
     const start = Date.now();
@@ -37,6 +41,17 @@ export class LoggingMiddleware implements NestMiddleware {
     res.on('finish', () => {
       const responseTime = Date.now() - start;
       this.logger.logRequest(req, res, responseTime);
+
+      // Real numbers for the admin "API performance" dashboard (see
+      // MetricsService.getPerformanceSummary) — this used to be hardcoded.
+      const route =
+        (req.route as { path?: string } | undefined)?.path || req.path;
+      this.metricsService.recordHttpRequest(
+        req.method,
+        route,
+        res.statusCode,
+        responseTime,
+      );
 
       // Clear context after request
       this.logger.clearContext();

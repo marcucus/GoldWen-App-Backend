@@ -232,11 +232,25 @@ export class UsersService {
     };
   }
 
-  async registerPushToken(userId: string, dto: RegisterPushTokenDto): Promise<PushToken> {
-    return pushTokenOperations.registerPushToken(this.pushTokenRepository, userId, dto.token, dto.platform, dto.appVersion, dto.deviceId);
+  async registerPushToken(
+    userId: string,
+    dto: RegisterPushTokenDto,
+  ): Promise<PushToken> {
+    return pushTokenOperations.registerPushToken(
+      this.pushTokenRepository,
+      userId,
+      dto.token,
+      dto.platform,
+      dto.appVersion,
+      dto.deviceId,
+    );
   }
   async deletePushToken(userId: string, token: string): Promise<void> {
-    return pushTokenOperations.deletePushToken(this.pushTokenRepository, userId, token);
+    return pushTokenOperations.deletePushToken(
+      this.pushTokenRepository,
+      userId,
+      token,
+    );
   }
 
   async getUserPushTokens(userId: string): Promise<PushToken[]> {

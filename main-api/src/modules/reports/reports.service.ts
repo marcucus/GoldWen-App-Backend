@@ -328,8 +328,12 @@ export class ReportsService {
    * Send notification to admins about new report
    */
   private async sendReportNotification(report: Report): Promise<void> {
-    await this.alertingService.sendAlert({ level: 'warning', title: 'New moderation report',
-      message: 'A new report requires review in the admin moderation queue.', metadata: { reportId: report.id } });
+    await this.alertingService.sendAlert({
+      level: 'warning',
+      title: 'New moderation report',
+      message: 'A new report requires review in the admin moderation queue.',
+      metadata: { reportId: report.id },
+    });
   }
 
   /**

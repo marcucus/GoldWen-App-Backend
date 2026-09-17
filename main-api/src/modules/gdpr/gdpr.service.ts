@@ -1,11 +1,19 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
   AccountDeletion,
   DeletionStatus,
 } from '../../database/entities/account-deletion.entity';
-import { DataExportRequest, ExportFormat } from '../../database/entities/data-export-request.entity';
+import {
+  DataExportRequest,
+  ExportFormat,
+} from '../../database/entities/data-export-request.entity';
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
 import { Match } from '../../database/entities/match.entity';
@@ -62,8 +70,13 @@ export class GdprService {
     await this.userDataService.deleteUserCompletely(userId);
   }
 
-  async getLatestDeletionStatus(userId: string): Promise<AccountDeletion | null> {
-    return this.accountDeletionRepository.findOne({ where: { userId }, order: { createdAt: 'DESC' } });
+  async getLatestDeletionStatus(
+    userId: string,
+  ): Promise<AccountDeletion | null> {
+    return this.accountDeletionRepository.findOne({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async cancelAccountDeletion(userId: string): Promise<void> {
@@ -71,8 +84,12 @@ export class GdprService {
     if (!request || request.status !== DeletionStatus.PENDING) {
       throw new BadRequestException('No cancellable deletion request exists');
     }
-    const result = await this.accountDeletionRepository.update({ id: request.id, userId, status: DeletionStatus.PENDING }, { status: DeletionStatus.CANCELLED });
-    if (!result.affected) throw new BadRequestException('Deletion processing has already started');
+    const result = await this.accountDeletionRepository.update(
+      { id: request.id, userId, status: DeletionStatus.PENDING },
+      { status: DeletionStatus.CANCELLED },
+    );
+    if (!result.affected)
+      throw new BadRequestException('Deletion processing has already started');
   }
 
   /**
@@ -167,14 +184,16 @@ export class GdprService {
     try {
       // Update status to processing
       const claimed = await this.accountDeletionRepository.update(
-        { id: requestId, status: DeletionStatus.PENDING }, { status: DeletionStatus.PROCESSING });
+        { id: requestId, status: DeletionStatus.PENDING },
+        { status: DeletionStatus.PROCESSING },
+      );
       if (!claimed.affected) return;
-
-      const userId = request.userId;
 
       await this.deleteUserCompletely(request.userId);
       await this.accountDeletionRepository.update(requestId, {
-        status: DeletionStatus.COMPLETED, completedAt: new Date(), userEmail: undefined,
+        status: DeletionStatus.COMPLETED,
+        completedAt: new Date(),
+        userEmail: undefined,
       });
 
       this.logger.log(`Account deletion ${requestId} completed successfully`);
@@ -281,7 +300,22 @@ export class GdprService {
     this.logger.log(`Consent revoked for user ${userId}`);
   }
 
-  // Private helper methods for anonymization
+  // Private helper methods for anonymization.
+  //
+  // NOTE (2026-09-17, politique de rétention) : ces 3 méthodes ne sont
+  // actuellement PAS appelées. UserDataService.deleteUserCompletely() fait
+  // un DELETE dur sur la ligne User, et les FK onDelete: 'CASCADE' de
+  // Message/Match/Report suppriment ces lignes en cascade avant que cette
+  // anonymisation n'ait pu s'exécuter. Elles sont conservées ici comme
+  // référence pour la remédiation à décider : les signalements doivent
+  // légalement survivre 12 mois après clôture (modération) même si le
+  // compte est supprimé entre-temps, ce qui suppose de remplacer
+  // onDelete: 'CASCADE' par 'SET NULL' sur reports.reporterId /
+  // reportedUserId (+ colonnes nullable, + migration) plutôt que de
+  // réactiver un update vers la valeur littérale 'deleted-user', qui
+  // violerait la contrainte de clé étrangère si elle est réellement
+  // appliquée en base. Voir docs/DATA_RETENTION_POLICY.md, section
+  // "Décision d'architecture en attente".
 
   /**
    * Anonymize user messages

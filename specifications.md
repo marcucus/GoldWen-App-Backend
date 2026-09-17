@@ -217,6 +217,20 @@ La gestion des données personnelles, surtout dans une application de rencontre,
    * S'assurer que tous les services tiers utilisés (hébergeur, analytics, etc.) sont conformes au RGPD et signer des Accords de Traitement des Données (DPA) avec eux.  
 6. **\[ \] Notification de Violation de Données :**  
    * Mettre en place un processus interne pour détecter et signaler toute violation de données à l'autorité de contrôle compétente (la CNIL en France) dans les 72 heures.
+7. **\[x\] Durées de Conservation des Données :**  
+   * Profil, photos, questionnaire, préférences : tant que le compte est actif.  
+   * Compte inactif : suppression après 12 mois, avertissement envoyé 30 jours avant.  
+   * Compte supprimé volontairement : profil masqué immédiatement, données supprimées sous 30 jours maximum.  
+   * Messages : accessibles 24h, puis supprimés sous 24h supplémentaires.  
+   * Historique des sélections et choix : 90 jours.  
+   * Notifications internes : 30 jours.  
+   * Export de données : disponible 7 jours, puis suppression du fichier.  
+   * Support : 12 mois après clôture.  
+   * Signalements et preuves nécessaires : pendant le traitement, puis 12 mois après clôture, accès réservé à la modération.  
+   * Journaux de sécurité : 6 mois, sans contenu des conversations.  
+   * Sauvegardes : rotation sur 30 jours, sans réintroduction des données supprimées lors d'une restauration.  
+   * Exception légale/comptable : en cas de litige ou d'obligation légale, seules les données nécessaires sont conservées séparément avec un accès limité ; les pièces comptables peuvent devoir être gardées jusqu'à 10 ans, sans conserver le profil de rencontre associé.  
+   * Détail technique complet (durées codées, jobs de purge, écarts connus et décisions en attente) : voir `docs/DATA_RETENTION_POLICY.md`.
 
 #### **Sources des citations**
 

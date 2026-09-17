@@ -109,8 +109,22 @@ export class EmailService {
     }
   }
 
-  async sendOperationalEmail(to: string, subject: string, message: string): Promise<void> {
-    const escaped = message.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]!));
+  async sendOperationalEmail(
+    to: string,
+    subject: string,
+    message: string,
+  ): Promise<void> {
+    const escaped = message.replace(
+      /[&<>"']/g,
+      (character) =>
+        ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        })[character]!,
+    );
     await this.sendEmail(to, subject, `<p>${escaped}</p>`);
   }
 

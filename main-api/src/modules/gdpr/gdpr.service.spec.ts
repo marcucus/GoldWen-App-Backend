@@ -44,7 +44,13 @@ describe('GdprService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        { provide: UserDataService, useValue: { exportUserData: jest.fn(), deleteUserCompletely: jest.fn() } },
+        {
+          provide: UserDataService,
+          useValue: {
+            exportUserData: jest.fn(),
+            deleteUserCompletely: jest.fn(),
+          },
+        },
         GdprService,
         {
           provide: DataExportService,

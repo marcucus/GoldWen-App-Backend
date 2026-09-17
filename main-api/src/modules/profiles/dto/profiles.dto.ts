@@ -414,6 +414,10 @@ export class UpdatePhotoOrderDto {
 }
 
 export class ReorderMediaDto {
-  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(6) @ArrayUnique() @IsUUID('all', { each: true })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(6)
+  @ArrayUnique()
+  @IsUUID('all', { each: true })
   photoIds: string[];
 }

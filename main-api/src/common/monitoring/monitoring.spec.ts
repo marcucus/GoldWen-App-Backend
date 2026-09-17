@@ -39,7 +39,10 @@ describe('Monitoring Services', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        { provide: EmailService, useValue: { sendOperationalEmail: jest.fn() } },
+        {
+          provide: EmailService,
+          useValue: { sendOperationalEmail: jest.fn() },
+        },
         SentryService,
         AlertingService,
         DatadogService,

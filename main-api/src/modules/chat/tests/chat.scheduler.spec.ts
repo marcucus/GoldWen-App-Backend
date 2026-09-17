@@ -343,7 +343,7 @@ describe('ChatScheduler', () => {
   });
 
   describe('cleanupOldChats', () => {
-    it('should clean up expired chats and messages older than 90 days', async () => {
+    it('should clean up expired chats and messages past the 24h grace period', async () => {
       const chatsToDelete = [{ id: 'chat1' }, { id: 'chat2' }, { id: 'chat3' }];
 
       mockChatRepository.createQueryBuilder.mockReturnValue({

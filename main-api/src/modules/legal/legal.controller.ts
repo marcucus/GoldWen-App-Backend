@@ -13,8 +13,12 @@ export class LegalController {
   async getTermsOfService(@Query() query: GetPrivacyPolicyDto) {
     const terms = await this.legalService.getTermsOfService(query.version);
     if (query.format === 'html') return terms.htmlContent || terms.content;
-    return { version: terms.version, content: JSON.parse(terms.content) as unknown,
-      lastUpdated: terms.effectiveDate, effectiveDate: terms.effectiveDate };
+    return {
+      version: terms.version,
+      content: JSON.parse(terms.content) as unknown,
+      lastUpdated: terms.effectiveDate,
+      effectiveDate: terms.effectiveDate,
+    };
   }
 
   @ApiOperation({

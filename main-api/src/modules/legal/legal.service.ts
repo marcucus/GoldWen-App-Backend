@@ -18,7 +18,10 @@ export class LegalService {
       where: version === 'latest' ? { isActive: true } : { version },
       order: { effectiveDate: 'DESC' },
     });
-    if (!terms) throw new ServiceUnavailableException('Terms of service have not been published');
+    if (!terms)
+      throw new ServiceUnavailableException(
+        'Terms of service have not been published',
+      );
     return terms;
   }
 
@@ -55,7 +58,7 @@ export class LegalService {
    */
   private async createDefaultPrivacyPolicy(): Promise<PrivacyPolicy> {
     const defaultPolicy = this.privacyPolicyRepository.create({
-      version: '1.0.0',
+      version: '1.1.0',
       isActive: true,
       effectiveDate: new Date(),
       content: this.getDefaultPrivacyPolicyContent(),
@@ -99,7 +102,7 @@ export class LegalService {
         {
           title: 'Conservation des Données',
           content:
-            "Vos données sont conservées tant que votre compte est actif. En cas de suppression de compte, vos données sont anonymisées conformément à l'Art. 17 RGPD (droit à l'oubli).",
+            "Vos données de profil (photos, questionnaire, préférences) sont conservées tant que votre compte est actif. Un compte inactif depuis 12 mois est supprimé (avertissement envoyé 30 jours avant). Si vous supprimez votre compte, votre profil est masqué immédiatement et vos données sont effacées sous 30 jours maximum (Art. 17 RGPD). Les messages ne sont accessibles que 24h puis supprimés dans les 24h suivantes. L'historique de vos sélections quotidiennes est conservé 90 jours, les notifications internes 30 jours, et un export de données téléchargé 7 jours. Les signalements et tickets support sont conservés 12 mois après leur clôture, à accès restreint. Les logs de sécurité (sans le contenu des conversations) sont conservés 6 mois. En cas de litige ou d'obligation légale, seules les données strictement nécessaires sont conservées séparément, avec un accès limité ; les pièces comptables peuvent devoir être gardées jusqu'à 10 ans, sans conserver le profil de rencontre associé.",
         },
         {
           title: 'Consentement',
@@ -168,7 +171,21 @@ export class LegalService {
     </ul>
     
     <h2>6. Conservation des Données</h2>
-    <p>Vos données sont conservées tant que votre compte est actif. En cas de suppression de compte, vos données sont anonymisées conformément à l'Art. 17 RGPD (droit à l'oubli). Les données de matching sont conservées 30 jours après la suppression pour des raisons de sécurité et de prévention de fraude.</p>
+    <p>Nous conservons vos données le temps strictement nécessaire à la finalité pour laquelle elles ont été collectées :</p>
+    <ul>
+        <li><strong>Profil, photos, questionnaire, préférences</strong> : tant que votre compte est actif.</li>
+        <li><strong>Compte inactif</strong> : supprimé après 12 mois sans activité, avec un avertissement envoyé 30 jours avant.</li>
+        <li><strong>Suppression volontaire de compte</strong> : votre profil est masqué immédiatement ; vos données sont effacées sous 30 jours maximum (Art. 17 RGPD).</li>
+        <li><strong>Messages</strong> : accessibles 24h, puis supprimés dans les 24h supplémentaires.</li>
+        <li><strong>Historique des sélections et choix</strong> : 90 jours.</li>
+        <li><strong>Notifications internes</strong> : 30 jours.</li>
+        <li><strong>Export de vos données</strong> : le fichier est disponible 7 jours puis supprimé.</li>
+        <li><strong>Support client</strong> : 12 mois après la clôture de votre demande.</li>
+        <li><strong>Signalements et preuves associées</strong> : conservés pendant leur traitement, puis 12 mois après clôture, avec un accès restreint à l'équipe de modération.</li>
+        <li><strong>Journaux de sécurité</strong> : 6 mois, sans le contenu de vos conversations.</li>
+        <li><strong>Sauvegardes</strong> : rotation sur 30 jours ; une restauration ne réintroduit pas les données déjà supprimées.</li>
+    </ul>
+    <p>En cas de litige en cours ou d'obligation légale, nous ne conservons que les données strictement nécessaires, de façon séparée et avec un accès limité. Les pièces comptables (facturation, abonnements) peuvent devoir être conservées jusqu'à 10 ans à des fins légales, sans que votre profil de rencontre ne soit conservé au-delà des durées ci-dessus.</p>
     
     <h2>7. Consentement</h2>
     <p>Vous pouvez retirer votre consentement à tout moment depuis les paramètres de votre compte. Le retrait du consentement ne compromet pas la licéité du traitement effectué avant ce retrait (Art. 7(3) RGPD).</p>

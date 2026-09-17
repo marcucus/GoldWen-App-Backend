@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, Between } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig } from '../../config/config.interface';
+import { MESSAGE_DELETION_GRACE_HOURS } from '../../common/constants/retention.constants';
 
 import { Chat } from '../../database/entities/chat.entity';
 import { Message } from '../../database/entities/message.entity';
@@ -266,12 +267,14 @@ export class ChatScheduler {
   }
 
   /**
-   * Clean up old expired chats and messages at midnight
-   * Keeps chat records for 90 days, then archives/deletes them
+   * Clean up expired chats and messages every hour.
+   * Politique de rétention : les messages ne sont accessibles que 24h
+   * (durée du chat, voir chat.service.ts expiresAt = matchedAt + 24h),
+   * puis supprimés définitivement dans les MESSAGE_DELETION_GRACE_HOURS
+   * heures suivant l'expiration du chat (24h de grâce).
    */
-  @Cron('0 0 * * *', {
+  @Cron(CronExpression.EVERY_HOUR, {
     name: 'cleanup-old-chats',
-    timeZone: 'Europe/Paris',
   })
   async cleanupOldChats() {
     const jobId = `cleanup-chats-${Date.now()}`;
@@ -283,16 +286,18 @@ export class ChatScheduler {
     });
 
     try {
-      // Delete expired chats older than 90 days
-      const ninetyDaysAgo = new Date();
-      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      // Delete chats that have been expired for more than the grace period
+      const deletionCutoff = new Date();
+      deletionCutoff.setHours(
+        deletionCutoff.getHours() - MESSAGE_DELETION_GRACE_HOURS,
+      );
 
       // First, get IDs of chats to delete
       const chatsToDelete = await this.chatRepository
         .createQueryBuilder('chat')
         .select('chat.id')
         .where('chat.status = :status', { status: ChatStatus.EXPIRED })
-        .andWhere('chat.updatedAt < :date', { date: ninetyDaysAgo })
+        .andWhere('chat.updatedAt < :date', { date: deletionCutoff })
         .getMany();
 
       const chatIds = chatsToDelete.map((chat) => chat.id);
@@ -326,7 +331,7 @@ export class ChatScheduler {
         jobId,
         deletedChats: chatsDeleted,
         deletedMessages: messagesDeleted,
-        cutoffDate: ninetyDaysAgo.toISOString(),
+        cutoffDate: deletionCutoff.toISOString(),
         executionTimeMs: executionTime,
       });
     } catch (error: unknown) {

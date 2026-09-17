@@ -24,7 +24,10 @@ export class PersonalityController {
   constructor(private readonly profilesService: ProfilesService) {}
 
   @Get('personality-questions')
-  @ApiOperation({ deprecated: true, summary: 'Get personality questionnaire questions' })
+  @ApiOperation({
+    deprecated: true,
+    summary: 'Get personality questionnaire questions',
+  })
   @ApiResponse({ status: 200, description: 'Personality questions retrieved' })
   async getPersonalityQuestions() {
     return this.profilesService.getPersonalityQuestions();
@@ -34,6 +37,7 @@ export class PersonalityController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
+    deprecated: true,
     summary: 'Submit personality questionnaire answers',
     description:
       'Submit answers to the personality questionnaire. Text answers and multiple choice answers will be moderated for inappropriate content and forbidden words.',

@@ -532,27 +532,66 @@ export class SubscriptionsService {
   }> {
     const apiKey = this.configService.get<string>('revenueCat.apiKey');
     if (!apiKey) throw new BadRequestException('RevenueCat is not configured');
-    const response = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(userId)}`, {
-      headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json' },
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!response.ok) throw new BadRequestException('Unable to verify subscriptions with RevenueCat');
-    const body = await response.json() as { subscriber?: { entitlements?: Record<string, {
-      expires_date?: string | null; purchase_date?: string; product_identifier?: string;
-    }> } };
+    const response = await fetch(
+      `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(userId)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          Accept: 'application/json',
+        },
+        signal: AbortSignal.timeout(10000),
+      },
+    );
+    if (!response.ok)
+      throw new BadRequestException(
+        'Unable to verify subscriptions with RevenueCat',
+      );
+    const body = (await response.json()) as {
+      subscriber?: {
+        entitlements?: Record<
+          string,
+          {
+            expires_date?: string | null;
+            purchase_date?: string;
+            product_identifier?: string;
+          }
+        >;
+      };
+    };
     const entitlement = body.subscriber?.entitlements?.goldwen_plus;
     // This MVP sells recurring subscriptions. Missing or invalid expiry never grants Plus.
-    const expiresAt = entitlement?.expires_date ? new Date(entitlement.expires_date) : null;
-    if (!expiresAt || !Number.isFinite(expiresAt.getTime()) || expiresAt <= new Date()) {
-      await this.subscriptionRepository.update({ userId, status: SubscriptionStatus.ACTIVE }, { status: SubscriptionStatus.EXPIRED });
+    const expiresAt = entitlement?.expires_date
+      ? new Date(entitlement.expires_date)
+      : null;
+    if (
+      !expiresAt ||
+      !Number.isFinite(expiresAt.getTime()) ||
+      expiresAt <= new Date()
+    ) {
+      await this.subscriptionRepository.update(
+        { userId, status: SubscriptionStatus.ACTIVE },
+        { status: SubscriptionStatus.EXPIRED },
+      );
       return { restored: false, subscriptions: [] };
     }
-    let subscription = await this.subscriptionRepository.findOne({ where: { userId, plan: SubscriptionPlan.GOLDWEN_PLUS }, order: { createdAt: 'DESC' } });
-    if (!subscription) subscription = this.subscriptionRepository.create({ userId, plan: SubscriptionPlan.GOLDWEN_PLUS,
-      startDate: new Date(entitlement?.purchase_date || Date.now()), revenueCatCustomerId: userId });
+    let subscription = await this.subscriptionRepository.findOne({
+      where: { userId, plan: SubscriptionPlan.GOLDWEN_PLUS },
+      order: { createdAt: 'DESC' },
+    });
+    if (!subscription)
+      subscription = this.subscriptionRepository.create({
+        userId,
+        plan: SubscriptionPlan.GOLDWEN_PLUS,
+        startDate: new Date(entitlement?.purchase_date || Date.now()),
+        revenueCatCustomerId: userId,
+      });
     subscription.status = SubscriptionStatus.ACTIVE;
     subscription.expiresAt = expiresAt;
-    subscription.metadata = { ...subscription.metadata, restoredFromRevenueCat: true, productId: entitlement?.product_identifier };
+    subscription.metadata = {
+      ...subscription.metadata,
+      restoredFromRevenueCat: true,
+      productId: entitlement?.product_identifier,
+    };
     const restored = await this.subscriptionRepository.save(subscription);
     return { restored: true, subscriptions: [restored] };
   }

@@ -214,14 +214,14 @@ describe('StatsController', () => {
         startDate: '2024-01-01',
         endDate: '2024-01-31',
         period: ActivityPeriod.DAILY,
-        format: ExportFormat.CSV,
+        format: ExportFormat.JSON,
         includeDetails: true,
       };
 
       const mockExportResult = {
         data: { userRegistrations: [] } as unknown as ActivityStatsResponseDto,
-        format: ExportFormat.CSV,
-        filename: 'activity-stats-2024-01-15.csv',
+        format: ExportFormat.JSON,
+        filename: 'activity-stats-2024-01-15.json',
       };
 
       const mockResponse = {
@@ -245,11 +245,11 @@ describe('StatsController', () => {
       );
       expect(mockResponse.setHeader).toHaveBeenCalledWith(
         'Content-Type',
-        'text/csv',
+        'application/json',
       );
       expect(mockResponse.setHeader).toHaveBeenCalledWith(
         'Content-Disposition',
-        'attachment; filename="activity-stats-2024-01-15.csv"',
+        'attachment; filename="activity-stats-2024-01-15.json"',
       );
       expect(mockResponse.json).toHaveBeenCalledWith(mockExportResult.data);
     });

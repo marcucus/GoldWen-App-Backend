@@ -191,8 +191,14 @@ export class ProfilesController {
   @Put('me/media/order')
   @SkipProfileCompletion()
   @ApiOperation({ summary: 'Reorder all owned photos atomically' })
-  async reorderMedia(@Request() req: ExpressRequest, @Body() dto: ReorderMediaDto) {
-    return this.profilesService.reorderMedia((req.user as User).id, dto.photoIds);
+  async reorderMedia(
+    @Request() req: ExpressRequest,
+    @Body() dto: ReorderMediaDto,
+  ) {
+    return this.profilesService.reorderMedia(
+      (req.user as User).id,
+      dto.photoIds,
+    );
   }
 
   @Put(['me/photos/:photoId/order', 'me/media/:photoId/order'])

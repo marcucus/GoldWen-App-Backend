@@ -11,7 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import { Notification } from '../../database/entities/notification.entity';
 import { User } from '../../database/entities/user.entity';
 import { NotificationPreferences } from '../../database/entities/notification-preferences.entity';
-import { Platform, PushToken } from '../../database/entities/push-token.entity';
+import { PushToken } from '../../database/entities/push-token.entity';
 import { NotificationType } from '../../common/enums';
 import { CustomLoggerService } from '../../common/logger';
 import { FirebaseService } from './firebase.service';
@@ -500,7 +500,12 @@ export class NotificationsService {
             data: {
               notificationId: notification.id,
               type: notification.type,
-              ...Object.fromEntries(Object.entries(notification.data ?? {}).map(([key, value]) => [key, String(value)])),
+              ...Object.fromEntries(
+                Object.entries(notification.data ?? {}).map(([key, value]) => [
+                  key,
+                  String(value),
+                ]),
+              ),
             },
           };
 
@@ -725,6 +730,24 @@ export class NotificationsService {
     });
   }
 
+  /**
+   * Politique de rétention : un compte inactif depuis presque 12 mois
+   * reçoit cet avertissement 30 jours avant suppression définitive
+   * (voir RetentionScheduler.warnInactiveAccounts).
+   */
+  async sendAccountInactivityWarningNotification(
+    userId: string,
+    daysBeforeDeletion: number,
+  ): Promise<Notification> {
+    return this.createNotification({
+      userId,
+      type: NotificationType.ACCOUNT_INACTIVITY_WARNING,
+      title: 'Votre compte GoldWen va être supprimé',
+      body: `Vous n'avez pas utilisé GoldWen depuis longtemps. Sans connexion d'ici ${daysBeforeDeletion} jours, votre compte et vos données seront définitivement supprimés.`,
+      data: { action: 'reactivate_account', daysBeforeDeletion },
+    });
+  }
+
   async sendGroupNotification(
     sendGroupNotificationDto: SendGroupNotificationDto,
   ): Promise<Notification[]> {
@@ -755,11 +778,28 @@ export class NotificationsService {
   /**
    * Register a new push token for a user
    */
-  async registerPushToken(userId: string, token: string, platform: string, appVersion?: string, deviceId?: string): Promise<PushToken> {
-    return pushTokenOperations.registerPushToken(this.pushTokenRepository, userId, token, platform, appVersion, deviceId);
+  async registerPushToken(
+    userId: string,
+    token: string,
+    platform: string,
+    appVersion?: string,
+    deviceId?: string,
+  ): Promise<PushToken> {
+    return pushTokenOperations.registerPushToken(
+      this.pushTokenRepository,
+      userId,
+      token,
+      platform,
+      appVersion,
+      deviceId,
+    );
   }
   async deletePushToken(userId: string, token: string): Promise<void> {
-    return pushTokenOperations.deletePushToken(this.pushTokenRepository, userId, token);
+    return pushTokenOperations.deletePushToken(
+      this.pushTokenRepository,
+      userId,
+      token,
+    );
   }
 
   async getUserPushTokens(userId: string): Promise<PushToken[]> {

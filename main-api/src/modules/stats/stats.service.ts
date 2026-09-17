@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -497,7 +501,9 @@ export class StatsService {
     filename: string;
   }> {
     if (exportOptions?.format && exportOptions.format !== ExportFormat.JSON) {
-      throw new BadRequestException('Only JSON statistics exports are supported');
+      throw new BadRequestException(
+        'Only JSON statistics exports are supported',
+      );
     }
     this.logger.log(`Exporting ${type} statistics`);
 

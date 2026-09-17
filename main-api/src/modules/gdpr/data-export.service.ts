@@ -1,4 +1,10 @@
-import { Injectable, Logger, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -54,27 +60,57 @@ export class DataExportService {
   private signature(requestId: string, expires: string): string {
     const secret = this.configService.get<string>('jwt.secret');
     if (!secret) throw new Error('Signing secret is not configured');
-    return createHmac('sha256', secret).update(`gdpr-export:${requestId}:${expires}`).digest('hex');
+    return createHmac('sha256', secret)
+      .update(`gdpr-export:${requestId}:${expires}`)
+      .digest('hex');
   }
 
   getDownloadUrl(request: DataExportRequest): string | null {
-    if (request.status !== ExportStatus.COMPLETED || !request.fileUrl || !request.expiresAt || request.expiresAt <= new Date()) return null;
+    if (
+      request.status !== ExportStatus.COMPLETED ||
+      !request.fileUrl ||
+      !request.expiresAt ||
+      request.expiresAt <= new Date()
+    )
+      return null;
     const expires = String(Math.floor(request.expiresAt.getTime() / 1000));
-    const appUrl = this.configService.get<string>('app.url')?.replace(/\/$/, '') || '';
+    const appUrl =
+      this.configService.get<string>('app.url')?.replace(/\/$/, '') || '';
     const prefix = this.configService.get<string>('app.apiPrefix') || 'api/v1';
     return `${appUrl}/${prefix}/exports/${request.id}/download?expires=${expires}&signature=${this.signature(request.id, expires)}`;
   }
 
-  async download(requestId: string, expires: string, signature: string): Promise<Buffer> {
-    if (!/^\d+$/.test(expires) || Number(expires) <= Date.now() / 1000 || !/^[a-f0-9]{64}$/.test(signature)) {
+  async download(
+    requestId: string,
+    expires: string,
+    signature: string,
+  ): Promise<Buffer> {
+    if (
+      !/^\d+$/.test(expires) ||
+      Number(expires) <= Date.now() / 1000 ||
+      !/^[a-f0-9]{64}$/.test(signature)
+    ) {
       throw new ForbiddenException('Invalid or expired download link');
     }
     const actual = Buffer.from(signature);
     const expected = Buffer.from(this.signature(requestId, expires));
-    if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) throw new ForbiddenException('Invalid download link');
-    const request = await this.dataExportRequestRepository.findOne({ where: { id: requestId } });
-    if (!request || request.status !== ExportStatus.COMPLETED || !request.fileUrl) throw new NotFoundException('Export not found');
-    if (!request.expiresAt || request.expiresAt <= new Date() || Number(expires) > request.expiresAt.getTime() / 1000) throw new ForbiddenException('Export has expired');
+    if (actual.length !== expected.length || !timingSafeEqual(actual, expected))
+      throw new ForbiddenException('Invalid download link');
+    const request = await this.dataExportRequestRepository.findOne({
+      where: { id: requestId },
+    });
+    if (
+      !request ||
+      request.status !== ExportStatus.COMPLETED ||
+      !request.fileUrl
+    )
+      throw new NotFoundException('Export not found');
+    if (
+      !request.expiresAt ||
+      request.expiresAt <= new Date() ||
+      Number(expires) > request.expiresAt.getTime() / 1000
+    )
+      throw new ForbiddenException('Export has expired');
     return this.storageService.readPrivateExport(request.fileUrl);
   }
 
@@ -86,7 +122,8 @@ export class DataExportService {
     userId: string,
     format: ExportFormat = ExportFormat.JSON,
   ): Promise<DataExportRequest> {
-    if (format !== ExportFormat.JSON) throw new BadRequestException('Only JSON exports are supported');
+    if (format !== ExportFormat.JSON)
+      throw new BadRequestException('Only JSON exports are supported');
     this.logger.log(
       `Creating data export request for user ${userId} in ${format} format`,
     );
@@ -136,9 +173,14 @@ export class DataExportService {
       const exportData = await this.collectUserData(request.userId);
 
       const key = `exports/${request.id}.json`;
-      await this.storageService.uploadPrivateExport(key, Buffer.from(JSON.stringify(exportData)));
+      await this.storageService.uploadPrivateExport(
+        key,
+        Buffer.from(JSON.stringify(exportData)),
+      );
       await this.dataExportRequestRepository.update(requestId, {
-        status: ExportStatus.COMPLETED, completedAt: new Date(), fileUrl: key,
+        status: ExportStatus.COMPLETED,
+        completedAt: new Date(),
+        fileUrl: key,
       });
 
       this.logger.log(`Export request ${requestId} completed successfully`);
@@ -177,6 +219,42 @@ export class DataExportService {
       where: { userId },
       order: { createdAt: 'DESC' },
     });
+  }
+
+  /**
+   * Purge des exports expirés (Art. 20 RGPD — fichier disponible 7 jours,
+   * voir EXPORT_FILE_RETENTION_DAYS). Supprime le fichier du stockage et
+   * efface la référence en base ; appelé par RetentionScheduler.
+   */
+  async purgeExpiredExports(): Promise<number> {
+    const expired = await this.dataExportRequestRepository
+      .createQueryBuilder('export')
+      .where('export.expiresAt IS NOT NULL')
+      .andWhere('export.expiresAt < :now', { now: new Date() })
+      .andWhere('export.fileUrl IS NOT NULL')
+      .getMany();
+
+    let purged = 0;
+    for (const request of expired) {
+      try {
+        if (request.fileUrl) {
+          await this.storageService.deletePrivateExport(request.fileUrl);
+        }
+        await this.dataExportRequestRepository.update(request.id, {
+          // Raw SQL NULL: TypeORM silently skips `undefined` values on
+          // update(), so this is the only way to actually clear the column.
+          fileUrl: () => 'NULL',
+        });
+        purged++;
+      } catch (error: unknown) {
+        this.logger.error(
+          `Failed to purge expired export ${request.id}:`,
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+    }
+
+    return purged;
   }
 
   /**

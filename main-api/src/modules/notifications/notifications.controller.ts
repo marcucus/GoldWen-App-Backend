@@ -268,7 +268,10 @@ export class NotificationsController {
   }
 
   @Post('push-tokens')
-  @ApiOperation({ deprecated: true, summary: 'Register a push notification token' })
+  @ApiOperation({
+    deprecated: true,
+    summary: 'Register a push notification token',
+  })
   @ApiResponse({
     status: 201,
     description: 'Push token registered successfully',
@@ -301,7 +304,10 @@ export class NotificationsController {
   }
 
   @Delete('push-tokens')
-  @ApiOperation({ deprecated: true, summary: 'Delete a push notification token' })
+  @ApiOperation({
+    deprecated: true,
+    summary: 'Delete a push notification token',
+  })
   @ApiResponse({
     status: 200,
     description: 'Push token deleted successfully',
@@ -326,7 +332,10 @@ export class NotificationsController {
   }
 
   @Get('push-tokens')
-  @ApiOperation({ deprecated: true, summary: 'Get all push tokens for the current user' })
+  @ApiOperation({
+    deprecated: true,
+    summary: 'Get all push tokens for the current user',
+  })
   @ApiResponse({
     status: 200,
     description: 'Push tokens retrieved successfully',

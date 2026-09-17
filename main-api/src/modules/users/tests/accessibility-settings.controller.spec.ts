@@ -57,7 +57,13 @@ describe('UsersController - Accessibility Settings', () => {
         },
         {
           provide: GdprModuleService,
-          useValue: { ...mockGdprService, ...mockGdprModuleService, getExportDownloadUrl: jest.fn((request: { fileUrl?: string }) => request.fileUrl ?? null) },
+          useValue: {
+            ...mockGdprService,
+            ...mockGdprModuleService,
+            getExportDownloadUrl: jest.fn(
+              (request: { fileUrl?: string }) => request.fileUrl ?? null,
+            ),
+          },
         },
         {
           provide: getRepositoryToken(Profile),

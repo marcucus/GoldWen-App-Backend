@@ -202,8 +202,15 @@ export class AlertingService {
   }
 
   private async sendEmailAlert(alert: AlertData): Promise<void> {
-    await Promise.all(this.alertsConfig!.emailRecipients.map((recipient) =>
-      this.emailService.sendOperationalEmail(recipient, `[${alert.level}] ${alert.title}`, alert.message)));
+    await Promise.all(
+      this.alertsConfig!.emailRecipients.map((recipient) =>
+        this.emailService.sendOperationalEmail(
+          recipient,
+          `[${alert.level}] ${alert.title}`,
+          alert.message,
+        ),
+      ),
+    );
   }
 
   // Helper methods for common alert scenarios

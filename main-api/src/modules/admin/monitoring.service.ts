@@ -6,6 +6,7 @@ import Redis from 'ioredis';
 import { CustomLoggerService } from '../../common/logger';
 import { ConfigService } from '@nestjs/config';
 import { MonitoringConfig } from '../../config/config.interface';
+import { MetricsService } from '../../common/monitoring/metrics.service';
 
 export interface LogEntry {
   timestamp: string;
@@ -49,14 +50,21 @@ export class MonitoringService {
     @InjectRedis() private redis: Redis,
     private logger: CustomLoggerService,
     private configService: ConfigService,
+    private metricsService: MetricsService,
   ) {
     // Initialize log capture
     this.setupLogCapture();
   }
 
   private setupLogCapture() {
-    // This would integrate with Winston to capture logs
-    // For now, we'll simulate with a basic implementation
+    // Deliberately not wired to a real-time buffer: CustomLoggerService is
+    // injected across nearly every module in this codebase, and adding a new
+    // hard dependency there (to push entries here) would touch dozens of
+    // test files for a low-value feature (Phase 4.1 fixed exactly this class
+    // of breakage). recentErrors/getRecentLogs below stay empty for now;
+    // Sentry (already wired, see SentryService) is the real error feed.
+    // The API performance numbers below (averageResponseTime, etc.) ARE real
+    // — see MetricsService.getPerformanceSummary, fed by LoggingMiddleware.
   }
 
   async getDashboardData() {
@@ -310,13 +318,7 @@ export class MonitoringService {
   }
 
   private getApiPerformanceMetrics() {
-    // This would track API response times, throughput, etc.
-    // For now, return placeholder data
-    return {
-      averageResponseTime: 150,
-      requestsPerMinute: 45,
-      errorRate: 0.5,
-    };
+    return this.metricsService.getPerformanceSummary();
   }
 
   private parseRedisInfo(info: string): Record<string, string> {

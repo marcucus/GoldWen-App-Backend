@@ -56,6 +56,7 @@ export enum NotificationType {
   CHAT_EXPIRING = 'chat_expiring',
   SUBSCRIPTION_EXPIRED = 'subscription_expired',
   SUBSCRIPTION_RENEWED = 'subscription_renewed',
+  ACCOUNT_INACTIVITY_WARNING = 'account_inactivity_warning',
   SYSTEM = 'system',
 }
 

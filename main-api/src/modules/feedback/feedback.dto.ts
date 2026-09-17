@@ -1,4 +1,14 @@
-import { IsIn, IsString, IsNotEmpty, MaxLength, IsOptional, IsInt, Min, Max, IsObject } from 'class-validator';
+import {
+  IsIn,
+  IsString,
+  IsNotEmpty,
+  MaxLength,
+  IsOptional,
+  IsInt,
+  Min,
+  Max,
+  IsObject,
+} from 'class-validator';
 export class CreateFeedbackDto {
   @IsIn(['bug', 'feature', 'general']) type: string;
   @IsString() @IsNotEmpty() @MaxLength(100) subject: string;

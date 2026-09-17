@@ -63,6 +63,8 @@ import { GdprModule } from './modules/gdpr/gdpr.module';
 import { CronJobsModule } from './modules/cron-jobs/cron-jobs.module';
 import { FeedbackModule } from './modules/feedback/feedback.module';
 import { LegalModule } from './modules/legal/legal.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { AnalyticsMiddleware } from './modules/analytics/analytics.middleware';
 
 @Module({
   imports: [
@@ -178,6 +180,7 @@ import { LegalModule } from './modules/legal/legal.module';
     GdprModule,
     CronJobsModule,
     LegalModule,
+    AnalyticsModule,
     FeedbackModule,
   ],
   controllers: [AppController],
@@ -208,5 +211,9 @@ export class AppModule {
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(LoggingMiddleware).forRoutes('*'); // Apply to all routes
     consumer.apply(SecurityLoggingMiddleware).forRoutes('*'); // Apply security logging
+    // No-ops until MIXPANEL_TOKEN + MIXPANEL_ENABLED are set (AnalyticsService
+    // checks both before initializing the Mixpanel client) — safe to enable
+    // application-wide now, activates whenever real credentials land.
+    consumer.apply(AnalyticsMiddleware).forRoutes('*');
   }
 }

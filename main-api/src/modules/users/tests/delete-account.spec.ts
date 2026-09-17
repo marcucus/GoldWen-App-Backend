@@ -82,7 +82,13 @@ describe('UsersController - Delete Account', () => {
         },
         {
           provide: GdprModuleService,
-          useValue: { ...mockGdprService, ...mockGdprModuleService, getExportDownloadUrl: jest.fn((request: { fileUrl?: string }) => request.fileUrl ?? null) },
+          useValue: {
+            ...mockGdprService,
+            ...mockGdprModuleService,
+            getExportDownloadUrl: jest.fn(
+              (request: { fileUrl?: string }) => request.fileUrl ?? null,
+            ),
+          },
         },
         {
           provide: getRepositoryToken(Profile),

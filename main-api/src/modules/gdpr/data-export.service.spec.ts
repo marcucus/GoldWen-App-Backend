@@ -30,13 +30,26 @@ describe('DataExportService', () => {
     create: jest.fn(),
     save: jest.fn(),
     update: jest.fn(),
+    createQueryBuilder: jest.fn(),
+  };
+
+  const mockStorageService = {
+    uploadPrivateExport: jest.fn(),
+    readPrivateExport: jest.fn(),
+    deletePrivateExport: jest.fn(),
   };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        { provide: ConfigService, useValue: { get: jest.fn(() => "test-signing-secret") } },
-        { provide: StorageService, useValue: { uploadPrivateExport: jest.fn(), readPrivateExport: jest.fn() } },
+        {
+          provide: ConfigService,
+          useValue: { get: jest.fn(() => 'test-signing-secret') },
+        },
+        {
+          provide: StorageService,
+          useValue: mockStorageService,
+        },
         DataExportService,
         {
           provide: getRepositoryToken(DataExportRequest),
@@ -131,7 +144,9 @@ describe('DataExportService', () => {
     });
 
     it('rejects unsupported PDF exports before persisting a request', async () => {
-      await expect(service.createExportRequest('test-user-id', ExportFormat.PDF)).rejects.toThrow('Only JSON');
+      await expect(
+        service.createExportRequest('test-user-id', ExportFormat.PDF),
+      ).rejects.toThrow('Only JSON');
       expect(mockRepositories.create).not.toHaveBeenCalled();
     });
   });
@@ -274,6 +289,68 @@ describe('DataExportService', () => {
 
       // Should not throw error, just log
       expect(dataExportRequestRepository.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('purgeExpiredExports', () => {
+    it('deletes the stored file and clears fileUrl for each expired export', async () => {
+      const expired = [
+        { id: 'export-1', fileUrl: 'exports/export-1.json' },
+        { id: 'export-2', fileUrl: 'exports/export-2.json' },
+      ];
+
+      mockRepositories.createQueryBuilder.mockReturnValue({
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue(expired),
+      });
+      mockStorageService.deletePrivateExport.mockResolvedValue(undefined);
+      mockRepositories.update.mockResolvedValue({ affected: 1 });
+
+      const purged = await service.purgeExpiredExports();
+
+      expect(purged).toBe(2);
+      expect(mockStorageService.deletePrivateExport).toHaveBeenCalledWith(
+        'exports/export-1.json',
+      );
+      expect(mockStorageService.deletePrivateExport).toHaveBeenCalledWith(
+        'exports/export-2.json',
+      );
+      expect(dataExportRequestRepository.update).toHaveBeenCalledTimes(2);
+    });
+
+    it('returns 0 and does not touch storage when nothing has expired', async () => {
+      mockRepositories.createQueryBuilder.mockReturnValue({
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([]),
+      });
+
+      const purged = await service.purgeExpiredExports();
+
+      expect(purged).toBe(0);
+      expect(mockStorageService.deletePrivateExport).not.toHaveBeenCalled();
+    });
+
+    it('keeps going and skips the count when one deletion fails', async () => {
+      const expired = [
+        { id: 'export-1', fileUrl: 'exports/export-1.json' },
+        { id: 'export-2', fileUrl: 'exports/export-2.json' },
+      ];
+
+      mockRepositories.createQueryBuilder.mockReturnValue({
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue(expired),
+      });
+      mockStorageService.deletePrivateExport
+        .mockRejectedValueOnce(new Error('S3 error'))
+        .mockResolvedValueOnce(undefined);
+      mockRepositories.update.mockResolvedValue({ affected: 1 });
+
+      const purged = await service.purgeExpiredExports();
+
+      expect(purged).toBe(1);
     });
   });
 });

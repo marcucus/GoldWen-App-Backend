@@ -27,7 +27,10 @@ describe('LegalService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        { provide: getRepositoryToken(TermsOfService), useValue: { findOne: jest.fn() } },
+        {
+          provide: getRepositoryToken(TermsOfService),
+          useValue: { findOne: jest.fn() },
+        },
         LegalService,
         {
           provide: getRepositoryToken(PrivacyPolicy),

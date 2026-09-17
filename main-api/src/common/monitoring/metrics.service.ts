@@ -50,6 +50,74 @@ export class MetricsService implements OnModuleInit {
     labelNames: ['plan'],
   });
 
+  // Rolling window of recent requests, used to compute the admin dashboard's
+  // "API performance" numbers without parsing Prometheus's internal buckets.
+  private readonly recentRequests: {
+    timestamp: number;
+    durationMs: number;
+    isError: boolean;
+  }[] = [];
+  private readonly maxRecentRequests = 5000;
+
+  recordHttpRequest(
+    method: string,
+    route: string,
+    statusCode: number,
+    durationMs: number,
+  ) {
+    const labels = { method, route, status_code: String(statusCode) };
+    this.httpRequestsTotal.inc(labels);
+    this.httpRequestDurationSeconds.observe(labels, durationMs / 1000);
+
+    this.recentRequests.push({
+      timestamp: Date.now(),
+      durationMs,
+      isError: statusCode >= 500,
+    });
+    if (this.recentRequests.length > this.maxRecentRequests) {
+      this.recentRequests.shift();
+    }
+  }
+
+  /** Real numbers for the admin dashboard, replacing the previous hardcoded placeholders. */
+  getPerformanceSummary(windowMs = 60_000): {
+    averageResponseTime: number;
+    requestsPerMinute: number;
+    errorRate: number;
+    sampleSize: number;
+  } {
+    const now = Date.now();
+    const inWindow = this.recentRequests.filter(
+      (r) => r.timestamp >= now - windowMs,
+    );
+    // Fall back to the last 100 requests if the window is quiet, so the
+    // dashboard still shows something meaningful right after a deploy.
+    const sample =
+      inWindow.length > 0 ? inWindow : this.recentRequests.slice(-100);
+
+    if (sample.length === 0) {
+      return {
+        averageResponseTime: 0,
+        requestsPerMinute: 0,
+        errorRate: 0,
+        sampleSize: 0,
+      };
+    }
+
+    const averageResponseTime =
+      sample.reduce((sum, r) => sum + r.durationMs, 0) / sample.length;
+    const requestsPerMinute = Math.round((inWindow.length / windowMs) * 60_000);
+    const errorRate =
+      (sample.filter((r) => r.isError).length / sample.length) * 100;
+
+    return {
+      averageResponseTime: Math.round(averageResponseTime),
+      requestsPerMinute,
+      errorRate: Math.round(errorRate * 100) / 100,
+      sampleSize: sample.length,
+    };
+  }
+
   onModuleInit() {
     collectDefaultMetrics({ register });
   }

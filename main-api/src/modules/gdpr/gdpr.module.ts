@@ -19,8 +19,10 @@ import { UserConsent } from '../../database/entities/user-consent.entity';
 import { PushToken } from '../../database/entities/push-token.entity';
 import { Notification } from '../../database/entities/notification.entity';
 import { Report } from '../../database/entities/report.entity';
+import { SupportTicket } from '../../database/entities/support-ticket.entity';
 import { DataExportRequest } from '../../database/entities/data-export-request.entity';
 import { AccountDeletion } from '../../database/entities/account-deletion.entity';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -35,12 +37,20 @@ import { AccountDeletion } from '../../database/entities/account-deletion.entity
       PushToken,
       Notification,
       Report,
+      SupportTicket,
       DataExportRequest,
       AccountDeletion,
     ]),
+    NotificationsModule,
   ],
   controllers: [GdprController, ExportDownloadController],
-  providers: [StorageService, GdprService, UserDataService, DataExportService, RetentionScheduler],
+  providers: [
+    StorageService,
+    GdprService,
+    UserDataService,
+    DataExportService,
+    RetentionScheduler,
+  ],
   exports: [GdprService, DataExportService],
 })
 export class GdprModule {}

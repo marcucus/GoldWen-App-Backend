@@ -331,7 +331,6 @@ export class ChatService {
         readAt: new Date(),
       },
     );
-
   }
 
   async getUserChats(userId: string): Promise<Chat[]> {
