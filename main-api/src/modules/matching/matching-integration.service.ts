@@ -87,9 +87,22 @@ export class MatchingIntegrationService {
   ) {
     this.matchingServiceUrl =
       this.configService.get('matchingService.url') || 'http://localhost:8000';
-    this.apiKey =
-      this.configService.get('matchingService.apiKey') ||
-      'matching-service-secret-key';
+
+    // SECURITY (Phase 0.10): no fallback to a hardcoded default here — that
+    // default ('matching-service-secret-key') is published in this
+    // open-source repo (and was, until this fix, ALSO the Python
+    // matching-service's own hardcoded default), so silently using it would
+    // mean the internal API-key check between the two services provides no
+    // real protection whenever MATCHING_SERVICE_API_KEY isn't set. Fail
+    // loudly at startup instead, matching how JWT_SECRET is already
+    // enforced in config/configuration.ts.
+    const apiKey = this.configService.get<string>('matchingService.apiKey');
+    if (!apiKey) {
+      throw new Error(
+        'MATCHING_SERVICE_API_KEY is not configured — refusing to start with an insecure default',
+      );
+    }
+    this.apiKey = apiKey;
 
     this.breaker = new CircuitBreaker(this.fetchWithTimeout.bind(this), {
       timeout: FETCH_TIMEOUT_MS,

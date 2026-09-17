@@ -18,6 +18,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../auth/guards/admin.guard';
 import { Roles, RoleGuard } from '../auth/guards/role.guard';
 import { UserRole } from '../../common/enums';
 import { NotificationsService } from './notifications.service';
@@ -234,9 +235,15 @@ export class NotificationsController {
     };
   }
 
+  // SECURITY (Phase 0.6): the "dev only" comment below never actually
+  // checked anything — `this.scheduledNotificationsService` is always
+  // injected, so the guard was always true and ANY authenticated user could
+  // force-trigger the daily selection job in production. AdminGuard now
+  // requires a genuine admin token (see Phase 0.2/0.3).
   @Post('trigger-daily-selection')
+  @UseGuards(AdminGuard)
   @ApiOperation({
-    summary: 'Manually trigger daily selection notifications (dev only)',
+    summary: 'Manually trigger daily selection notifications (admin only)',
     description:
       'Manually trigger the daily selection notification job for testing',
   })
@@ -245,14 +252,12 @@ export class NotificationsController {
     description: 'Daily selection notifications triggered',
   })
   async triggerDailySelectionNotifications(@Request() req: any) {
-    const userId = req.user.id;
+    this.logger.setContext({
+      adminId: req.admin.id,
+      adminEmail: req.admin.email,
+    });
 
-    this.logger.setContext({ userId, userEmail: req.user.email });
-
-    // Only allow in development
-    if (this.scheduledNotificationsService) {
-      await this.scheduledNotificationsService.triggerDailySelectionNotifications();
-    }
+    await this.scheduledNotificationsService.triggerDailySelectionNotifications();
 
     return {
       success: true,

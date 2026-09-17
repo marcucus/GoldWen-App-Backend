@@ -38,7 +38,7 @@ describe('ModerationService', () => {
     };
 
     const mockImageModerationService = {
-      moderateImage: jest.fn(),
+      moderateImageFromUrl: jest.fn(),
     };
 
     const mockForbiddenWordsService = {
@@ -142,7 +142,7 @@ describe('ModerationService', () => {
 
       jest.spyOn(photoRepository, 'findOne').mockResolvedValue(mockPhoto);
       jest
-        .spyOn(imageModerationService, 'moderateImage')
+        .spyOn(imageModerationService, 'moderateImageFromUrl')
         .mockResolvedValue(mockModerationResult);
       jest.spyOn(photoRepository, 'save').mockResolvedValue(mockPhoto);
 
@@ -174,7 +174,7 @@ describe('ModerationService', () => {
 
       jest.spyOn(photoRepository, 'findOne').mockResolvedValue(mockPhoto);
       jest
-        .spyOn(imageModerationService, 'moderateImage')
+        .spyOn(imageModerationService, 'moderateImageFromUrl')
         .mockResolvedValue(mockModerationResult);
       jest.spyOn(photoRepository, 'save').mockResolvedValue(mockPhoto);
       jest

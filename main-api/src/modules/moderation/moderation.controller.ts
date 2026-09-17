@@ -16,6 +16,8 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../auth/guards/admin.guard';
+import { ModerationWebhookGuard } from './guards/moderation-webhook.guard';
 import { ModerationService } from './services/moderation.service';
 import {
   ModerateTextDto,
@@ -30,9 +32,11 @@ export class ModerationController {
   constructor(private readonly moderationService: ModerationService) {}
 
   @Post('webhook/photo')
+  @UseGuards(ModerationWebhookGuard)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Photo moderation webhook (internal — called after upload)' })
+  @ApiOperation({ summary: 'Photo moderation webhook (internal — requires X-Moderation-Webhook-Secret)' })
   @ApiResponse({ status: 200, description: 'Photo moderation result' })
+  @ApiResponse({ status: 401, description: 'Missing or invalid webhook secret' })
   async photoModerationWebhook(@Body() dto: PhotoModerationWebhookDto) {
     const result = await this.moderationService.moderatePhoto(dto.photoId);
     return {
@@ -57,7 +61,7 @@ export class ModerationController {
   }
 
   @Post('admin/photo/:photoId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Manually trigger photo moderation (admin)' })
   @ApiParam({ name: 'photoId', description: 'Photo ID' })
@@ -71,7 +75,7 @@ export class ModerationController {
   }
 
   @Post('admin/text')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Moderate a text string for policy violations (admin)' })
   @ApiResponse({ status: 201, description: 'Moderation result' })
@@ -84,7 +88,7 @@ export class ModerationController {
   }
 
   @Post('admin/text/batch')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Batch-moderate multiple text strings (admin)' })
   @ApiResponse({ status: 201, description: 'Array of moderation results' })

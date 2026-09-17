@@ -54,41 +54,47 @@ describe('ImageModerationService', () => {
   });
 
   describe('moderateImage', () => {
-    it('should return safe result when AWS Rekognition is not configured', async () => {
+    it('should return a needs-review result (not an auto-approved safe result) when AWS Rekognition is not configured', async () => {
       const result = await service.moderateImage('/path/to/image.jpg');
 
-      expect(result.flagged).toBe(false);
+      // Phase 0: an unverified image must never be silently treated as
+      // "safe" — when moderation can't run, it is flagged for manual
+      // review instead of being auto-approved.
+      expect(result.flagged).toBe(true);
       expect(result.shouldBlock).toBe(false);
+      expect(result.needsManualReview).toBe(true);
       expect(result.labels).toEqual([]);
       expect(logger.warn).toHaveBeenCalledWith(
-        'AWS Rekognition not configured, skipping image moderation',
+        'AWS Rekognition not configured — flagging photo for manual review',
       );
     });
   });
 
   describe('moderateImageFromUrl', () => {
-    it('should return safe result when AWS Rekognition is not configured', async () => {
+    it('should return a needs-review result (not an auto-approved safe result) when AWS Rekognition is not configured', async () => {
       const result = await service.moderateImageFromUrl(
         'https://example.com/image.jpg',
       );
 
-      expect(result.flagged).toBe(false);
+      expect(result.flagged).toBe(true);
       expect(result.shouldBlock).toBe(false);
+      expect(result.needsManualReview).toBe(true);
       expect(result.labels).toEqual([]);
       expect(logger.warn).toHaveBeenCalledWith(
-        'AWS Rekognition not configured, skipping image moderation',
+        'AWS Rekognition not configured — flagging photo for manual review',
       );
     });
   });
 
-  describe('createSafeResult', () => {
-    it('should create a safe result with empty labels', async () => {
+  describe('createNeedsReviewResult', () => {
+    it('should create a needs-review result with empty labels and a reason', async () => {
       const result = await service.moderateImage('/path/to/image.jpg');
 
-      expect(result.flagged).toBe(false);
+      expect(result.flagged).toBe(true);
       expect(result.shouldBlock).toBe(false);
+      expect(result.needsManualReview).toBe(true);
       expect(result.labels).toEqual([]);
-      expect(result.reason).toBeUndefined();
+      expect(result.reason).toBe('Automated moderation is not configured');
     });
   });
 

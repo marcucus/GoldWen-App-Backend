@@ -1,9 +1,11 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import helmet from 'helmet';
+import { join } from 'path';
 import { AppModule } from './app.module';
 import { CustomLoggerService } from './common/logger';
 import { HttpExceptionFilter } from './common/filters';
@@ -11,10 +13,27 @@ import { ResponseInterceptor, CacheInterceptor } from './common/interceptors';
 import { SentryService } from './common/monitoring';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // rawBody: true (Phase 0.4) — keeps the exact bytes Express received on
+  // req.rawBody, so webhook signature checks (RevenueCat) verify the actual
+  // wire payload instead of a re-serialized JSON.stringify() of the parsed
+  // body, which can differ byte-for-byte and silently break HMAC checks.
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
 
   const configService = app.get(ConfigService);
   const logger = app.get(CustomLoggerService);
+
+  // SECURITY (Phase 0.9): the local uploads/ directory (used as a storage
+  // fallback when S3 is not configured — see StorageService) was served as
+  // a static directory with NO authentication or access control at all:
+  // anyone who could guess or enumerate a filename could fetch any uploaded
+  // photo directly. It is reserved for non-production environments; a real
+  // deployment must configure S3 (with the CDN/signed URLs that implies)
+  // instead of relying on this route.
+  if (configService.get('app.environment') !== 'production') {
+    app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
+  }
   const reflector = app.get(Reflector);
   const sentry = app.get(SentryService);
 
@@ -107,9 +126,9 @@ async function bootstrap() {
 
   await app.listen(port, '0.0.0.0');
   logger.info('🚀 GoldWen API is running successfully', {
-    url: `http://192.168.1.183:${port}/${apiPrefix}`,
-    networkUrl: `http://192.168.1.183:${port}/${apiPrefix}`,
-    docs: `http://192.168.1.183:${port}/${apiPrefix}/docs`,
+    url: `http://192.168.1.5:${port}/${apiPrefix}`,
+    networkUrl: `http://192.168.1.5:${port}/${apiPrefix}`,
+    docs: `http://192.168.1.5:${port}/${apiPrefix}/docs`,
     environment: configService.get('app.environment'),
   });
 }

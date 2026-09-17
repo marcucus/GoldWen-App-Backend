@@ -20,6 +20,13 @@ export interface ImageModerationResult {
   shouldBlock: boolean;
   reason?: string;
   moderationModelVersion?: string;
+  // SECURITY (Phase 0.7): true whenever Rekognition could not actually
+  // inspect the image (not configured, fetch/read failure, AWS error).
+  // Previously these cases silently returned an "all clear" result, which
+  // combined with a broken local-path computation in ModerationService made
+  // every uploaded photo auto-approved regardless of content. Callers must
+  // treat needsManualReview as "not approved yet", never as "approved".
+  needsManualReview?: boolean;
 }
 
 @Injectable()
@@ -74,9 +81,11 @@ export class ImageModerationService {
   async moderateImage(imagePath: string): Promise<ImageModerationResult> {
     if (!this.rekognitionClient) {
       this.logger.warn(
-        'AWS Rekognition not configured, skipping image moderation',
+        'AWS Rekognition not configured — flagging photo for manual review',
       );
-      return this.createSafeResult();
+      return this.createNeedsReviewResult(
+        'Automated moderation is not configured',
+      );
     }
 
     try {
@@ -126,8 +135,12 @@ export class ImageModerationService {
         error.stack,
         'ImageModerationService',
       );
-      // On error, return safe result (don't block) to avoid false positives
-      return this.createSafeResult();
+      // SECURITY (Phase 0.7): an error here means we don't know whether the
+      // image is safe — it must NOT be auto-approved. Flag for manual review
+      // instead of silently returning a clean result.
+      return this.createNeedsReviewResult(
+        'Automated moderation failed and requires manual review',
+      );
     }
   }
 
@@ -138,9 +151,11 @@ export class ImageModerationService {
   async moderateImageFromUrl(imageUrl: string): Promise<ImageModerationResult> {
     if (!this.rekognitionClient) {
       this.logger.warn(
-        'AWS Rekognition not configured, skipping image moderation',
+        'AWS Rekognition not configured — flagging photo for manual review',
       );
-      return this.createSafeResult();
+      return this.createNeedsReviewResult(
+        'Automated moderation is not configured',
+      );
     }
 
     try {
@@ -212,7 +227,11 @@ export class ImageModerationService {
         error.stack,
         'ImageModerationService',
       );
-      return this.createSafeResult();
+      // SECURITY (Phase 0.7): same as above — an inspection failure is not
+      // a clean bill of health.
+      return this.createNeedsReviewResult(
+        'Automated moderation failed and requires manual review',
+      );
     }
   }
 
@@ -250,13 +269,19 @@ export class ImageModerationService {
   }
 
   /**
-   * Create a safe/non-flagged result
+   * Create a result meaning "we could not actually check this image" —
+   * treated by ModerationService as not-yet-approved, pending a human
+   * reviewer (Phase 0.7). This deliberately replaces the old
+   * createSafeResult(), which returned shouldBlock: false and caused every
+   * photo to be auto-approved whenever Rekognition wasn't reachable.
    */
-  private createSafeResult(): ImageModerationResult {
+  private createNeedsReviewResult(reason: string): ImageModerationResult {
     return {
-      flagged: false,
+      flagged: true,
       labels: [],
       shouldBlock: false,
+      needsManualReview: true,
+      reason,
     };
   }
 }

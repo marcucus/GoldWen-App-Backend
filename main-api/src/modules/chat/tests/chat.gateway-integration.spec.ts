@@ -9,10 +9,13 @@ import { TypingIndicatorService } from '../services/typing-indicator.service';
 import { ReadReceiptsService } from '../services/read-receipts.service';
 import { PresenceService } from '../services/presence.service';
 import { NotificationsService } from '../../notifications/notifications.service';
+import { ConfigService } from '@nestjs/config';
+import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
 import { Chat } from '../../../database/entities/chat.entity';
 import { Message } from '../../../database/entities/message.entity';
 import { Match } from '../../../database/entities/match.entity';
 import { User } from '../../../database/entities/user.entity';
+import { UserStatus } from '../../../common/enums';
 
 describe('ChatGateway - Real-time Features Integration', () => {
   let gateway: ChatGateway;
@@ -60,6 +63,18 @@ describe('ChatGateway - Real-time Features Integration', () => {
     sendChatAcceptedNotification: jest.fn(),
   };
 
+  const mockConfigService = {
+    get: jest.fn(),
+  };
+
+  const mockRedis = {
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+    multi: jest.fn().mockReturnThis(),
+    exec: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -95,6 +110,14 @@ describe('ChatGateway - Real-time Features Integration', () => {
         {
           provide: NotificationsService,
           useValue: mockNotificationsService,
+        },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
+        },
+        {
+          provide: getRedisConnectionToken(),
+          useValue: mockRedis,
         },
       ],
     }).compile();
@@ -287,6 +310,10 @@ describe('ChatGateway - Real-time Features Integration', () => {
       } as any;
 
       mockJwtService.verify.mockReturnValue({ sub: userId });
+      mockUserRepository.findOne.mockResolvedValue({
+        id: userId,
+        status: UserStatus.ACTIVE,
+      });
       mockUserRepository.update.mockResolvedValue({ affected: 1 });
 
       await gateway.handleConnection(mockClient);

@@ -12,9 +12,14 @@ import { Server, Socket } from 'socket.io';
 import { UseGuards, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { InjectRedis } from '@nestjs-modules/ioredis';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { Redis } from 'ioredis';
 import { ChatService } from './chat.service';
+import { User } from '../../database/entities/user.entity';
+import { UserStatus } from '../../common/enums';
 import { CustomLoggerService } from '../../common/logger';
 import { MessageType } from '../../common/enums';
 import { TypingIndicatorService } from './services/typing-indicator.service';
@@ -33,9 +38,29 @@ interface AuthenticatedSocket extends Socket {
   user?: JwtSocketPayload;
 }
 
+// SECURITY (Phase 0.10): `origin: process.env.FRONTEND_URL || true` meant
+// that with FRONTEND_URL unset (e.g. a misconfigured deploy) the gateway
+// fell back to `true`, which reflects ANY request origin — combined with
+// `credentials: true` this let any website open an authenticated
+// (cookie/credentialed) WebSocket connection cross-origin. This mirrors the
+// explicit-allowlist CORS check already used for the REST API in main.ts —
+// no origin is ever accepted just because nothing was configured.
+const chatAllowedOrigins = [process.env.FRONTEND_URL, process.env.WEB_URL].filter(
+  (origin): origin is string => !!origin,
+);
+
 @WebSocketGateway({
   cors: {
-    origin: process.env.FRONTEND_URL || true,
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
+      if (!origin || chatAllowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS: origin non autorisée: ${origin}`));
+      }
+    },
     credentials: true,
   },
   namespace: '/chat',
@@ -54,6 +79,10 @@ export class ChatGateway
     private readonly readReceiptsService: ReadReceiptsService,
     private readonly presenceService: PresenceService,
     private readonly configService: ConfigService,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    @InjectRedis()
+    private readonly redis: Redis,
   ) {}
 
   afterInit(server: Server) {
@@ -85,7 +114,33 @@ export class ChatGateway
       }
 
       // Verify JWT token
-      const payload = this.jwtService.verify(token);
+      const payload = this.jwtService.verify(token) as JwtSocketPayload;
+
+      // SECURITY (Phase 0.10): the REST API's JwtStrategy already checks
+      // both of these (blacklist + account status) — the WebSocket gateway
+      // did neither, so a logged-out (blacklisted) or suspended/banned
+      // account's token could still open a chat connection indefinitely.
+      const isBlacklisted = await this.redis.get(`blacklist:token:${token}`);
+      if (isBlacklisted) {
+        this.logger.warn('WebSocket connection rejected: token revoked', {
+          clientId: client.id,
+        });
+        client.disconnect();
+        return;
+      }
+
+      const user = await this.userRepository.findOne({
+        where: { id: payload.sub },
+      });
+      if (!user || user.status !== UserStatus.ACTIVE) {
+        this.logger.warn(
+          'WebSocket connection rejected: account not active',
+          { clientId: client.id, userId: payload.sub },
+        );
+        client.disconnect();
+        return;
+      }
+
       client.userId = payload.sub;
       client.user = payload;
 

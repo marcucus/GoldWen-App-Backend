@@ -1,11 +1,14 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { MonitoringController } from './monitoring.controller';
 import { MonitoringService } from './monitoring.service';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { AdminGuard } from '../auth/guards/admin.guard';
 
 import { Admin } from '../../database/entities/admin.entity';
 import { User } from '../../database/entities/user.entity';
@@ -29,9 +32,19 @@ import { Prompt } from '../../database/entities/prompt.entity';
       Prompt,
     ]),
     forwardRef(() => NotificationsModule),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get('jwt.secret'),
+        signOptions: {
+          expiresIn: configService.get('jwt.expiresIn'),
+        },
+      }),
+      inject: [ConfigService],
+    }),
   ],
-  providers: [AdminService, MonitoringService],
+  providers: [AdminService, MonitoringService, AdminGuard],
   controllers: [AdminController, MonitoringController],
-  exports: [AdminService],
+  exports: [AdminService, AdminGuard],
 })
 export class AdminModule {}

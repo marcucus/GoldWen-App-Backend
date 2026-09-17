@@ -15,6 +15,7 @@ import { Prompt } from '../../../database/entities/prompt.entity';
 import { CreatePromptDto, UpdatePromptDto } from '../dto/prompt.dto';
 import { CustomLoggerService } from '../../../common/logger';
 import { NotificationsService } from '../../notifications/notifications.service';
+import { JwtService } from '@nestjs/jwt';
 
 describe('AdminService - Prompt Management', () => {
   let service: AdminService;
@@ -69,6 +70,15 @@ describe('AdminService - Prompt Management', () => {
           useValue: {
             info: jest.fn(),
             error: jest.fn(),
+          },
+        },
+        {
+          provide: JwtService,
+          useValue: {
+            sign: jest.fn(),
+            signAsync: jest.fn(),
+            verify: jest.fn(),
+            verifyAsync: jest.fn(),
           },
         },
       ],

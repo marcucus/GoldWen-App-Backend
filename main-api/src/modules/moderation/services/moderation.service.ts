@@ -41,18 +41,27 @@ export class ModerationService {
       throw new NotFoundException('Photo not found');
     }
 
-    // Get the full path to the photo
-    const photoPath = photo.url.startsWith('/')
-      ? photo.url
-      : `./uploads/${photo.filename}`;
+    // SECURITY (Phase 0.7): photo.url is already the fully-qualified URL the
+    // photo is served from (local http(s) URL or S3/CDN URL — see
+    // StorageService.uploadFile). The previous code instead recomputed a
+    // local filesystem path from photo.filename that never matched where the
+    // file actually lives, so fs.readFile() always threw and the moderation
+    // call silently "succeeded" via the auto-approve fallback below.
+    // moderateImageFromUrl() was already written for exactly this but was
+    // never called from here.
+    const moderationResult = await this.imageModerationService.moderateImageFromUrl(
+      photo.url,
+    );
 
-    const moderationResult =
-      await this.imageModerationService.moderateImage(photoPath);
-
-    // Update photo approval status
-    photo.isApproved = !moderationResult.shouldBlock;
+    // A photo is approved ONLY when moderation actually ran and found
+    // nothing to block. Anything else — blocked, or moderation itself
+    // failed/unavailable (needsManualReview) — leaves isApproved false so a
+    // human has to look at it before it can appear anywhere (Phase 0.8).
+    photo.isApproved = !moderationResult.shouldBlock && !moderationResult.needsManualReview;
     if (moderationResult.shouldBlock) {
       photo.rejectionReason = moderationResult.reason || null;
+    } else if (moderationResult.needsManualReview) {
+      photo.rejectionReason = moderationResult.reason || 'Pending manual review';
     } else {
       photo.rejectionReason = null;
     }
@@ -72,6 +81,7 @@ export class ModerationService {
       approved: photo.isApproved,
       flagged: moderationResult.flagged,
       shouldBlock: moderationResult.shouldBlock,
+      needsManualReview: moderationResult.needsManualReview,
     });
 
     return {

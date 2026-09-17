@@ -8,6 +8,7 @@ import {
   Body,
   Param,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -16,7 +17,7 @@ import {
   ApiBearerAuth,
   ApiResponse,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../auth/guards/admin.guard';
 import { AdminService } from './admin.service';
 import {
   AdminLoginDto,
@@ -37,26 +38,27 @@ export class AdminController {
   @Post('auth/login')
   @ApiOperation({ summary: 'Admin login' })
   @ApiResponse({ status: 200, description: 'Admin authenticated successfully' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body() adminLoginDto: AdminLoginDto) {
-    const admin = await this.adminService.authenticateAdmin(adminLoginDto);
+    // SECURITY (Phase 0.3): real bcrypt check against admins.passwordHash,
+    // and a JWT (claim type: 'admin') is now actually issued — AdminGuard
+    // (Phase 0.2) requires this token on every other route below.
+    const { admin, accessToken } = await this.adminService.login(adminLoginDto);
 
-    if (!admin) {
-      throw new Error('Invalid credentials');
-    }
-
-    // In a real implementation, you'd generate a JWT token here
     return {
+      success: true,
+      message: 'Login successful',
       admin: {
         id: admin.id,
         email: admin.email,
         role: admin.role,
       },
-      message: 'Login successful',
+      accessToken,
     };
   }
 
   @Get('dashboard')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get dashboard statistics' })
   @ApiResponse({ status: 200, description: 'Dashboard statistics retrieved' })
@@ -71,7 +73,7 @@ export class AdminController {
   }
 
   @Get('users')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get users list' })
   @ApiResponse({ status: 200, description: 'Users list retrieved' })
@@ -80,7 +82,7 @@ export class AdminController {
   }
 
   @Get('users/:userId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get user details' })
   @ApiResponse({ status: 200, description: 'User details retrieved' })
@@ -89,7 +91,7 @@ export class AdminController {
   }
 
   @Put('users/:userId/status')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update user status' })
   @ApiResponse({ status: 200, description: 'User status updated successfully' })
@@ -101,7 +103,7 @@ export class AdminController {
   }
 
   @Patch('users/:id/suspend')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Suspend user' })
   @ApiResponse({ status: 200, description: 'User suspended successfully' })
@@ -110,7 +112,7 @@ export class AdminController {
   }
 
   @Delete('users/:userId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete user' })
   @ApiResponse({ status: 200, description: 'User deleted successfully' })
@@ -120,7 +122,7 @@ export class AdminController {
   }
 
   @Get('reports')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get reports list' })
   @ApiResponse({ status: 200, description: 'Reports list retrieved' })
@@ -129,7 +131,7 @@ export class AdminController {
   }
 
   @Delete('reports/:reportId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete report' })
   @ApiResponse({ status: 200, description: 'Report deleted successfully' })
@@ -139,7 +141,7 @@ export class AdminController {
   }
 
   @Put('reports/:reportId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Handle a report' })
   @ApiResponse({ status: 200, description: 'Report handled successfully' })
@@ -151,7 +153,7 @@ export class AdminController {
   }
 
   @Get('analytics')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get platform analytics' })
   @ApiResponse({ status: 200, description: 'Analytics data retrieved' })
@@ -160,7 +162,7 @@ export class AdminController {
   }
 
   @Post('notifications/broadcast')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Broadcast notification to all users' })
   @ApiResponse({
@@ -173,16 +175,18 @@ export class AdminController {
   }
 
   @Post('support/reply')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Reply to support ticket' })
   @ApiResponse({
     status: 200,
     description: 'Support reply sent successfully',
   })
-  async replySupportTicket(@Body() supportReplyDto: SupportReplyDto) {
-    // In a real implementation, you'd get the admin email from the JWT token
-    const adminEmail = 'admin@goldwen.com';
+  async replySupportTicket(
+    @Req() req: any,
+    @Body() supportReplyDto: SupportReplyDto,
+  ) {
+    const adminEmail = req.admin.email;
     const ticket = await this.adminService.replySupportTicket(
       supportReplyDto,
       adminEmail,
@@ -195,7 +199,7 @@ export class AdminController {
 
   // Prompt Management Routes
   @Get('prompts')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all prompts for admin management' })
   @ApiResponse({ status: 200, description: 'Prompts retrieved successfully' })
@@ -204,7 +208,7 @@ export class AdminController {
   }
 
   @Post('prompts')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new prompt' })
   @ApiResponse({ status: 201, description: 'Prompt created successfully' })
@@ -213,7 +217,7 @@ export class AdminController {
   }
 
   @Put('prompts/:promptId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update an existing prompt' })
   @ApiResponse({ status: 200, description: 'Prompt updated successfully' })
@@ -225,7 +229,7 @@ export class AdminController {
   }
 
   @Delete('prompts/:promptId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a prompt' })
   @ApiResponse({ status: 200, description: 'Prompt deleted successfully' })

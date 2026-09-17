@@ -38,8 +38,13 @@ export class ConsentGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
+    // This guard is registered globally (Phase 0.10) and therefore also
+    // runs on routes with no authenticated user at all (registration,
+    // login, public webhooks, health checks…). Consent only makes sense
+    // once we know who is asking, so defer to whatever auth guard applies
+    // to that route instead of blocking every public endpoint outright.
     if (!user) {
-      return false;
+      return true;
     }
 
     // Check if user has valid active consent

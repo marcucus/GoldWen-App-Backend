@@ -18,7 +18,7 @@ import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
 import { PushToken } from '../../database/entities/push-token.entity';
 import { UserStatus } from '../../common/enums';
-import { PasswordUtil, StringUtil } from '../../common/utils';
+import { PasswordUtil, StringUtil, TokenUtil } from '../../common/utils';
 import { EmailService } from '../email/email.service';
 
 import {
@@ -73,7 +73,8 @@ export class AuthService {
         email,
         passwordHash,
         status: UserStatus.PENDING,
-        emailVerificationToken: StringUtil.generateRandomString(32),
+        // SECURITY (Phase 0.10): store only a hash, never the raw token.
+        emailVerificationToken: TokenUtil.hash(StringUtil.generateRandomString(32)),
       });
 
       const savedUser = await this.userRepository.save(user);
@@ -247,17 +248,19 @@ export class AuthService {
       return;
     }
 
-    // Generate reset token
+    // Generate reset token — the raw value is emailed to the user and never
+    // persisted; only its hash is stored (Phase 0.10), so a database leak
+    // alone can't be used to reset anyone's password.
     const resetToken = StringUtil.generateRandomString(32);
     const resetExpires = new Date();
     resetExpires.setHours(resetExpires.getHours() + 1); // 1 hour expiry
 
-    user.resetPasswordToken = resetToken;
+    user.resetPasswordToken = TokenUtil.hash(resetToken);
     user.resetPasswordExpires = resetExpires;
 
     await this.userRepository.save(user);
 
-    // Send email with reset link
+    // Send email with reset link (raw, unhashed token)
     await this.emailService.sendPasswordResetEmail(user.email, resetToken);
   }
 
@@ -265,7 +268,7 @@ export class AuthService {
     const { token, newPassword } = resetPasswordDto;
 
     const user = await this.userRepository.findOne({
-      where: { resetPasswordToken: token },
+      where: { resetPasswordToken: TokenUtil.hash(token) },
     });
 
     if (
@@ -315,7 +318,7 @@ export class AuthService {
 
   async verifyEmail(token: string): Promise<void> {
     const user = await this.userRepository.findOne({
-      where: { emailVerificationToken: token },
+      where: { emailVerificationToken: TokenUtil.hash(token) },
     });
 
     if (!user) {
@@ -332,34 +335,51 @@ export class AuthService {
     return this.jwtService.sign({ sub: user.id, email: user.email });
   }
 
+  // SECURITY / PERFORMANCE (Phase 0.10): `redis.keys()` walks the ENTIRE
+  // Redis keyspace on every call, regardless of how specific the glob
+  // pattern looks — it is not a prefix index lookup. `refreshTokens()` used
+  // to run `KEYS refresh:*:<token>` on every single access-token refresh
+  // (one of the highest-frequency auth operations there is), which blocks
+  // Redis's single event loop for the whole instance and gets worse as the
+  // user base grows. Refresh tokens are now indexed two ways instead:
+  //   - `refreshtoken:<token>` → userId, for O(1) lookup by token value
+  //     (replaces the KEYS scan in refreshTokens()).
+  //   - `refresh:user:<userId>` → a Redis SET of that user's live tokens,
+  //     for O(1)-ish bulk revocation on logout (replaces the KEYS scan in
+  //     logout()).
   private async generateRefreshToken(user: User): Promise<string> {
     const token = crypto.randomBytes(64).toString('hex');
-    await this.redis.setex(
-      `refresh:${user.id}:${token}`,
-      this.REFRESH_TOKEN_TTL,
-      '1',
-    );
+    await this.redis
+      .multi()
+      .setex(`refreshtoken:${token}`, this.REFRESH_TOKEN_TTL, user.id)
+      .sadd(`refresh:user:${user.id}`, token)
+      .expire(`refresh:user:${user.id}`, this.REFRESH_TOKEN_TTL)
+      .exec();
     return token;
   }
 
+  private async revokeRefreshToken(userId: string, token: string): Promise<void> {
+    await this.redis
+      .multi()
+      .del(`refreshtoken:${token}`)
+      .srem(`refresh:user:${userId}`, token)
+      .exec();
+  }
+
   async refreshTokens(rawRefreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
-    // Find the token across all users — scan by pattern
-    const keys = await this.redis.keys(`refresh:*:${rawRefreshToken}`);
-    if (!keys.length) {
+    const userId = await this.redis.get(`refreshtoken:${rawRefreshToken}`);
+    if (!userId) {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    const key = keys[0];
-    const userId = key.split(':')[1];
-
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user || user.status !== UserStatus.ACTIVE) {
-      await this.redis.del(key);
+      await this.revokeRefreshToken(userId, rawRefreshToken);
       throw new UnauthorizedException('User not found or inactive');
     }
 
     // Rotate: delete old token, issue new pair
-    await this.redis.del(key);
+    await this.revokeRefreshToken(userId, rawRefreshToken);
     const accessToken = this.generateAccessToken(user);
     const refreshToken = await this.generateRefreshToken(user);
 
@@ -393,18 +413,19 @@ export class AuthService {
         await this.redis.setex(`blacklist:token:${accessToken}`, expirationSeconds, '1');
       }
 
-      // Revoke all refresh tokens for this user
-      const refreshKeys = await this.redis.keys(`refresh:${userId}:*`);
-      if (refreshKeys.length > 0) {
-        await this.redis.del(...refreshKeys);
+      // Revoke all refresh tokens for this user via the per-user SET index
+      // (see generateRefreshToken) instead of a blocking KEYS scan.
+      const userTokens = await this.redis.smembers(`refresh:user:${userId}`);
+      if (userTokens.length > 0) {
+        const pipeline = this.redis.multi();
+        for (const t of userTokens) {
+          pipeline.del(`refreshtoken:${t}`);
+        }
+        pipeline.del(`refresh:user:${userId}`);
+        await pipeline.exec();
       }
 
       await this.pushTokenRepository.delete({ userId });
-
-      const cacheKeys = await this.redis.keys(`user:${userId}:*`);
-      if (cacheKeys.length > 0) {
-        await this.redis.del(...cacheKeys);
-      }
 
       await this.redis.del(`session:${userId}`);
 

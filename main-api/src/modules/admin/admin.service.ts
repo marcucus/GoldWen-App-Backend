@@ -2,11 +2,14 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  UnauthorizedException,
   Inject,
   forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
+import { JwtService } from '@nestjs/jwt';
+import { PasswordUtil } from '../../common/utils';
 
 import { Admin } from '../../database/entities/admin.entity';
 import { User } from '../../database/entities/user.entity';
@@ -65,7 +68,13 @@ export class AdminService {
     @Inject(forwardRef(() => NotificationsService))
     private notificationsService: NotificationsService,
     private logger: CustomLoggerService,
+    private jwtService: JwtService,
   ) {}
+
+  // A bcrypt hash of a value nobody will ever type, used only to burn the
+  // same CPU time as a real comparison when no admin account was found.
+  private static readonly DUMMY_HASH =
+    '$2b$12$CwTycUXWue0Thq9StjUM0uJ8p1u1RJm3.Q4dqYYsYbKFXA0/T0dxa';
 
   async authenticateAdmin(adminLoginDto: AdminLoginDto): Promise<Admin | null> {
     const { email, password } = adminLoginDto;
@@ -76,29 +85,87 @@ export class AdminService {
       where: { email, isActive: true },
     });
 
-    if (!admin) {
+    // SECURITY (Phase 0.3): always run bcrypt.compare, even when no admin was
+    // found, against a static dummy hash — this keeps the response time
+    // constant and avoids leaking account existence via timing.
+    const hashToCompare = admin?.passwordHash ?? AdminService.DUMMY_HASH;
+    const passwordMatches = await PasswordUtil.compare(password, hashToCompare);
+
+    if (!admin || !passwordMatches) {
       this.logger.logSecurityEvent('admin_login_failed', {
         email,
-        reason: 'admin_not_found',
+        reason: !admin ? 'admin_not_found' : 'invalid_password',
       });
       return null;
     }
 
-    // In production, you'd hash and compare passwords properly
-    // For MVP, this is simplified
-    if (password === 'admin_password_123') {
-      this.logger.logSecurityEvent('admin_login_success', {
-        email,
-        adminId: admin.id,
-      });
-      return admin;
+    this.logger.logSecurityEvent('admin_login_success', {
+      email,
+      adminId: admin.id,
+    });
+    admin.lastLoginAt = new Date();
+    await this.adminRepository.save(admin);
+    return admin;
+  }
+
+  /**
+   * Full login flow used by AdminController: verifies credentials with
+   * bcrypt (see authenticateAdmin) then issues a short-lived JWT carrying
+   * `type: 'admin'` and the admin's role. AdminGuard (Phase 0.2) requires
+   * this exact claim shape, and refuses tokens issued by the regular user
+   * auth flow — the two token types are not interchangeable.
+   */
+  async login(
+    adminLoginDto: AdminLoginDto,
+  ): Promise<{ admin: Admin; accessToken: string }> {
+    const admin = await this.authenticateAdmin(adminLoginDto);
+    if (!admin) {
+      throw new UnauthorizedException('Invalid credentials');
     }
 
-    this.logger.logSecurityEvent('admin_login_failed', {
-      email,
-      reason: 'invalid_password',
+    const accessToken = await this.jwtService.signAsync(
+      {
+        sub: admin.id,
+        email: admin.email,
+        role: admin.role,
+        type: 'admin',
+      },
+      { expiresIn: '8h' },
+    );
+
+    return { admin, accessToken };
+  }
+
+  /**
+   * Bootstraps the very first admin account. Used only by
+   * `scripts/seed-admin.ts` (run once, out of band — never exposed over
+   * HTTP) — there is intentionally no public "create admin" endpoint.
+   * Idempotent: does nothing if an admin with this email already exists.
+   */
+  async createInitialAdminIfMissing(params: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    role: AdminRole;
+  }): Promise<Admin> {
+    const existing = await this.adminRepository.findOne({
+      where: { email: params.email },
     });
-    return null;
+    if (existing) {
+      return existing;
+    }
+
+    const admin = this.adminRepository.create({
+      email: params.email,
+      passwordHash: await PasswordUtil.hash(params.password),
+      firstName: params.firstName,
+      lastName: params.lastName,
+      role: params.role,
+      isActive: true,
+    });
+
+    return this.adminRepository.save(admin);
   }
 
   async getUsers(getUsersDto: GetUsersDto): Promise<{

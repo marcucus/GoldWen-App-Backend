@@ -56,6 +56,7 @@ export const appConfig = registerAs(
     logLevel: process.env.LOG_LEVEL || 'info',
     frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3001',
     webUrl: process.env.WEB_URL || 'http://localhost:3000',
+    url: process.env.APP_URL || '',
   }),
 );
 
@@ -128,6 +129,15 @@ export const matchingServiceConfig = registerAs(
   'matchingService',
   (): MatchingServiceConfig => ({
     url: process.env.MATCHING_SERVICE_URL || 'http://localhost:8000',
+    // SECURITY (Phase 0.10): this key was never actually wired up here —
+    // MatchingIntegrationService read `matchingService.apiKey`, which
+    // didn't exist on this config object, so it ALWAYS fell back to its
+    // hardcoded default 'matching-service-secret-key' regardless of what
+    // MATCHING_SERVICE_API_KEY was set to. The Python matching-service
+    // (matching-service/main.py) has that exact same string hardcoded as
+    // ITS default too, so two independently-configured services could both
+    // silently agree on a secret published in the open-source repo.
+    apiKey: process.env.MATCHING_SERVICE_API_KEY || '',
   }),
 );
 

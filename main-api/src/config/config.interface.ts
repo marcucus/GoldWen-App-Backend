@@ -24,6 +24,7 @@ export interface AppConfig {
   logLevel: string;
   frontendUrl: string;
   webUrl: string;
+  url: string;
 }
 
 export interface OAuthConfig {
@@ -78,6 +79,7 @@ export interface EmailConfig {
 
 export interface MatchingServiceConfig {
   url: string;
+  apiKey: string;
 }
 
 export interface RevenueCatConfig {

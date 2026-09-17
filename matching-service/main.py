@@ -56,17 +56,42 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# CORS middleware
+# SECURITY (Phase 0.10): this is an internal, server-to-server API (called
+# only by the main NestJS backend), so it should not accept browser
+# cross-origin requests with credentials at all. "*" + allow_credentials was
+# also a contradictory combination that browsers reject outright, and left
+# as a permissive-looking placeholder that's easy to widen incorrectly
+# later. ALLOWED_ORIGINS defaults to empty (no browser origins trusted);
+# set it explicitly (comma-separated) only if this service is ever fronted
+# by something that legitimately needs CORS.
+_allowed_origins = [
+    origin.strip()
+    for origin in os.getenv("ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
-    allow_credentials=True,
+    allow_origins=_allowed_origins,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # API Key for authentication
-API_KEY = os.getenv("API_KEY", "matching-service-secret-key")  # Should be in environment variable in production
+#
+# SECURITY (Phase 0.10): no hardcoded fallback. This exact default string
+# ("matching-service-secret-key") used to also be the main-api's own
+# fallback (see matching-integration.service.ts) — with API_KEY unset on
+# both sides, the "shared secret" between the two services was really a
+# constant published in this open-source repo. Fail loudly at import time
+# instead of silently accepting an insecure default.
+API_KEY = os.getenv("API_KEY")
+if not API_KEY:
+    raise RuntimeError(
+        "API_KEY environment variable is not set — refusing to start with "
+        "an insecure default"
+    )
 
 # Initialize database (optional - will work without DB for endpoints that provide full profiles)
 DB_ENABLED = init_database()

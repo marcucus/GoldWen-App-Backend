@@ -8,8 +8,6 @@ import {
   Param,
   UseGuards,
   Request,
-  HttpCode,
-  HttpStatus,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -23,7 +21,6 @@ import { SubscriptionsService } from './subscriptions.service';
 import {
   CreateSubscriptionDto,
   UpdateSubscriptionDto,
-  RevenueCatWebhookDto,
 } from './dto/subscription.dto';
 
 @ApiTags('subscriptions')
@@ -127,15 +124,13 @@ export class SubscriptionsController {
     );
   }
 
-  // RevenueCat webhook endpoint
-  @Post('webhook/revenuecat')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Handle RevenueCat webhook' })
-  @ApiResponse({ status: 200, description: 'Webhook processed successfully' })
-  async handleRevenueCatWebhook(@Body() webhookData: RevenueCatWebhookDto) {
-    await this.subscriptionsService.handleRevenueCatWebhook(webhookData);
-    return { status: 'ok' };
-  }
+  // SECURITY (Phase 0.4): this duplicate webhook endpoint took RevenueCat
+  // payloads with NO authentication and NO signature check whatsoever —
+  // anyone could POST a fake INITIAL_PURCHASE event here and grant
+  // themselves GoldWen Plus for free. RevenueCatController's
+  // POST /webhooks/revenuecat (mandatory HMAC signature, verified against
+  // the raw request body) is now the single entry point for RevenueCat
+  // events; this route has been removed.
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
@@ -233,7 +228,7 @@ export class SubscriptionsController {
 
   // Admin endpoints
   @Get('admin/stats')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get subscription statistics (Admin only)' })
   @ApiResponse({

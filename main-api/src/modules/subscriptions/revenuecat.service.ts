@@ -10,6 +10,8 @@ import * as crypto from 'crypto';
 export class RevenueCatService {
   private readonly webhookSecret: string;
 
+  private readonly apiKey: string;
+
   constructor(
     private readonly configService: ConfigService,
     private readonly subscriptionsService: SubscriptionsService,
@@ -17,6 +19,7 @@ export class RevenueCatService {
   ) {
     this.webhookSecret =
       this.configService.get<string>('revenueCat.webhookSecret') || '';
+    this.apiKey = this.configService.get<string>('revenueCat.apiKey') || '';
   }
 
   /**
@@ -173,9 +176,81 @@ export class RevenueCatService {
   }
 
   /**
+   * Confirms with RevenueCat's own server API that `appUserId` genuinely
+   * holds an active entitlement for `productId` — SECURITY (Phase 0.4):
+   * without this call, validatePurchase() below activated GoldWen Plus for
+   * ANY signed-in user who simply POSTed a productId containing
+   * "goldwen_plus", with no purchase or payment behind it whatsoever.
+   */
+  private async fetchActiveProductIds(appUserId: string): Promise<Set<string>> {
+    if (!this.apiKey) {
+      throw new Error('RevenueCat API key is not configured');
+    }
+
+    const response = await fetch(
+      `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(appUserId)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          Accept: 'application/json',
+        },
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `RevenueCat lookup failed with status ${response.status}`,
+      );
+    }
+
+    const body = (await response.json()) as {
+      subscriber?: {
+        entitlements?: Record<
+          string,
+          { expires_date?: string | null; product_identifier?: string }
+        >;
+        subscriptions?: Record<
+          string,
+          { expires_date?: string | null; product_identifier?: string }
+        >;
+      };
+    };
+
+    const now = Date.now();
+    const activeProductIds = new Set<string>();
+
+    const collect = (
+      entries:
+        | Record<string, { expires_date?: string | null }>
+        | undefined,
+      keyIsProductId: boolean,
+    ) => {
+      if (!entries) return;
+      for (const [key, value] of Object.entries(entries)) {
+        const notExpired =
+          !value.expires_date || new Date(value.expires_date).getTime() > now;
+        if (notExpired) {
+          activeProductIds.add(
+            keyIsProductId
+              ? key
+              : (value as { product_identifier?: string })
+                  .product_identifier || key,
+          );
+        }
+      }
+    };
+
+    collect(body.subscriber?.subscriptions, true);
+    collect(body.subscriber?.entitlements, false);
+
+    return activeProductIds;
+  }
+
+  /**
    * Validate and process a purchase from the client
-   * @param userId The user ID
-   * @param purchaseData The purchase data from the client
+   * @param userId The user ID (also the RevenueCat app_user_id)
+   * @param purchaseData The purchase data from the client — treated as a
+   *   CLAIM to verify, never as the source of truth (Phase 0.4)
    */
   async validatePurchase(
     userId: string,
@@ -200,8 +275,19 @@ export class RevenueCatService {
         platform: purchaseData.platform,
       });
 
-      // In a real implementation, you would verify the purchase with RevenueCat API or App Store/Play Store
-      // For now, we'll create/update the subscription based on the provided data
+      const activeProductIds = await this.fetchActiveProductIds(userId);
+      if (!activeProductIds.has(purchaseData.productId)) {
+        this.logger.logSecurityEvent('purchase_validation_rejected', {
+          userId,
+          productId: purchaseData.productId,
+          reason: 'no_matching_active_entitlement_at_revenuecat',
+        });
+        return {
+          success: false,
+          message: 'No matching active purchase found for this account',
+        };
+      }
+
       const plan = purchaseData.productId.includes('goldwen_plus')
         ? SubscriptionPlan.GOLDWEN_PLUS
         : SubscriptionPlan.FREE;

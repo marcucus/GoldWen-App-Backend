@@ -59,10 +59,16 @@ describe('RevenueCatController', () => {
       api_version: '1.0',
     };
 
+    // Phase 0.4: the signature is now mandatory and verified against the
+    // exact raw bytes Express received (req.rawBody, via `rawBody: true` in
+    // main.ts) rather than a re-serialized JSON.stringify() of the parsed
+    // body — the mock request below reflects that.
+    const rawBodyBuffer = Buffer.from(JSON.stringify(mockWebhookData));
     const mockRequest = {
       headers: {
         'x-revenuecat-signature': 'valid-signature',
       },
+      rawBody: rawBodyBuffer,
     } as any;
 
     it('should process webhook with valid signature', async () => {
@@ -77,7 +83,7 @@ describe('RevenueCatController', () => {
       expect(result).toEqual({ received: true });
       expect(mockRevenueCatService.verifyWebhookSignature).toHaveBeenCalledWith(
         'valid-signature',
-        JSON.stringify(mockWebhookData),
+        rawBodyBuffer.toString('utf8'),
       );
       expect(mockRevenueCatService.processWebhook).toHaveBeenCalledWith(
         mockWebhookData,
@@ -98,25 +104,36 @@ describe('RevenueCatController', () => {
       expect(mockRevenueCatService.processWebhook).not.toHaveBeenCalled();
     });
 
-    it('should process webhook without signature header', async () => {
+    // SECURITY (Phase 0.4): a missing signature header used to skip
+    // verification entirely and process the webhook anyway — that was
+    // exactly the hole that let anyone forge a "purchase" event. It must
+    // now be rejected outright, before ever looking at the payload.
+    it('should reject webhook without signature header', async () => {
       const requestWithoutSignature = {
         headers: {},
+        rawBody: rawBodyBuffer,
       } as any;
 
-      mockRevenueCatService.processWebhook.mockResolvedValue(undefined);
+      await expect(
+        controller.handleWebhook(requestWithoutSignature, mockWebhookData),
+      ).rejects.toThrow(UnauthorizedException);
 
-      const result = await controller.handleWebhook(
-        requestWithoutSignature,
-        mockWebhookData,
-      );
-
-      expect(result).toEqual({ received: true });
       expect(
         mockRevenueCatService.verifyWebhookSignature,
       ).not.toHaveBeenCalled();
-      expect(mockRevenueCatService.processWebhook).toHaveBeenCalledWith(
-        mockWebhookData,
-      );
+      expect(mockRevenueCatService.processWebhook).not.toHaveBeenCalled();
+    });
+
+    it('should reject webhook without a raw body', async () => {
+      const requestWithoutRawBody = {
+        headers: { 'x-revenuecat-signature': 'valid-signature' },
+      } as any;
+
+      await expect(
+        controller.handleWebhook(requestWithoutRawBody, mockWebhookData),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(mockRevenueCatService.processWebhook).not.toHaveBeenCalled();
     });
 
     it('should reject webhook with invalid payload (no event)', async () => {

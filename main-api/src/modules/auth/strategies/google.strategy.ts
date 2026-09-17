@@ -6,23 +6,27 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(private configService: ConfigService) {
-    const clientId =
-      configService.get('oauth.google.clientId') || 'dummy-client-id';
-    const clientSecret =
-      configService.get('oauth.google.clientSecret') || 'dummy-client-secret';
+    const clientId = configService.get<string>('oauth.google.clientId');
+    const clientSecret = configService.get<string>('oauth.google.clientSecret');
     const environment = configService.get('app.environment');
 
-    super({
-      clientID: clientId,
-      clientSecret: clientSecret,
-      callbackURL: '/auth/google/callback',
-      scope: ['email', 'profile'],
-    });
-
-    // Only require OAuth credentials in production
+    // SECURITY (Phase 0.10): fail fast in production instead of silently
+    // initializing passport-google-oauth20 with hardcoded placeholder
+    // strings — those obviously can't authenticate anyone against real
+    // Google APIs, so this previously just turned a config mistake into a
+    // confusing runtime failure on first login attempt instead of a clear
+    // startup error. Outside production, unconfigured OAuth is expected
+    // (Google sign-in simply won't work locally without real credentials).
     if (environment === 'production' && (!clientId || !clientSecret)) {
       throw new Error('Google OAuth credentials not configured');
     }
+
+    super({
+      clientID: clientId || 'unconfigured-google-client-id',
+      clientSecret: clientSecret || 'unconfigured-google-client-secret',
+      callbackURL: '/auth/google/callback',
+      scope: ['email', 'profile'],
+    });
   }
 
   async validate(

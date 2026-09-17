@@ -1,4 +1,24 @@
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
+
+/**
+ * TokenUtil — Phase 0.10
+ *
+ * Password-reset and email-verification tokens used to be stored in
+ * plaintext on the user row (resetPasswordToken, emailVerificationToken).
+ * Anyone who could read the users table (a DB backup leak, an SSRF/SQLi
+ * elsewhere, an overly-broad admin export) could use those tokens directly
+ * to reset any pending password or fake an email verification. These are
+ * high-entropy random tokens (not user-chosen secrets), so a fast
+ * deterministic hash is the right tool — it still lets us look a token up
+ * by exact match, which bcrypt (intentionally non-deterministic per call)
+ * cannot do.
+ */
+export class TokenUtil {
+  static hash(rawToken: string): string {
+    return crypto.createHash('sha256').update(rawToken).digest('hex');
+  }
+}
 
 export class PasswordUtil {
   private static readonly SALT_ROUNDS = 12;

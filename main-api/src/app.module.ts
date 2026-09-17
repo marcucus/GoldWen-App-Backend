@@ -22,6 +22,8 @@ import { SecurityLoggingMiddleware } from './common/middleware';
 
 // Guards
 import { RateLimitGuard } from './common/guards';
+import { ConsentGuard } from './modules/auth/guards/consent.guard';
+import { UserConsent } from './database/entities/user-consent.entity';
 
 // Configuration
 import {
@@ -67,6 +69,7 @@ import { LegalModule } from './modules/legal/legal.module';
   imports: [
     // Logger - Global module
     LoggerModule,
+    TypeOrmModule.forFeature([UserConsent]),
 
     // Configuration
     ConfigModule.forRoot({
@@ -191,6 +194,19 @@ import { LegalModule } from './modules/legal/legal.module';
     {
       provide: APP_GUARD,
       useClass: RateLimitGuard,
+    },
+    // SECURITY / RGPD (Phase 0.10): ConsentGuard existed (with a
+    // @SkipConsentCheck() decorator already used in two places expecting
+    // it) but was never actually registered anywhere, so it never ran —
+    // GDPR Article 7 consent was not enforced at all. Registering it
+    // globally here is the fix; NOTE for rollout: any user who signed up
+    // before this guard was active and never called POST /users/consent
+    // will now be blocked from authenticated routes until they do — this
+    // needs either a consent backfill/migration or a forced consent screen
+    // shipped in the same release as this change.
+    {
+      provide: APP_GUARD,
+      useClass: ConsentGuard,
     },
   ],
   exports: [StorageService],

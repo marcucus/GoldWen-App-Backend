@@ -16,6 +16,7 @@ import { FcmService } from '../fcm.service';
 import { FirebaseService } from '../firebase.service';
 import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../../auth/guards/admin.guard';
 
 describe('Notification Settings Integration Tests', () => {
   let app: INestApplication;
@@ -30,6 +31,14 @@ describe('Notification Settings Integration Tests', () => {
     canActivate: jest.fn((context) => {
       const request = context.switchToHttp().getRequest();
       request.user = mockUser;
+      return true;
+    }),
+  };
+
+  const mockAdminGuard = {
+    canActivate: jest.fn((context) => {
+      const request = context.switchToHttp().getRequest();
+      request.admin = { id: 'test-admin-123', email: 'admin@example.com' };
       return true;
     }),
   };
@@ -134,6 +143,8 @@ describe('Notification Settings Integration Tests', () => {
     })
       .overrideGuard(JwtAuthGuard)
       .useValue(mockJwtAuthGuard)
+      .overrideGuard(AdminGuard)
+      .useValue(mockAdminGuard)
       .compile();
 
     app = moduleFixture.createNestApplication();

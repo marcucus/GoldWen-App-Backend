@@ -8,6 +8,7 @@ import {
   Body,
   UseGuards,
   Request,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,6 +20,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ProfileCompletionGuard } from '../auth/guards/profile-completion.guard';
 import { PremiumGuard } from '../auth/guards/premium.guard';
 import { QuotaGuard } from './guards/quota.guard';
+import { DevOnlyGuard } from '../../common/guards';
 import { MatchingService } from './matching.service';
 import { GetMatchesDto } from './dto/matching.dto';
 
@@ -73,12 +75,19 @@ export class MatchingController {
     };
   }
 
+  // SECURITY (Phase 0.6): unguarded, this let any user force-regenerate
+  // their own daily selection on demand — bypassing the once-a-day cadence
+  // that "un choix/jour" (or 3/jour on GoldWen Plus) depends on. DevOnlyGuard
+  // restricts it to non-production environments; it was already documented
+  // as "for testing" and was never meant to be reachable in production.
   @Post('daily-selection/generate')
-  @ApiOperation({ summary: 'Manually generate daily selection (for testing)' })
+  @UseGuards(DevOnlyGuard)
+  @ApiOperation({ summary: 'Manually generate daily selection (dev/testing only)' })
   @ApiResponse({
     status: 201,
     description: 'Daily selection generated successfully',
   })
+  @ApiResponse({ status: 403, description: 'Not available in production' })
   async generateDailySelection(@Request() req: any) {
     return this.matchingService.generateDailySelection(req.user.id);
   }
@@ -147,7 +156,7 @@ export class MatchingController {
     const match = matches.find((m) => m.id === matchId);
 
     if (!match) {
-      throw new Error('Match not found');
+      throw new NotFoundException('Match not found');
     }
 
     return match;

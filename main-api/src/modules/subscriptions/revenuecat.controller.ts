@@ -45,8 +45,8 @@ export class RevenueCatController {
   })
   @ApiHeader({
     name: 'X-RevenueCat-Signature',
-    description: 'HMAC signature for webhook verification',
-    required: false,
+    description: 'HMAC signature for webhook verification (required)',
+    required: true,
   })
   @ApiResponse({
     status: 200,
@@ -74,23 +74,36 @@ export class RevenueCatController {
       // Get the signature from headers
       const signature = req.headers['x-revenuecat-signature'] as string;
 
-      // Get raw body for signature verification
-      const rawBody = JSON.stringify(webhookData);
-
-      // Verify webhook signature
-      if (signature) {
-        const isValid = this.revenueCatService.verifyWebhookSignature(
-          signature,
-          rawBody,
+      // SECURITY (Phase 0.4): the signature is now mandatory (a missing
+      // header used to skip verification entirely) and is checked against
+      // the exact raw bytes Express received (req.rawBody, enabled via
+      // `rawBody: true` in main.ts) rather than a re-serialized
+      // JSON.stringify(webhookData), which is not guaranteed to match the
+      // bytes RevenueCat actually signed.
+      if (!signature) {
+        this.logger.warn(
+          'Missing RevenueCat webhook signature',
+          'RevenueCatController',
         );
+        throw new UnauthorizedException('Missing webhook signature');
+      }
 
-        if (!isValid) {
-          this.logger.warn(
-            'Invalid RevenueCat webhook signature',
-            'RevenueCatController',
-          );
-          throw new UnauthorizedException('Invalid webhook signature');
-        }
+      const rawBody = req.rawBody?.toString('utf8');
+      if (!rawBody) {
+        throw new UnauthorizedException('Missing raw request body');
+      }
+
+      const isValid = this.revenueCatService.verifyWebhookSignature(
+        signature,
+        rawBody,
+      );
+
+      if (!isValid) {
+        this.logger.warn(
+          'Invalid RevenueCat webhook signature',
+          'RevenueCatController',
+        );
+        throw new UnauthorizedException('Invalid webhook signature');
       }
 
       // Validate webhook data

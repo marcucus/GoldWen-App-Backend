@@ -20,6 +20,7 @@ import { ChatService } from '../../chat/chat.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { MatchingIntegrationService } from '../matching-integration.service';
 import { CustomLoggerService } from '../../../common/logger';
+import { ConfigService } from '@nestjs/config';
 import {
   MatchStatus,
   SubscriptionStatus,
@@ -129,6 +130,15 @@ describe('Advanced Matching Routes', () => {
             error: jest.fn(),
             warn: jest.fn(),
             logBusinessEvent: jest.fn(),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn((key: string) => {
+              if (key === 'app.environment') return 'test';
+              return undefined;
+            }),
           },
         },
       ],

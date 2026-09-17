@@ -262,10 +262,12 @@ export class MatchingService {
 
     const profiles =
       profileIds.length > 0
-        ? await this.userRepository.find({
-          where: { id: In(profileIds) },
-          relations: ['profile', 'profile.photos'],
-        })
+        ? (
+            await this.userRepository.find({
+              where: { id: In(profileIds) },
+              relations: ['profile', 'profile.photos'],
+            })
+          ).map((u) => this.withApprovedPhotosOnly(u))
         : [];
 
     // Calculate refresh time (next day at noon)
@@ -435,6 +437,22 @@ export class MatchingService {
       success: true,
       data: responseData,
     };
+  }
+
+  /**
+   * SECURITY (Phase 0.8): Photo.isApproved was set by ModerationService but
+   * never consulted anywhere — an unapproved (or rejected) photo was shown
+   * to other users exactly like an approved one. This strips
+   * non-approved photos out of any profile handed to a user OTHER than its
+   * owner (daily selection, selection history, "who liked me").
+   */
+  private withApprovedPhotosOnly(user: User): User {
+    if (user?.profile?.photos) {
+      user.profile.photos = user.profile.photos.filter(
+        (photo) => photo.isApproved,
+      );
+    }
+    return user;
   }
 
   private getChoiceMessage(
@@ -827,6 +845,8 @@ export class MatchingService {
               return null;
             }
 
+            this.withApprovedPhotosOnly(user);
+
             // Check if this was a match (only relevant for 'like' choices)
             const match =
               userChoice.choiceType === ChoiceType.LIKE
@@ -896,7 +916,7 @@ export class MatchingService {
 
     return matches.map((match) => ({
       userId: match.user1Id,
-      user: match.user1,
+      user: this.withApprovedPhotosOnly(match.user1),
       likedAt: match.matchedAt?.toISOString() || match.createdAt.toISOString(),
     }));
   }

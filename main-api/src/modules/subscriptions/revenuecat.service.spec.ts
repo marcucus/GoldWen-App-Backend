@@ -22,6 +22,7 @@ describe('RevenueCatService', () => {
   const mockConfigService = {
     get: jest.fn((key: string) => {
       if (key === 'revenueCat.webhookSecret') return 'test-secret';
+      if (key === 'revenueCat.apiKey') return 'test-api-key';
       if (key === 'app.environment') return 'development';
       return null;
     }),
@@ -348,7 +349,32 @@ describe('RevenueCatService', () => {
       platform: 'ios',
     };
 
+    // Phase 0.4: validatePurchase() now confirms the purchase with
+    // RevenueCat's own server API before trusting the client-supplied
+    // productId — these tests stub that lookup to report an active
+    // entitlement for the product under test.
+    let fetchSpy: jest.SpyInstance;
+
+    const mockRevenueCatSubscriber = (activeProductId: string) => {
+      fetchSpy = jest.spyOn(global, 'fetch' as any).mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          subscriber: {
+            subscriptions: {
+              [activeProductId]: { expires_date: '2999-01-01T00:00:00Z' },
+            },
+          },
+        }),
+      } as any);
+    };
+
+    afterEach(() => {
+      fetchSpy?.mockRestore();
+    });
+
     it('should validate and process purchase successfully', async () => {
+      mockRevenueCatSubscriber('goldwen_plus_monthly');
+
       const mockSubscription = {
         id: 'sub-123',
         userId: 'user-123',
@@ -397,6 +423,7 @@ describe('RevenueCatService', () => {
     });
 
     it('should handle validation errors gracefully', async () => {
+      mockRevenueCatSubscriber('goldwen_plus_monthly');
       const error = new Error('Database error');
       mockSubscriptionsService.createSubscription.mockRejectedValue(error);
 
@@ -411,6 +438,7 @@ describe('RevenueCatService', () => {
     });
 
     it('should handle non-goldwen_plus products correctly', async () => {
+      mockRevenueCatSubscriber('some_free_product');
       const freePurchaseData = {
         ...mockPurchaseData,
         productId: 'some_free_product',

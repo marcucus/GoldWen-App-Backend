@@ -5,14 +5,13 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { MonitoringService } from './monitoring.service';
 import { CustomLoggerService } from '../../common/logger';
 
 @ApiTags('Admin - Monitoring')
 @Controller('admin/monitoring')
-@UseGuards(JwtAuthGuard, AdminGuard)
+@UseGuards(AdminGuard)
 @ApiBearerAuth()
 export class MonitoringController {
   constructor(

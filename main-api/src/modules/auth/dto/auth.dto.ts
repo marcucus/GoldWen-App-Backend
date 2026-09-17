@@ -4,7 +4,9 @@ import {
   IsOptional,
   MinLength,
   Matches,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class LoginDto {
@@ -73,6 +75,47 @@ export class SocialLoginDto {
   @IsOptional()
   @IsString()
   profilePicture?: string;
+}
+
+// Phase 0.10: this used to be an untyped inline `{ identityToken: string; user?: any }`
+// on the controller — no whitelist/validation, and the global ValidationPipe
+// (whitelist: true, forbidNonWhitelisted: true) could not strip unexpected
+// fields since there was no DTO shape for it to check against.
+export class AppleLoginUserNameDto {
+  @ApiPropertyOptional({ example: 'John' })
+  @IsOptional()
+  @IsString()
+  firstName?: string;
+
+  @ApiPropertyOptional({ example: 'Doe' })
+  @IsOptional()
+  @IsString()
+  lastName?: string;
+}
+
+export class AppleLoginUserDto {
+  @ApiPropertyOptional({ example: 'user@example.com' })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @ApiPropertyOptional({ type: AppleLoginUserNameDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AppleLoginUserNameDto)
+  name?: AppleLoginUserNameDto;
+}
+
+export class AppleLoginDto {
+  @ApiProperty({ description: "Apple identity token (JWT) from Sign in with Apple" })
+  @IsString()
+  identityToken: string;
+
+  @ApiPropertyOptional({ type: AppleLoginUserDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AppleLoginUserDto)
+  user?: AppleLoginUserDto;
 }
 
 export class ForgotPasswordDto {

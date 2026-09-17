@@ -6,6 +6,7 @@ import {
   Get,
   Req,
   Res,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import {
@@ -16,15 +17,15 @@ import {
 } from '@nestjs/swagger';
 import type { Response, Request } from 'express';
 
-import { OAuth2Client } from 'google-auth-library';
+import { OAuth2Client, TokenPayload } from 'google-auth-library';
 import appleSignin from 'apple-signin-auth';
 
 import { AuthService } from './auth.service';
 import { TwoFactorService } from './two-factor.service';
 import {
   RegisterDto,
-  SocialLoginDto,
   ForgotPasswordDto,
+  AppleLoginDto,
   ResetPasswordDto,
   ChangePasswordDto,
   VerifyEmailDto,
@@ -93,25 +94,13 @@ export class AuthController {
     };
   }
 
-  @ApiOperation({ summary: 'Social login (Google/Apple)' })
-  @ApiResponse({ status: 200, description: 'Social login successful' })
-  @Post('social-login')
-  async socialLogin(@Body() socialLoginDto: SocialLoginDto) {
-    const result = await this.authService.socialLogin(socialLoginDto);
-    return {
-      success: true,
-      message: 'Social login successful',
-      data: {
-        user: {
-          id: result.user.id,
-          email: result.user.email,
-          isOnboardingCompleted: result.user.isOnboardingCompleted,
-          isProfileCompleted: result.user.isProfileCompleted,
-        },
-        accessToken: result.accessToken,
-      },
-    };
-  }
+  // SECURITY (Phase 0.1): the former POST /auth/social-login endpoint accepted a
+  // raw { socialId, email } body with NO server-side proof of identity — anyone
+  // could impersonate any user by POSTing their email. It has been removed.
+  // Social sign-in now only happens through token-verified flows:
+  // POST /auth/google (Google ID token) and POST /auth/apple (Apple identity
+  // token), both below, which call authService.socialLogin() internally only
+  // after the provider's token has been cryptographically verified.
 
   @ApiOperation({ summary: 'Initiate Google OAuth login' })
   @Get('google')
@@ -124,26 +113,56 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Google social authentication with ID token' })
   @ApiResponse({ status: 200, description: 'Google authentication successful' })
+  @ApiResponse({ status: 401, description: 'Invalid Google token' })
+  @UseGuards(BruteForceGuard)
   @Post('google')
   async googleLogin(@Body('idToken') idToken: string) {
-    const ticket = await this.client.verifyIdToken({
-      idToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-
-    const payload = ticket.getPayload();
-    if (!payload) {
-      throw new Error('Invalid Google token');
+    if (!idToken) {
+      throw new UnauthorizedException('idToken is required');
     }
 
-    const { sub, email, name, picture } = payload;
+    let payload: TokenPayload | undefined;
+    try {
+      const ticket = await this.client.verifyIdToken({
+        idToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch (e) {
+      throw new UnauthorizedException('Invalid Google token');
+    }
 
-    return this.authService.validateGoogleUser({
-      googleId: sub,
-      email: email!,
-      name,
-      picture,
+    if (!payload || !payload.email) {
+      throw new UnauthorizedException('Invalid Google token');
+    }
+
+    const { sub, email, given_name, family_name, name } = payload;
+
+    // socialLogin() is only reached here AFTER Google has cryptographically
+    // verified this token — the client can no longer supply an arbitrary
+    // socialId/email pair (Phase 0.1).
+    const result = await this.authService.socialLogin({
+      socialId: sub,
+      provider: 'google',
+      email,
+      firstName: given_name || name?.split(' ')[0] || 'Utilisateur',
+      lastName: family_name || name?.split(' ').slice(1).join(' ') || undefined,
     });
+
+    return {
+      success: true,
+      message: 'Google authentication successful',
+      data: {
+        user: {
+          id: result.user.id,
+          email: result.user.email,
+          isOnboardingCompleted: result.user.isOnboardingCompleted,
+          isProfileCompleted: result.user.isProfileCompleted,
+        },
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+      },
+    };
   }
 
   @ApiOperation({ summary: 'Google OAuth callback' })
@@ -166,38 +185,54 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Apple social authentication with identity token' })
   @ApiResponse({ status: 200, description: 'Apple authentication successful' })
+  @ApiResponse({ status: 401, description: 'Invalid Apple token' })
   @UseGuards(BruteForceGuard)
   @Post('apple')
-  async appleLogin(
-    @Body() appleTokenDto: { identityToken: string; user?: any },
-  ) {
+  async appleLogin(@Body() appleTokenDto: AppleLoginDto) {
     const { identityToken, user } = appleTokenDto;
 
     if (!identityToken) {
-      throw new Error('Identity token is required');
+      throw new UnauthorizedException('identityToken is required');
     }
 
+    let appleIdTokenClaims: { sub: string; email?: string };
     try {
-      // Verify Apple Identity Token
-      const appleIdTokenClaims = await appleSignin.verifyIdToken(identityToken, {
-        // You should configure APPLE_CLIENT_ID in your environment variables (.env)
-        // Set it to your App's Bundle ID (e.g. com.goldwen.app)
-        audience: process.env.APPLE_CLIENT_ID, 
+      // Verify Apple Identity Token — socialLogin() below is only reached
+      // once Apple has cryptographically verified this token (Phase 0.1).
+      appleIdTokenClaims = await appleSignin.verifyIdToken(identityToken, {
+        // Configure APPLE_CLIENT_ID in your environment variables (.env),
+        // set to your App's Bundle ID (e.g. com.goldwen.app)
+        audience: process.env.APPLE_CLIENT_ID,
         ignoreExpiration: false,
       });
-
-      const appleUserData = {
-        socialId: appleIdTokenClaims.sub,
-        provider: 'apple',
-        email: appleIdTokenClaims.email || user?.email,
-        firstName: user?.name?.firstName || 'Utilisateur',
-        lastName: user?.name?.lastName || 'Apple',
-      };
-
-      return this.authService.socialLogin(appleUserData);
     } catch (e) {
-      throw new Error('Invalid Apple token or verification failed');
+      throw new UnauthorizedException('Invalid Apple token or verification failed');
     }
+
+    const appleUserData = {
+      socialId: appleIdTokenClaims.sub,
+      provider: 'apple',
+      email: appleIdTokenClaims.email || user?.email,
+      firstName: user?.name?.firstName || 'Utilisateur',
+      lastName: user?.name?.lastName || 'Apple',
+    };
+
+    const result = await this.authService.socialLogin(appleUserData);
+
+    return {
+      success: true,
+      message: 'Apple authentication successful',
+      data: {
+        user: {
+          id: result.user.id,
+          email: result.user.email,
+          isOnboardingCompleted: result.user.isOnboardingCompleted,
+          isProfileCompleted: result.user.isProfileCompleted,
+        },
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+      },
+    };
   }
 
   @ApiOperation({ summary: 'Apple OAuth callback' })

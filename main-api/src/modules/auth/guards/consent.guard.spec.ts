@@ -89,12 +89,12 @@ describe('ConsentGuard', () => {
       expect(mockRepository.findOne).not.toHaveBeenCalled();
     });
 
-    it('should deny access if user is not authenticated', async () => {
+    it('should allow access if user is not authenticated (guard is global; public/unauthenticated routes must not be blocked here)', async () => {
       const context = createMockExecutionContext(null);
 
       const result = await guard.canActivate(context);
 
-      expect(result).toBe(false);
+      expect(result).toBe(true);
       expect(mockRepository.findOne).not.toHaveBeenCalled();
     });
 

@@ -1,7 +1,10 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Reflector } from '@nestjs/core';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RoleGuard } from '../auth/guards/role.guard';
+import { AdminGuard } from '../auth/guards/admin.guard';
 
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
@@ -14,6 +17,7 @@ import { User } from '../../database/entities/user.entity';
 import { PushToken } from '../../database/entities/push-token.entity';
 import { DailySelection } from '../../database/entities/daily-selection.entity';
 import { Chat } from '../../database/entities/chat.entity';
+import { Admin } from '../../database/entities/admin.entity';
 
 @Module({
   imports: [
@@ -24,7 +28,18 @@ import { Chat } from '../../database/entities/chat.entity';
       PushToken,
       DailySelection,
       Chat,
+      Admin,
     ]),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get('jwt.secret'),
+        signOptions: {
+          expiresIn: configService.get('jwt.expiresIn'),
+        },
+      }),
+      inject: [ConfigService],
+    }),
   ],
   providers: [
     NotificationsService,
@@ -32,6 +47,7 @@ import { Chat } from '../../database/entities/chat.entity';
     FcmService,
     ScheduledNotificationsService,
     RoleGuard,
+    AdminGuard,
     Reflector,
   ],
   controllers: [NotificationsController],
