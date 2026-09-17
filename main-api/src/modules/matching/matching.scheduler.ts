@@ -4,6 +4,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 
+import { AlertingService } from '../../common/monitoring/alerting.service';
+import { UserStatus } from '../../common/enums';
 import { User } from '../../database/entities/user.entity';
 import { DailySelection } from '../../database/entities/daily-selection.entity';
 import { CustomLoggerService } from '../../common/logger';
@@ -15,15 +17,9 @@ const DEFAULT_TIMEZONE = 'Europe/Paris';
 /** Returns true when the current wall-clock hour in `timezone` is 12 (noon). */
 function isNoonInTimezone(timezone: string): boolean {
   try {
-    const hour = parseInt(
-      new Intl.DateTimeFormat('en-US', {
-        timeZone: timezone,
-        hour: 'numeric',
-        hour12: false,
-      }).format(new Date()),
-      10,
-    );
-    return hour === 12;
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: timezone, hour: 'numeric', minute: 'numeric', hour12: false }).formatToParts(new Date());
+    return parts.find((part) => part.type === 'hour')?.value === '12' &&
+      Number(parts.find((part) => part.type === 'minute')?.value) === 0;
   } catch {
     return false;
   }
@@ -40,6 +36,7 @@ export class MatchingScheduler {
     private notificationsService: NotificationsService,
     private configService: ConfigService,
     private logger: CustomLoggerService,
+    private alertingService: AlertingService,
   ) {}
 
   /**
@@ -47,7 +44,7 @@ export class MatchingScheduler {
    * Only processes users whose local time is noon, based on the timezone
    * stored in their profile. This replaces the single Paris-timezone noon cron.
    */
-  @Cron('0 * * * *', {
+  @Cron('*/15 * * * *', {
     name: 'daily-selection-generation',
   })
   async generateDailySelectionsForAllUsers() {
@@ -62,7 +59,7 @@ export class MatchingScheduler {
     try {
       // Fetch all users with completed profiles and their profile timezone
       const users = await this.userRepository.find({
-        where: { isProfileCompleted: true },
+        where: { isProfileCompleted: true, status: UserStatus.ACTIVE },
         relations: ['profile'],
       });
 
@@ -146,7 +143,7 @@ export class MatchingScheduler {
         skippedCount,
         executionTimeMs: executionTime,
         executionTimeSec: (executionTime / 1000).toFixed(2),
-        successRate: ((successCount / users.length) * 100).toFixed(2) + '%',
+        successRate: ((successCount / usersAtNoon.length) * 100).toFixed(2) + '%',
       });
 
       // Alert if there are errors
@@ -159,13 +156,9 @@ export class MatchingScheduler {
           'MatchingScheduler',
         );
 
-        // TODO: Send alert to monitoring system (Sentry, Slack, etc.)
-        // if (errorRate > 10) {
-        //   await this.sendCriticalAlert('Daily selection generation failure', {
-        //     errorCount,
-        //     errorRate,
-        //   });
-        // }
+        await this.alertingService.sendAlert({ level: errorRate > 10 ? 'critical' : 'warning',
+          title: 'Daily selection generation failure', message: `${errorCount} selections failed`,
+          metadata: { jobId, errorCount, errorRate } });
       }
     } catch (error: unknown) {
       const executionTime = Date.now() - startTime;
@@ -176,10 +169,7 @@ export class MatchingScheduler {
         'MatchingScheduler',
       );
 
-      // TODO: Send critical alert
-      // await this.sendCriticalAlert('Daily selection generation catastrophic failure', {
-      //   error: (error instanceof Error ? error.message : String(error)),
-      // });
+      await this.alertingService.sendCriticalAlert('Daily selection generation failed', 'The scheduler could not complete its run', { jobId });
 
       throw error; // Re-throw to ensure it's logged by NestJS scheduler
     }

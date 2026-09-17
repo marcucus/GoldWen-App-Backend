@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CustomLoggerService } from '../logger';
+import { EmailService } from '../../modules/email/email.service';
 import { MonitoringConfig } from '../../config/config.interface';
 
 export interface AlertPayload {
@@ -26,6 +27,7 @@ export class AlertingService {
   constructor(
     private configService: ConfigService,
     private logger: CustomLoggerService,
+    private emailService: EmailService,
   ) {
     this.alertsConfig =
       this.configService.get<MonitoringConfig['alerts']>('monitoring.alerts');
@@ -199,15 +201,9 @@ export class AlertingService {
     ];
   }
 
-  private sendEmailAlert(alert: AlertData) {
-    // Email alerting would be implemented here
-    // For now, just log that it would be sent
-    this.logger.info(
-      `Email alert would be sent to: ${this.alertsConfig!.emailRecipients.join(', ')}`,
-      {
-        alert,
-      },
-    );
+  private async sendEmailAlert(alert: AlertData): Promise<void> {
+    await Promise.all(this.alertsConfig!.emailRecipients.map((recipient) =>
+      this.emailService.sendOperationalEmail(recipient, `[${alert.level}] ${alert.title}`, alert.message)));
   }
 
   // Helper methods for common alert scenarios

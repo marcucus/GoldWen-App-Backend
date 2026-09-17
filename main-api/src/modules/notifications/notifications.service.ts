@@ -1,3 +1,4 @@
+import * as pushTokenOperations from '../../common/services/push-token.operations';
 import {
   Injectable,
   NotFoundException,
@@ -13,7 +14,6 @@ import { NotificationPreferences } from '../../database/entities/notification-pr
 import { Platform, PushToken } from '../../database/entities/push-token.entity';
 import { NotificationType } from '../../common/enums';
 import { CustomLoggerService } from '../../common/logger';
-import { FcmService } from './fcm.service';
 import { FirebaseService } from './firebase.service';
 
 import {
@@ -37,7 +37,6 @@ export class NotificationsService {
     private pushTokenRepository: Repository<PushToken>,
     private configService: ConfigService,
     private logger: CustomLoggerService,
-    private fcmService: FcmService,
     private firebaseService: FirebaseService,
   ) {}
 
@@ -501,11 +500,11 @@ export class NotificationsService {
             data: {
               notificationId: notification.id,
               type: notification.type,
-              ...notification.data,
+              ...Object.fromEntries(Object.entries(notification.data ?? {}).map(([key, value]) => [key, String(value)])),
             },
           };
 
-          const result = await this.fcmService.sendToDevice(
+          const result = await this.firebaseService.sendToDevice(
             pushToken.token,
             payload,
           );
@@ -756,83 +755,13 @@ export class NotificationsService {
   /**
    * Register a new push token for a user
    */
-  async registerPushToken(
-    userId: string,
-    token: string,
-    platform: string,
-    appVersion?: string,
-    deviceId?: string,
-  ): Promise<PushToken> {
-    // Check if token already exists
-    const existingToken = await this.pushTokenRepository.findOne({
-      where: { token },
-    });
-
-    if (existingToken) {
-      // Update existing token
-      existingToken.userId = userId;
-      existingToken.platform = platform as Platform;
-      existingToken.appVersion = appVersion;
-      existingToken.deviceId = deviceId;
-      existingToken.isActive = true;
-      existingToken.lastUsedAt = new Date();
-
-      const updated = await this.pushTokenRepository.save(existingToken);
-
-      this.logger.logUserAction('update_push_token', {
-        userId,
-        tokenId: updated.id,
-        platform,
-      });
-
-      return updated;
-    }
-
-    // Create new token
-    const pushToken = this.pushTokenRepository.create({
-      userId,
-      token,
-      platform: platform as Platform,
-      appVersion,
-      deviceId,
-      isActive: true,
-      lastUsedAt: new Date(),
-    });
-
-    const saved = await this.pushTokenRepository.save(pushToken);
-
-    this.logger.logUserAction('register_push_token', {
-      userId,
-      tokenId: saved.id,
-      platform,
-    });
-
-    return saved;
+  async registerPushToken(userId: string, token: string, platform: string, appVersion?: string, deviceId?: string): Promise<PushToken> {
+    return pushTokenOperations.registerPushToken(this.pushTokenRepository, userId, token, platform, appVersion, deviceId);
   }
-
-  /**
-   * Delete a push token
-   */
   async deletePushToken(userId: string, token: string): Promise<void> {
-    const pushToken = await this.pushTokenRepository.findOne({
-      where: { token, userId },
-    });
-
-    if (!pushToken) {
-      throw new NotFoundException('Push token not found');
-    }
-
-    await this.pushTokenRepository.delete(pushToken.id);
-
-    this.logger.logUserAction('delete_push_token', {
-      userId,
-      tokenId: pushToken.id,
-    });
+    return pushTokenOperations.deletePushToken(this.pushTokenRepository, userId, token);
   }
 
-  /**
-   * Get all push tokens for a user
-   */
   async getUserPushTokens(userId: string): Promise<PushToken[]> {
     return this.pushTokenRepository.find({
       where: { userId, isActive: true },

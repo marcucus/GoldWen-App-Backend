@@ -46,10 +46,9 @@ export class RevenueCatService {
       hmac.update(rawBody);
       const expectedSignature = hmac.digest('hex');
 
-      return crypto.timingSafeEqual(
-        Buffer.from(signature),
-        Buffer.from(expectedSignature),
-      );
+      const actual = Buffer.from(signature);
+      const expected = Buffer.from(expectedSignature);
+      return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
     } catch (error: unknown) {
       this.logger.error(
         'Error verifying webhook signature',

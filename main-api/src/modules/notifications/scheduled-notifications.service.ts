@@ -9,7 +9,7 @@ import { User } from '../../database/entities/user.entity';
 import { DailySelection } from '../../database/entities/daily-selection.entity';
 import { Chat } from '../../database/entities/chat.entity';
 import { CustomLoggerService } from '../../common/logger';
-import { NotificationType } from '../../common/enums';
+import { UserStatus, ChatStatus, NotificationType } from '../../common/enums';
 
 @Injectable()
 export class ScheduledNotificationsService {
@@ -26,10 +26,7 @@ export class ScheduledNotificationsService {
   ) {}
 
   // Send daily selection notifications at 12:00 PM (local time based approach)
-  @Cron('0 12 * * *', {
-    name: 'daily-selection-notifications',
-    timeZone: 'Europe/Paris', // Adjust based on your main timezone
-  })
+  // No cron here: MatchingScheduler owns the timezone-aware daily push.
   async sendDailySelectionNotifications() {
     const isProduction =
       this.configService.get<string>('app.environment') === 'production';
@@ -49,7 +46,7 @@ export class ScheduledNotificationsService {
       const users = await this.userRepository
         .createQueryBuilder('user')
         .leftJoinAndSelect('user.notificationPreferences', 'prefs')
-        .where('user.status = :status', { status: 'ACTIVE' })
+        .where('user.status = :status', { status: UserStatus.ACTIVE })
         .andWhere('user.notificationsEnabled = true')
         .andWhere(
           '(prefs.dailySelection IS NULL OR prefs.dailySelection = true)',
@@ -120,7 +117,7 @@ export class ScheduledNotificationsService {
           twoHours: twoHoursFromNow,
           fourHours: fourHoursFromNow,
         })
-        .andWhere('chat.status = :status', { status: 'ACTIVE' })
+        .andWhere('chat.status = :status', { status: ChatStatus.ACTIVE })
         .getMany();
 
       let notificationCount = 0;

@@ -1,3 +1,4 @@
+import { AlertingService } from '../../../common/monitoring/alerting.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -49,6 +50,7 @@ describe('MatchingScheduler', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        { provide: AlertingService, useValue: { sendAlert: jest.fn(), sendCriticalAlert: jest.fn() } },
         MatchingScheduler,
         {
           provide: getRepositoryToken(User),
@@ -118,7 +120,7 @@ describe('MatchingScheduler', () => {
       await scheduler.generateDailySelectionsForAllUsers();
 
       expect(mockUserRepository.find).toHaveBeenCalledWith({
-        where: { isProfileCompleted: true },
+        where: { isProfileCompleted: true, status: 'active' },
         relations: ['profile'],
       });
       expect(mockMatchingService.generateDailySelection).toHaveBeenCalledTimes(

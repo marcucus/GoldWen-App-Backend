@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
@@ -28,6 +26,33 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  main-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    env_file:
+      - ./main-api/.env
+    environment:
+      NODE_ENV: development
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${POSTGRES_DB:-goldwen_db}
+      DATABASE_USERNAME: ${POSTGRES_USER:-goldwen}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MATCHING_SERVICE_URL: http://matching-service:8000
+      MATCHING_SERVICE_API_KEY: ${MATCHING_SERVICE_API_KEY:?Set MATCHING_SERVICE_API_KEY}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      matching-service:
+        condition: service_healthy
 
   matching-service:
     build:

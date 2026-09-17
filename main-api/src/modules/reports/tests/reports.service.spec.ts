@@ -1,3 +1,4 @@
+import { AlertingService } from '../../../common/monitoring/alerting.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
@@ -36,6 +37,7 @@ describe('ReportsService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        { provide: AlertingService, useValue: { sendAlert: jest.fn() } },
         ReportsService,
         {
           provide: getRepositoryToken(Report),

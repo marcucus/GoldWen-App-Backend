@@ -18,6 +18,7 @@ describe('GdprController', () => {
   } as any;
 
   const mockGdprService = {
+    getExportDownloadUrl: jest.fn((request: { fileUrl?: string }) => request.fileUrl),
     requestDataExport: jest.fn(),
     getExportRequestStatus: jest.fn(),
     getUserExportRequests: jest.fn(),

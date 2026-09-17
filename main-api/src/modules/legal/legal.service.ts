@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { TermsOfService } from '../../database/entities/terms-of-service.entity';
 import { PrivacyPolicy } from '../../database/entities/privacy-policy.entity';
 
 @Injectable()
@@ -8,7 +9,18 @@ export class LegalService {
   constructor(
     @InjectRepository(PrivacyPolicy)
     private privacyPolicyRepository: Repository<PrivacyPolicy>,
+    @InjectRepository(TermsOfService)
+    private termsRepository: Repository<TermsOfService>,
   ) {}
+
+  async getTermsOfService(version = 'latest'): Promise<TermsOfService> {
+    const terms = await this.termsRepository.findOne({
+      where: version === 'latest' ? { isActive: true } : { version },
+      order: { effectiveDate: 'DESC' },
+    });
+    if (!terms) throw new ServiceUnavailableException('Terms of service have not been published');
+    return terms;
+  }
 
   /**
    * Get privacy policy by version or latest active version

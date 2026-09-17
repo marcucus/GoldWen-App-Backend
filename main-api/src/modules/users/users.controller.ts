@@ -38,8 +38,7 @@ import {
 } from './dto/role-management.dto';
 import { DeleteAccountDto } from './dto/delete-account.dto';
 import { SuccessResponseDto } from '../../common/dto/response.dto';
-import { GdprService } from './gdpr.service';
-import { GdprService as GdprModuleService } from '../gdpr/gdpr.service';
+import { GdprService } from '../gdpr/gdpr.service';
 import { ExportStatus } from '../../database/entities/data-export-request.entity';
 import { Roles, RoleGuard } from '../auth/guards/role.guard';
 import { SkipConsentCheck } from '../auth/decorators/skip-consent.decorator';
@@ -60,7 +59,6 @@ export class UsersController {
     private usersService: UsersService,
     private profilesService: ProfilesService,
     private gdprService: GdprService,
-    private gdprModuleService: GdprModuleService,
     @InjectRepository(Profile)
     private profileRepository: Repository<Profile>,
     @InjectRepository(PromptAnswer)
@@ -473,7 +471,7 @@ export class UsersController {
   @Post('me/export-data')
   async requestDataExport(@Req() req: Request) {
     const user = req.user as User;
-    const exportRequest = await this.gdprModuleService.requestDataExport(
+    const exportRequest = await this.gdprService.requestDataExport(
       user.id,
       'json',
     );
@@ -516,7 +514,7 @@ export class UsersController {
     @Req() req: Request,
   ) {
     const user = req.user as User;
-    const exportData = await this.gdprModuleService.getExportRequestStatus(
+    const exportData = await this.gdprService.getExportRequestStatus(
       user.id,
       exportId,
     );
@@ -537,9 +535,23 @@ export class UsersController {
 
     return {
       status,
-      downloadUrl: status === 'ready' ? exportData.fileUrl : null,
+      downloadUrl: status === 'ready' ? this.gdprService.getExportDownloadUrl(exportData) : null,
       expiresAt: exportData.expiresAt,
     };
+  }
+
+  @Get('me/deletion-status')
+  @SkipConsentCheck()
+  async getDeletionStatus(@Req() req: Request) {
+    const request = await this.gdprService.getLatestDeletionStatus((req.user as User).id);
+    return { success: true, data: { status: request?.status || 'none', requestId: request?.id, requestedAt: request?.requestedAt } };
+  }
+
+  @Post('me/cancel-deletion')
+  @SkipConsentCheck()
+  async cancelDeletion(@Req() req: Request) {
+    await this.gdprService.cancelAccountDeletion((req.user as User).id);
+    return { success: true, message: 'Account deletion cancelled' };
   }
 
   // Role Management Routes

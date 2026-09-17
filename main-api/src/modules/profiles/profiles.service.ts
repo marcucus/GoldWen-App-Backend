@@ -612,6 +612,20 @@ export class ProfilesService {
     }
   }
 
+  async reorderMedia(userId: string, photoIds: string[]): Promise<Photo[]> {
+    return this.photoRepository.manager.transaction(async (manager) => {
+      const profile = await manager.findOne(Profile, { where: { userId } });
+      if (!profile) throw new NotFoundException('Profile not found');
+      const photos = await manager.find(Photo, { where: { profileId: profile.id } });
+      if (photos.length !== photoIds.length || new Set(photoIds).size !== photos.length ||
+          photos.some((photo) => !photoIds.includes(photo.id))) {
+        throw new BadRequestException('Provide every photo owned by this profile exactly once');
+      }
+      for (const photo of photos) photo.order = photoIds.indexOf(photo.id) + 1;
+      return manager.save(Photo, photos);
+    });
+  }
+
   async deletePhoto(userId: string, photoId: string): Promise<void> {
     const photo = await this.photoRepository.findOne({
       where: { id: photoId },

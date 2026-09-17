@@ -8,7 +8,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, Not } from 'typeorm';
 
 import { Chat } from '../../database/entities/chat.entity';
 import { Message } from '../../database/entities/message.entity';
@@ -158,6 +158,21 @@ export class ChatService {
     }
   }
 
+  async getChatById(chatId: string, userId: string): Promise<Chat> {
+    const chat = await this.chatRepository.findOne({
+      where: { id: chatId },
+      relations: ['match'],
+    });
+    if (!chat) throw new NotFoundException('Chat not found');
+    if (chat.match.user1Id !== userId && chat.match.user2Id !== userId) {
+      throw new ForbiddenException('Access denied');
+    }
+    if (chat.status !== ChatStatus.ACTIVE || chat.expiresAt <= new Date()) {
+      throw new ForbiddenException('This conversation has expired');
+    }
+    return chat;
+  }
+
   async getChatByMatchId(matchId: string, userId: string): Promise<Chat> {
     // Verify user is part of the match
     const match = await this.matchRepository.findOne({
@@ -302,10 +317,13 @@ export class ChatService {
   }
 
   async markMessagesAsRead(chatId: string, userId: string): Promise<void> {
-    void userId; // Kept for compatibility with existing callers.
+    if (!(await this.verifyUserChatAccess(chatId, userId))) {
+      throw new ForbiddenException('Access denied');
+    }
     await this.messageRepository.update(
       {
         chatId,
+        senderId: Not(userId),
         isRead: false,
       },
       {
@@ -314,8 +332,6 @@ export class ChatService {
       },
     );
 
-    // This is a simplified version - in production you'd want to exclude messages from the current user
-    // but TypeORM doesn't have a direct "not equal" for this case in update
   }
 
   async getUserChats(userId: string): Promise<Chat[]> {

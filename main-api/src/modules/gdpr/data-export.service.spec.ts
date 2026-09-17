@@ -1,3 +1,5 @@
+import { ConfigService } from '@nestjs/config';
+import { StorageService } from '../../common/services/storage.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -33,6 +35,8 @@ describe('DataExportService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        { provide: ConfigService, useValue: { get: jest.fn(() => "test-signing-secret") } },
+        { provide: StorageService, useValue: { uploadPrivateExport: jest.fn(), readPrivateExport: jest.fn() } },
         DataExportService,
         {
           provide: getRepositoryToken(DataExportRequest),
@@ -126,24 +130,9 @@ describe('DataExportService', () => {
       expect(result.format).toBe(ExportFormat.JSON);
     });
 
-    it('should create a PDF export request', async () => {
-      const userId = 'test-user-id';
-      const mockRequest = {
-        id: 'request-id',
-        userId,
-        format: ExportFormat.PDF,
-        status: ExportStatus.PENDING,
-      };
-
-      mockRepositories.create.mockReturnValue(mockRequest);
-      mockRepositories.save.mockResolvedValue(mockRequest);
-
-      const result = await service.createExportRequest(
-        userId,
-        ExportFormat.PDF,
-      );
-
-      expect(result.format).toBe(ExportFormat.PDF);
+    it('rejects unsupported PDF exports before persisting a request', async () => {
+      await expect(service.createExportRequest('test-user-id', ExportFormat.PDF)).rejects.toThrow('Only JSON');
+      expect(mockRepositories.create).not.toHaveBeenCalled();
     });
   });
 
@@ -248,7 +237,7 @@ describe('DataExportService', () => {
         expect.objectContaining({
           status: ExportStatus.COMPLETED,
           completedAt: expect.any(Date),
-          fileUrl: expect.stringContaining('data:application/json;base64'),
+          fileUrl: 'exports/request-id.json',
         }),
       );
     });

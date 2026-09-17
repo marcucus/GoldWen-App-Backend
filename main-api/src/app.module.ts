@@ -2,7 +2,6 @@ import { Module, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
-import { BullModule } from '@nestjs/bull';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
@@ -43,6 +42,7 @@ import {
   moderationConfig,
   analyticsConfig,
 } from './config/configuration';
+import { validateEnvironment } from './config/environment.validation';
 import { StorageService } from './common/services/storage.service';
 
 // Modules
@@ -51,7 +51,6 @@ import { UsersModule } from './modules/users/users.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
 import { MatchingModule } from './modules/matching/matching.module';
 import { ChatModule } from './modules/chat/chat.module';
-import { ConversationsModule } from './modules/conversations/conversations.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PreferencesModule } from './modules/preferences/preferences.module';
@@ -61,8 +60,8 @@ import { StatsModule } from './modules/stats/stats.module';
 import { EmailModule } from './modules/email/email.module';
 import { ModerationModule } from './modules/moderation/moderation.module';
 import { GdprModule } from './modules/gdpr/gdpr.module';
-import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { CronJobsModule } from './modules/cron-jobs/cron-jobs.module';
+import { FeedbackModule } from './modules/feedback/feedback.module';
 import { LegalModule } from './modules/legal/legal.module';
 
 @Module({
@@ -74,6 +73,7 @@ import { LegalModule } from './modules/legal/legal.module';
     // Configuration
     ConfigModule.forRoot({
       isGlobal: true,
+      validate: validateEnvironment,
       load: [
         databaseConfig,
         redisConfig,
@@ -135,20 +135,8 @@ import { LegalModule } from './modules/legal/legal.module';
         migrationsRun:
           configService.get<string>('app.environment') !== 'development',
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
         logging: configService.get<string>('app.environment') === 'development',
-      }),
-      inject: [ConfigService],
-    }),
-
-    // Redis for queues
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        redis: {
-          host: configService.get<string>('redis.host'),
-          port: configService.get<number>('redis.port'),
-          password: configService.get('redis.password'),
-        },
       }),
       inject: [ConfigService],
     }),
@@ -180,7 +168,6 @@ import { LegalModule } from './modules/legal/legal.module';
     ProfilesModule,
     MatchingModule,
     ChatModule,
-    ConversationsModule,
     SubscriptionsModule,
     NotificationsModule,
     PreferencesModule,
@@ -189,9 +176,9 @@ import { LegalModule } from './modules/legal/legal.module';
     StatsModule,
     ModerationModule,
     GdprModule,
-    AnalyticsModule,
     CronJobsModule,
     LegalModule,
+    FeedbackModule,
   ],
   controllers: [AppController],
   providers: [

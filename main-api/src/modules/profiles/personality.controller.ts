@@ -24,7 +24,7 @@ export class PersonalityController {
   constructor(private readonly profilesService: ProfilesService) {}
 
   @Get('personality-questions')
-  @ApiOperation({ summary: 'Get personality questionnaire questions' })
+  @ApiOperation({ deprecated: true, summary: 'Get personality questionnaire questions' })
   @ApiResponse({ status: 200, description: 'Personality questions retrieved' })
   async getPersonalityQuestions() {
     return this.profilesService.getPersonalityQuestions();

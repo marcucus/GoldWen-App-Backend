@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsersController } from '../users.controller';
 import { UsersService } from '../users.service';
 import { ProfilesService } from '../../profiles/profiles.service';
-import { GdprService } from '../gdpr.service';
 import { GdprService as GdprModuleService } from '../../gdpr/gdpr.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Profile } from '../../../database/entities/profile.entity';
@@ -78,12 +77,12 @@ describe('UsersController - Delete Account', () => {
           useValue: mockProfilesService,
         },
         {
-          provide: GdprService,
+          provide: GdprModuleService,
           useValue: mockGdprService,
         },
         {
           provide: GdprModuleService,
-          useValue: mockGdprModuleService,
+          useValue: { ...mockGdprService, ...mockGdprModuleService, getExportDownloadUrl: jest.fn((request: { fileUrl?: string }) => request.fileUrl ?? null) },
         },
         {
           provide: getRepositoryToken(Profile),

@@ -5,8 +5,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
-import { MonitoringController } from './monitoring.controller';
-import { MonitoringService } from './monitoring.service';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { AdminGuard } from '../auth/guards/admin.guard';
 
@@ -43,8 +41,8 @@ import { Prompt } from '../../database/entities/prompt.entity';
       inject: [ConfigService],
     }),
   ],
-  providers: [AdminService, MonitoringService, AdminGuard],
-  controllers: [AdminController, MonitoringController],
+  providers: [AdminService, AdminGuard],
+  controllers: [AdminController],
   exports: [AdminService, AdminGuard],
 })
 export class AdminModule {}

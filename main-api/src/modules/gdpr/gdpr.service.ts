@@ -1,11 +1,11 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
   AccountDeletion,
   DeletionStatus,
 } from '../../database/entities/account-deletion.entity';
-import { ExportFormat } from '../../database/entities/data-export-request.entity';
+import { DataExportRequest, ExportFormat } from '../../database/entities/data-export-request.entity';
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
 import { Match } from '../../database/entities/match.entity';
@@ -16,6 +16,7 @@ import { UserConsent } from '../../database/entities/user-consent.entity';
 import { PushToken } from '../../database/entities/push-token.entity';
 import { Notification } from '../../database/entities/notification.entity';
 import { Report } from '../../database/entities/report.entity';
+import { UserDataService } from './user-data.service';
 import { DataExportService } from './data-export.service';
 
 @Injectable()
@@ -46,7 +47,33 @@ export class GdprService {
     @InjectRepository(Report)
     private reportRepository: Repository<Report>,
     private dataExportService: DataExportService,
+    private userDataService: UserDataService,
   ) {}
+
+  getExportDownloadUrl(request: DataExportRequest): string | null {
+    return this.dataExportService.getDownloadUrl(request);
+  }
+
+  async exportUserData(userId: string, format: 'json' | 'pdf' = 'json') {
+    return this.userDataService.exportUserData(userId, format);
+  }
+
+  async deleteUserCompletely(userId: string): Promise<void> {
+    await this.userDataService.deleteUserCompletely(userId);
+  }
+
+  async getLatestDeletionStatus(userId: string): Promise<AccountDeletion | null> {
+    return this.accountDeletionRepository.findOne({ where: { userId }, order: { createdAt: 'DESC' } });
+  }
+
+  async cancelAccountDeletion(userId: string): Promise<void> {
+    const request = await this.getLatestDeletionStatus(userId);
+    if (!request || request.status !== DeletionStatus.PENDING) {
+      throw new BadRequestException('No cancellable deletion request exists');
+    }
+    const result = await this.accountDeletionRepository.update({ id: request.id, userId, status: DeletionStatus.PENDING }, { status: DeletionStatus.CANCELLED });
+    if (!result.affected) throw new BadRequestException('Deletion processing has already started');
+  }
 
   /**
    * Request data export for GDPR compliance
@@ -139,47 +166,15 @@ export class GdprService {
 
     try {
       // Update status to processing
-      await this.accountDeletionRepository.update(requestId, {
-        status: DeletionStatus.PROCESSING,
-      });
+      const claimed = await this.accountDeletionRepository.update(
+        { id: requestId, status: DeletionStatus.PENDING }, { status: DeletionStatus.PROCESSING });
+      if (!claimed.affected) return;
 
       const userId = request.userId;
 
-      // Anonymize and track metrics
-      const messagesAnonymized = await this.anonymizeUserMessages(userId);
-      const matchesAnonymized = await this.anonymizeUserMatches(userId);
-      const reportsAnonymized = await this.anonymizeReportsAgainstUser(userId);
-
-      // Delete related data in proper order
-      await Promise.all([
-        this.pushTokenRepository.delete({ userId }),
-        this.userConsentRepository.delete({ userId }),
-        this.notificationRepository.delete({ userId }),
-        this.dailySelectionRepository.delete({ userId }),
-      ]);
-
-      // Delete reports made by user
-      await this.reportRepository.delete({ reporterId: userId });
-
-      // Delete subscriptions
-      await this.subscriptionRepository.delete({ userId });
-
-      // Delete profile
-      await this.profileRepository.delete({ userId });
-
-      // Finally delete the user
-      await this.userRepository.delete({ id: userId });
-
-      // Update deletion record with completion status
+      await this.deleteUserCompletely(request.userId);
       await this.accountDeletionRepository.update(requestId, {
-        status: DeletionStatus.COMPLETED,
-        completedAt: new Date(),
-        metadata: {
-          messagesAnonymized,
-          matchesAnonymized,
-          reportsAnonymized,
-          dataExported: false, // Could track if data was exported before deletion
-        },
+        status: DeletionStatus.COMPLETED, completedAt: new Date(), userEmail: undefined,
       });
 
       this.logger.log(`Account deletion ${requestId} completed successfully`);

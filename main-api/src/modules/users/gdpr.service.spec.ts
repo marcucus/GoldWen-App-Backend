@@ -100,30 +100,20 @@ describe('GdprService', () => {
       expect(result.data.user).toBeDefined();
     });
 
-    it('should handle PDF format request', async () => {
-      const userId = 'test-user-id';
-
-      mockRepositories.findOne.mockResolvedValue(null);
-      mockRepositories.find.mockResolvedValue([]);
-
-      const result = await service.exportUserData(userId, 'pdf');
-
-      expect(result).toBeDefined();
-      expect(result.format).toBe('json'); // Currently returns JSON with note about PDF
-      expect(result.note).toContain(
-        'PDF export requires additional implementation',
-      );
+    it('rejects unsupported PDF exports', async () => {
+      await expect(service.exportUserData('test-user-id', 'pdf')).rejects.toThrow('Only JSON');
     });
   });
 
   describe('deleteUserCompletely', () => {
-    it('should call all necessary deletion methods', async () => {
-      const userId = 'test-user-id';
-
-      await service.deleteUserCompletely(userId);
-
-      expect(mockRepositories.delete).toHaveBeenCalledWith({ userId });
-      expect(mockRepositories.update).toHaveBeenCalled();
+    it('deletes the user and non-cascading data inside one transaction', async () => {
+      const query = { delete: jest.fn().mockReturnThis(), from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), execute: jest.fn() };
+      const manager = { createQueryBuilder: jest.fn(() => query), delete: jest.fn() };
+      Object.assign(mockRepositories, { manager: { transaction: jest.fn(async (run: (manager: unknown) => Promise<void>) => run(manager)) } });
+      await service.deleteUserCompletely('test-user-id');
+      expect(query.from).toHaveBeenCalledWith('feedback');
+      expect(query.from).toHaveBeenCalledWith('support_tickets');
+      expect(manager.delete).toHaveBeenCalledWith(User, { id: 'test-user-id' });
     });
   });
 });

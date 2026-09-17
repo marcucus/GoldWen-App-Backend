@@ -3,7 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
-import { UserGdprController } from './user-gdpr.controller';
 import { ProfilesModule } from '../profiles/profiles.module';
 import { GdprModule } from '../gdpr/gdpr.module';
 import { User } from '../../database/entities/user.entity';
@@ -18,7 +17,6 @@ import { PushToken } from '../../database/entities/push-token.entity';
 import { UserConsent } from '../../database/entities/user-consent.entity';
 import { Notification } from '../../database/entities/notification.entity';
 import { Report } from '../../database/entities/report.entity';
-import { GdprService } from './gdpr.service';
 
 @Module({
   imports: [
@@ -39,8 +37,8 @@ import { GdprService } from './gdpr.service';
     ProfilesModule,
     GdprModule,
   ],
-  providers: [UsersService, GdprService],
-  controllers: [UsersController, UserGdprController],
+  providers: [UsersService],
+  controllers: [UsersController],
   exports: [UsersService],
 })
 export class UsersModule {}

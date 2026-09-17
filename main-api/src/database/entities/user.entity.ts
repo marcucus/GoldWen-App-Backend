@@ -63,13 +63,13 @@ export class User {
   @Column({ default: false })
   isEmailVerified?: boolean;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   emailVerificationToken?: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   resetPasswordToken?: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   resetPasswordExpires?: Date | null;
 
   @Column({ default: false })

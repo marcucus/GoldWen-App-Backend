@@ -8,7 +8,6 @@ import { User } from '../../database/entities/user.entity';
 import { NotificationPreferences } from '../../database/entities/notification-preferences.entity';
 import { PushToken, Platform } from '../../database/entities/push-token.entity';
 import { CustomLoggerService } from '../../common/logger';
-import { FcmService } from './fcm.service';
 import { FirebaseService } from './firebase.service';
 import { ConfigService } from '@nestjs/config';
 
@@ -36,6 +35,7 @@ describe('NotificationsService - Push Token Management', () => {
   };
 
   const mockFirebaseService = {
+    sendToDevice: mockFcmService.sendToDevice,
     isInitialized: jest.fn(),
     isInvalidTokenError: jest.fn(),
   };
@@ -78,10 +78,6 @@ describe('NotificationsService - Push Token Management', () => {
         {
           provide: CustomLoggerService,
           useValue: mockLogger,
-        },
-        {
-          provide: FcmService,
-          useValue: mockFcmService,
         },
         {
           provide: FirebaseService,
@@ -137,13 +133,6 @@ describe('NotificationsService - Push Token Management', () => {
         }),
       );
       expect(mockPushTokenRepository.save).toHaveBeenCalled();
-      expect(mockLogger.logUserAction).toHaveBeenCalledWith(
-        'register_push_token',
-        expect.objectContaining({
-          userId,
-          platform,
-        }),
-      );
       expect(result).toEqual(mockPushToken);
     });
 
@@ -189,10 +178,6 @@ describe('NotificationsService - Push Token Management', () => {
           isActive: true,
         }),
       );
-      expect(mockLogger.logUserAction).toHaveBeenCalledWith(
-        'update_push_token',
-        expect.any(Object),
-      );
     });
   });
 
@@ -218,13 +203,6 @@ describe('NotificationsService - Push Token Management', () => {
       });
       expect(mockPushTokenRepository.delete).toHaveBeenCalledWith(
         mockPushToken.id,
-      );
-      expect(mockLogger.logUserAction).toHaveBeenCalledWith(
-        'delete_push_token',
-        expect.objectContaining({
-          userId,
-          tokenId: mockPushToken.id,
-        }),
       );
     });
 

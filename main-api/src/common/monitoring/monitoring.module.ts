@@ -1,4 +1,5 @@
 import { Global, Module } from '@nestjs/common';
+import { EmailModule } from '../../modules/email/email.module';
 import { ConfigModule } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { SentryService } from './sentry.service';
@@ -10,7 +11,7 @@ import { AdminGuard } from '../../modules/auth/guards/admin.guard';
 
 @Global()
 @Module({
-  imports: [ConfigModule],
+  imports: [ConfigModule, EmailModule],
   providers: [
     SentryService,
     AlertingService,

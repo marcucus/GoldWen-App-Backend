@@ -12,7 +12,6 @@ import { Notification } from '../../../database/entities/notification.entity';
 import { User } from '../../../database/entities/user.entity';
 import { NotificationPreferences } from '../../../database/entities/notification-preferences.entity';
 import { PushToken } from '../../../database/entities/push-token.entity';
-import { FcmService } from '../fcm.service';
 import { FirebaseService } from '../firebase.service';
 import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -82,6 +81,7 @@ describe('Notification Settings Integration Tests', () => {
   };
 
   const mockFirebaseService = {
+    sendToDevice: mockFcmService.sendToDevice,
     isInitialized: jest.fn(() => true),
     isInvalidTokenError: jest.fn(),
   };
@@ -121,10 +121,6 @@ describe('Notification Settings Integration Tests', () => {
         {
           provide: CustomLoggerService,
           useValue: mockLogger,
-        },
-        {
-          provide: FcmService,
-          useValue: mockFcmService,
         },
         {
           provide: FirebaseService,

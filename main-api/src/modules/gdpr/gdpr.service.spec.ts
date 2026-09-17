@@ -1,3 +1,4 @@
+import { UserDataService } from './user-data.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -43,6 +44,7 @@ describe('GdprService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        { provide: UserDataService, useValue: { exportUserData: jest.fn(), deleteUserCompletely: jest.fn() } },
         GdprService,
         {
           provide: DataExportService,

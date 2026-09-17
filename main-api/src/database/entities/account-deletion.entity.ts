@@ -11,6 +11,7 @@ export enum DeletionStatus {
   PROCESSING = 'processing',
   COMPLETED = 'completed',
   FAILED = 'failed',
+  CANCELLED = 'cancelled',
 }
 
 @Entity('account_deletions')
@@ -18,7 +19,7 @@ export class AccountDeletion {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column('uuid')
   userId: string; // Stored as reference even after user deletion
 
   @Column({ nullable: true })

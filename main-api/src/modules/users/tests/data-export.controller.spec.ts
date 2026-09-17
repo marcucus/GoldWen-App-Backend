@@ -4,7 +4,6 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { UsersController } from '../users.controller';
 import { UsersService } from '../users.service';
 import { ProfilesService } from '../../profiles/profiles.service';
-import { GdprService as UsersGdprService } from '../gdpr.service';
 import { GdprService as GdprModuleService } from '../../gdpr/gdpr.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Profile } from '../../../database/entities/profile.entity';
@@ -48,12 +47,12 @@ describe('UsersController - Data Export (RGPD)', () => {
           useValue: mockProfilesService,
         },
         {
-          provide: UsersGdprService,
+          provide: GdprModuleService,
           useValue: mockUsersGdprService,
         },
         {
           provide: GdprModuleService,
-          useValue: mockGdprModuleService,
+          useValue: { ...mockUsersGdprService, ...mockGdprModuleService, getExportDownloadUrl: jest.fn((request: { fileUrl?: string }) => request.fileUrl ?? null) },
         },
         {
           provide: getRepositoryToken(Profile),

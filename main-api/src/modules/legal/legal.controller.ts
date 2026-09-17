@@ -8,6 +8,15 @@ import { GetPrivacyPolicyDto } from './dto/privacy-policy.dto';
 export class LegalController {
   constructor(private legalService: LegalService) {}
 
+  @Get('terms-of-service')
+  @ApiOperation({ summary: 'Retrieve the published terms of service' })
+  async getTermsOfService(@Query() query: GetPrivacyPolicyDto) {
+    const terms = await this.legalService.getTermsOfService(query.version);
+    if (query.format === 'html') return terms.htmlContent || terms.content;
+    return { version: terms.version, content: JSON.parse(terms.content) as unknown,
+      lastUpdated: terms.effectiveDate, effectiveDate: terms.effectiveDate };
+  }
+
   @ApiOperation({
     summary: 'Get privacy policy (RGPD compliance)',
     description:

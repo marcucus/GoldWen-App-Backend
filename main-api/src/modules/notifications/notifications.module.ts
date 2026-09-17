@@ -9,7 +9,6 @@ import { AdminGuard } from '../auth/guards/admin.guard';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
 import { FirebaseService } from './firebase.service';
-import { FcmService } from './fcm.service';
 import { ScheduledNotificationsService } from './scheduled-notifications.service';
 import { Notification } from '../../database/entities/notification.entity';
 import { NotificationPreferences } from '../../database/entities/notification-preferences.entity';
@@ -44,13 +43,12 @@ import { Admin } from '../../database/entities/admin.entity';
   providers: [
     NotificationsService,
     FirebaseService,
-    FcmService,
     ScheduledNotificationsService,
     RoleGuard,
     AdminGuard,
     Reflector,
   ],
   controllers: [NotificationsController],
-  exports: [NotificationsService, FirebaseService, FcmService],
+  exports: [NotificationsService, FirebaseService],
 })
 export class NotificationsModule {}

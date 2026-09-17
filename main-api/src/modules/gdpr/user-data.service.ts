@@ -1,14 +1,6 @@
-import { Injectable, Logger, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import {
-  DataExportRequest,
-  ExportStatus,
-  ExportFormat,
-} from '../../database/entities/data-export-request.entity';
-import { ConfigService } from '@nestjs/config';
-import { createHmac, timingSafeEqual } from 'crypto';
-import { StorageService } from '../../common/services/storage.service';
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
 import { Match } from '../../database/entities/match.entity';
@@ -21,12 +13,10 @@ import { Notification } from '../../database/entities/notification.entity';
 import { Report } from '../../database/entities/report.entity';
 
 @Injectable()
-export class DataExportService {
-  private readonly logger = new Logger(DataExportService.name);
+export class UserDataService {
+  private readonly logger = new Logger(UserDataService.name);
 
   constructor(
-    @InjectRepository(DataExportRequest)
-    private dataExportRequestRepository: Repository<DataExportRequest>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
     @InjectRepository(Profile)
@@ -47,141 +37,41 @@ export class DataExportService {
     private notificationRepository: Repository<Notification>,
     @InjectRepository(Report)
     private reportRepository: Repository<Report>,
-    private storageService: StorageService,
-    private configService: ConfigService,
   ) {}
 
-  private signature(requestId: string, expires: string): string {
-    const secret = this.configService.get<string>('jwt.secret');
-    if (!secret) throw new Error('Signing secret is not configured');
-    return createHmac('sha256', secret).update(`gdpr-export:${requestId}:${expires}`).digest('hex');
-  }
-
-  getDownloadUrl(request: DataExportRequest): string | null {
-    if (request.status !== ExportStatus.COMPLETED || !request.fileUrl || !request.expiresAt || request.expiresAt <= new Date()) return null;
-    const expires = String(Math.floor(request.expiresAt.getTime() / 1000));
-    const appUrl = this.configService.get<string>('app.url')?.replace(/\/$/, '') || '';
-    const prefix = this.configService.get<string>('app.apiPrefix') || 'api/v1';
-    return `${appUrl}/${prefix}/exports/${request.id}/download?expires=${expires}&signature=${this.signature(request.id, expires)}`;
-  }
-
-  async download(requestId: string, expires: string, signature: string): Promise<Buffer> {
-    if (!/^\d+$/.test(expires) || Number(expires) <= Date.now() / 1000 || !/^[a-f0-9]{64}$/.test(signature)) {
-      throw new ForbiddenException('Invalid or expired download link');
-    }
-    const actual = Buffer.from(signature);
-    const expected = Buffer.from(this.signature(requestId, expires));
-    if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) throw new ForbiddenException('Invalid download link');
-    const request = await this.dataExportRequestRepository.findOne({ where: { id: requestId } });
-    if (!request || request.status !== ExportStatus.COMPLETED || !request.fileUrl) throw new NotFoundException('Export not found');
-    if (!request.expiresAt || request.expiresAt <= new Date() || Number(expires) > request.expiresAt.getTime() / 1000) throw new ForbiddenException('Export has expired');
-    return this.storageService.readPrivateExport(request.fileUrl);
-  }
-
   /**
-   * Create a new data export request
-   * Art. 20 RGPD - Right to data portability
+   * Export all user data in a structured format
    */
-  async createExportRequest(
-    userId: string,
-    format: ExportFormat = ExportFormat.JSON,
-  ): Promise<DataExportRequest> {
-    if (format !== ExportFormat.JSON) throw new BadRequestException('Only JSON exports are supported');
+  async exportUserData(userId: string, format: 'json' | 'pdf' = 'json') {
+    if (format !== 'json') throw new BadRequestException('Only JSON exports are supported');
     this.logger.log(
-      `Creating data export request for user ${userId} in ${format} format`,
+      `Starting data export for user ${userId} in ${format} format`,
     );
 
-    const exportRequest = this.dataExportRequestRepository.create({
-      userId,
-      format,
-      status: ExportStatus.PENDING,
-      // Set expiration to 7 days from completion
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    });
+    // Get all user data
+    const userData = await this.collectUserData(userId);
 
-    const savedRequest =
-      await this.dataExportRequestRepository.save(exportRequest);
-
-    // Process export asynchronously (in a real app, this would be a queue job)
-    this.processExportRequest(savedRequest.id).catch((error) => {
-      this.logger.error(
-        `Failed to process export request ${savedRequest.id}:`,
-        error,
-      );
-    });
-
-    return savedRequest;
-  }
-
-  /**
-   * Process an export request and generate the data file
-   */
-  async processExportRequest(requestId: string): Promise<void> {
-    const request = await this.dataExportRequestRepository.findOne({
-      where: { id: requestId },
-    });
-
-    if (!request) {
-      this.logger.error(`Export request ${requestId} not found`);
-      return;
+    if (format === 'json') {
+      return {
+        exportedAt: new Date().toISOString(),
+        userId: userId,
+        data: userData,
+      };
     }
 
-    try {
-      // Update status to processing
-      await this.dataExportRequestRepository.update(requestId, {
-        status: ExportStatus.PROCESSING,
-      });
-
-      // Collect all user data
-      const exportData = await this.collectUserData(request.userId);
-
-      const key = `exports/${request.id}.json`;
-      await this.storageService.uploadPrivateExport(key, Buffer.from(JSON.stringify(exportData)));
-      await this.dataExportRequestRepository.update(requestId, {
-        status: ExportStatus.COMPLETED, completedAt: new Date(), fileUrl: key,
-      });
-
-      this.logger.log(`Export request ${requestId} completed successfully`);
-    } catch (error: unknown) {
-      this.logger.error(`Error processing export request ${requestId}:`, error);
-      const errorMessage =
-        error instanceof Error
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : 'Unknown error';
-      await this.dataExportRequestRepository.update(requestId, {
-        status: ExportStatus.FAILED,
-        errorMessage,
-      });
-    }
-  }
-
-  /**
-   * Get export request by ID
-   */
-  async getExportRequest(
-    userId: string,
-    requestId: string,
-  ): Promise<DataExportRequest | null> {
-    return this.dataExportRequestRepository.findOne({
-      where: { id: requestId, userId },
-    });
-  }
-
-  /**
-   * Get all export requests for a user
-   */
-  async getUserExportRequests(userId: string): Promise<DataExportRequest[]> {
-    return this.dataExportRequestRepository.find({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-    });
+    // For PDF format, we would need a PDF generation library
+    // For now, return JSON format with PDF indication
+    return {
+      exportedAt: new Date().toISOString(),
+      userId: userId,
+      format: 'json', // Would be 'pdf' with proper implementation
+      data: userData,
+      note: 'PDF export requires additional implementation with PDF generation library',
+    };
   }
 
   /**
    * Collect all user data from different entities
-   * Art. 20 RGPD - Complete data export
    */
   private async collectUserData(userId: string) {
     const [
@@ -242,22 +132,6 @@ export class DataExportService {
     ]);
 
     return {
-      exportMetadata: {
-        exportedAt: new Date().toISOString(),
-        userId: userId,
-        dataCategories: [
-          'user',
-          'profile',
-          'matches',
-          'messages',
-          'subscriptions',
-          'dailySelections',
-          'consents',
-          'pushTokens',
-          'notifications',
-          'reports',
-        ],
-      },
       user: this.sanitizeUserData(user),
       profile: this.sanitizeProfileData(profile),
       matches:
@@ -279,11 +153,32 @@ export class DataExportService {
     };
   }
 
-  // Sanitization methods
+  /**
+   * Complete user account deletion with anonymization
+   */
+  async deleteUserCompletely(userId: string): Promise<void> {
+    this.logger.log(`Starting complete deletion for user ${userId}`);
+
+    await this.userRepository.manager.transaction(async (manager) => {
+      // Remove reports that reference a chat being erased, including reports by third parties.
+      await manager.createQueryBuilder().delete().from('reports')
+        .where(`"chatId" IN (SELECT chats.id FROM chats JOIN matches ON chats."matchId" = matches.id
+          WHERE matches."user1Id" = :userId OR matches."user2Id" = :userId)
+          OR "messageId" IN (SELECT messages.id FROM messages JOIN chats ON messages."chatId" = chats.id
+          JOIN matches ON chats."matchId" = matches.id
+          WHERE matches."user1Id" = :userId OR matches."user2Id" = :userId)`, { userId }).execute();
+      await manager.createQueryBuilder().delete().from('support_tickets').where('"userId" = :userId', { userId }).execute();
+      await manager.createQueryBuilder().delete().from('feedback').where('"userId" = :userId', { userId }).execute();
+      await manager.delete(User, { id: userId });
+    });
+
+    this.logger.log(`Complete deletion finished for user ${userId}`);
+  }
+
+  // Sanitization methods to clean sensitive data for export
   private sanitizeUserData(user: User | null): Record<string, unknown> | null {
     if (!user) return null;
     // Remove sensitive fields before export
-
     const safeData: Record<string, unknown> = { ...user };
     delete safeData.passwordHash;
     delete safeData.emailVerificationToken;

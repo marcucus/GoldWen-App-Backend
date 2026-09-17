@@ -32,6 +32,7 @@ export class GdprController {
   // ========== Art. 20 RGPD - Right to Data Portability ==========
 
   @ApiOperation({
+    deprecated: true,
     summary: 'Request data export (Art. 20 RGPD - Data Portability)',
     description:
       'Request a complete export of all user data in JSON or PDF format. The request is processed asynchronously and can be retrieved using the request ID.',
@@ -81,6 +82,7 @@ export class GdprController {
   }
 
   @ApiOperation({
+    deprecated: true,
     summary: 'Get data export request status',
     description: 'Check the status of a data export request',
   })
@@ -110,7 +112,7 @@ export class GdprController {
         requestId: request.id,
         status: request.status,
         format: request.format,
-        fileUrl: request.fileUrl,
+        fileUrl: this.gdprService.getExportDownloadUrl(request),
         completedAt: request.completedAt,
         expiresAt: request.expiresAt,
         createdAt: request.createdAt,
@@ -119,6 +121,7 @@ export class GdprController {
   }
 
   @ApiOperation({
+    deprecated: true,
     summary: 'Get all export requests',
     description: 'Get all data export requests for the current user',
   })
@@ -137,7 +140,7 @@ export class GdprController {
         requestId: request.id,
         status: request.status,
         format: request.format,
-        fileUrl: request.fileUrl,
+        fileUrl: this.gdprService.getExportDownloadUrl(request),
         completedAt: request.completedAt,
         expiresAt: request.expiresAt,
         createdAt: request.createdAt,
@@ -148,6 +151,7 @@ export class GdprController {
   // ========== Art. 17 RGPD - Right to be Forgotten ==========
 
   @ApiOperation({
+    deprecated: true,
     summary: 'Request account deletion (Art. 17 RGPD - Right to be Forgotten)',
     description:
       'Request permanent deletion of user account and all associated data with complete anonymization. This process is irreversible.',
@@ -198,6 +202,7 @@ export class GdprController {
   }
 
   @ApiOperation({
+    deprecated: true,
     summary: 'Get account deletion request status',
     description: 'Check the status of an account deletion request',
   })
@@ -236,6 +241,7 @@ export class GdprController {
   // ========== Art. 7 RGPD - Consent Management ==========
 
   @ApiOperation({
+    deprecated: true,
     summary: 'Record user consent (Art. 7 RGPD - Consent)',
     description: 'Record or update user consent for data processing',
   })
@@ -269,6 +275,7 @@ export class GdprController {
   }
 
   @ApiOperation({
+    deprecated: true,
     summary: 'Get current consent status',
     description: 'Retrieve the current active consent for the user',
   })
@@ -298,6 +305,7 @@ export class GdprController {
   }
 
   @ApiOperation({
+    deprecated: true,
     summary: 'Get consent history',
     description:
       'Retrieve the complete consent history for the user (Art. 7 RGPD)',
@@ -327,6 +335,7 @@ export class GdprController {
   }
 
   @ApiOperation({
+    deprecated: true,
     summary: 'Revoke consent',
     description: 'Revoke the current active consent',
   })

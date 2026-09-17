@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual } from 'typeorm';
+import { AlertingService } from '../../common/monitoring/alerting.service';
 import { Report } from '../../database/entities/report.entity';
 import { User } from '../../database/entities/user.entity';
 import { Message } from '../../database/entities/message.entity';
@@ -27,6 +28,7 @@ export class ReportsService {
     @InjectRepository(Message)
     private messageRepository: Repository<Message>,
     private notificationsService: NotificationsService,
+    private alertingService: AlertingService,
   ) {}
 
   /**
@@ -325,25 +327,9 @@ export class ReportsService {
   /**
    * Send notification to admins about new report
    */
-  private sendReportNotification(report: Report): Promise<void> {
-    // This would typically send notifications to all admins/moderators
-    // For now, we'll just implement the basic structure
-    // In a real implementation, you'd query admin users and send notifications
-
-    this.logger.debug(
-      `New report received: ${report.type} from user ${report.reporterId}`,
-    );
-
-    // Implementation would depend on your notification system
-    // For example:
-    // await this.notificationsService.sendToAdmins({
-    //   type: NotificationType.SYSTEM,
-    //   title: 'New Report Submitted',
-    //   body: message,
-    //   data: { reportId: report.id }
-    // });
-
-    return Promise.resolve();
+  private async sendReportNotification(report: Report): Promise<void> {
+    await this.alertingService.sendAlert({ level: 'warning', title: 'New moderation report',
+      message: 'A new report requires review in the admin moderation queue.', metadata: { reportId: report.id } });
   }
 
   /**

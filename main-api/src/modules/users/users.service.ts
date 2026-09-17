@@ -1,3 +1,4 @@
+import * as pushTokenOperations from '../../common/services/push-token.operations';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -231,57 +232,17 @@ export class UsersService {
     };
   }
 
-  async registerPushToken(
-    userId: string,
-    registerPushTokenDto: RegisterPushTokenDto,
-  ): Promise<PushToken> {
-    const { token, platform, appVersion, deviceId } = registerPushTokenDto;
-
-    // Check if token already exists for this user
-    const existingToken = await this.pushTokenRepository.findOne({
-      where: { userId, token },
-    });
-
-    if (existingToken) {
-      // Update existing token
-      existingToken.platform = platform;
-      existingToken.appVersion = appVersion;
-      existingToken.deviceId = deviceId;
-      existingToken.isActive = true;
-      existingToken.lastUsedAt = new Date();
-      return this.pushTokenRepository.save(existingToken);
-    }
-
-    // Create new push token
-    const pushToken = this.pushTokenRepository.create({
-      userId,
-      token,
-      platform,
-      appVersion,
-      deviceId,
-      isActive: true,
-      lastUsedAt: new Date(),
-    });
-
-    return this.pushTokenRepository.save(pushToken);
+  async registerPushToken(userId: string, dto: RegisterPushTokenDto): Promise<PushToken> {
+    return pushTokenOperations.registerPushToken(this.pushTokenRepository, userId, dto.token, dto.platform, dto.appVersion, dto.deviceId);
   }
-
   async deletePushToken(userId: string, token: string): Promise<void> {
-    const pushToken = await this.pushTokenRepository.findOne({
-      where: { userId, token },
-    });
-
-    if (!pushToken) {
-      throw new NotFoundException('Push token not found');
-    }
-
-    await this.pushTokenRepository.remove(pushToken);
+    return pushTokenOperations.deletePushToken(this.pushTokenRepository, userId, token);
   }
 
   async getUserPushTokens(userId: string): Promise<PushToken[]> {
     return this.pushTokenRepository.find({
       where: { userId, isActive: true },
-      order: { createdAt: 'DESC' },
+      order: { lastUsedAt: 'DESC' },
     });
   }
 

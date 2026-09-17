@@ -1,3 +1,4 @@
+import { EmailService } from '../../modules/email/email.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { SentryService } from './sentry.service';
@@ -38,6 +39,7 @@ describe('Monitoring Services', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        { provide: EmailService, useValue: { sendOperationalEmail: jest.fn() } },
         SentryService,
         AlertingService,
         DatadogService,

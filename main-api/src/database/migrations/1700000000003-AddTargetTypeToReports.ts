@@ -4,6 +4,7 @@ export class AddTargetTypeToReports1700000000003 implements MigrationInterface {
   name = 'AddTargetTypeToReports1700000000003';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    if (await queryRunner.hasColumn('reports', 'targetType')) return;
     // Add targetType column to reports table
     await queryRunner.addColumn(
       'reports',

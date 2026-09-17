@@ -157,7 +157,7 @@ export class MatchingService {
       }));
 
       const maxChoicesAllowed = await this.getMaxChoicesPerDay(userId);
-      const selectionSize = Math.min(5, maxChoicesAllowed); // Max 5 per day
+      const selectionSize = 5; // Presentation size is independent of the choice quota.
 
       const selectionResult =
         await this.matchingIntegrationService.generateDailySelection({
@@ -630,12 +630,6 @@ export class MatchingService {
     return Promise.resolve(
       commonQuestions > 0 ? Math.round(totalScore / commonQuestions) : 0,
     );
-  }
-
-  private getSelectionSize(): Promise<number> {
-    // Default size is 5 profiles for free users
-    // Premium users get 5 profiles but can choose from more
-    return Promise.resolve(5);
   }
 
   private async getMaxChoicesPerDay(userId: string): Promise<number> {

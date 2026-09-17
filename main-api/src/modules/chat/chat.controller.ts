@@ -62,6 +62,12 @@ export class ChatController {
     return this.chatService.getChatByMatchId(matchId, (req.user as User).id);
   }
 
+  @Get(':chatId')
+  @ApiOperation({ summary: 'Get an active conversation owned by the current user' })
+  async getChat(@Request() req: ExpressRequest, @Param('chatId') chatId: string) {
+    return this.chatService.getChatById(chatId, (req.user as User).id);
+  }
+
   @Get(':chatId/messages')
   @ApiOperation({ summary: 'Get chat messages' })
   @ApiResponse({ status: 200, description: 'Messages retrieved successfully' })

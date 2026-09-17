@@ -35,6 +35,7 @@ import {
   UpdatePromptAnswersDto,
   UpdateProfileStatusDto,
   UpdatePhotoOrderDto,
+  ReorderMediaDto,
 } from './dto/profiles.dto';
 
 @ApiTags('profiles')
@@ -161,7 +162,7 @@ export class ProfilesController {
     return this.profilesService.uploadPhotos((req.user as User).id, files);
   }
 
-  @Delete('me/photos/:photoId')
+  @Delete(['me/photos/:photoId', 'me/media/:photoId'])
   @SkipProfileCompletion()
   @ApiOperation({ summary: 'Delete a profile photo' })
   @ApiResponse({ status: 200, description: 'Photo deleted successfully' })
@@ -187,7 +188,14 @@ export class ProfilesController {
     return this.profilesService.setPrimaryPhoto((req.user as User).id, photoId);
   }
 
-  @Put('me/photos/:photoId/order')
+  @Put('me/media/order')
+  @SkipProfileCompletion()
+  @ApiOperation({ summary: 'Reorder all owned photos atomically' })
+  async reorderMedia(@Request() req: ExpressRequest, @Body() dto: ReorderMediaDto) {
+    return this.profilesService.reorderMedia((req.user as User).id, dto.photoIds);
+  }
+
+  @Put(['me/photos/:photoId/order', 'me/media/:photoId/order'])
   @SkipProfileCompletion()
   @ApiOperation({ summary: 'Update photo order for drag & drop' })
   @ApiResponse({

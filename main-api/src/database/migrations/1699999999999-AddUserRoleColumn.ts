@@ -4,6 +4,7 @@ export class AddUserRoleColumn1699999999999 implements MigrationInterface {
   name = 'AddUserRoleColumn1699999999999';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    if (await queryRunner.hasColumn('users', 'role')) return;
     // Add role column to users table
     await queryRunner.addColumn(
       'users',

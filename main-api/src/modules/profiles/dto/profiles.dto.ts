@@ -4,6 +4,7 @@ import {
   IsNumber,
   IsBoolean,
   IsArray,
+  ArrayUnique,
   ValidateNested,
   IsUUID,
   IsUrl,
@@ -410,4 +411,9 @@ export class UpdatePhotoOrderDto {
   @Min(1)
   @Max(6)
   newOrder: number;
+}
+
+export class ReorderMediaDto {
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(6) @ArrayUnique() @IsUUID('all', { each: true })
+  photoIds: string[];
 }
