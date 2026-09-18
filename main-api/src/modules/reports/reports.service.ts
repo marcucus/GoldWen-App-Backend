@@ -313,6 +313,27 @@ export class ReportsService {
   ): Promise<Omit<Report, 'evidence'> & { evidence: unknown }> {
     const report = await this.reportRepository.findOne({
       where: { id: reportId },
+      select: {
+        messageId: true,
+        chatId: true,
+        reviewedById: true,
+        retentionHoldUntil: true,
+        retainedEvidence: true,
+        id: true,
+        reporterId: true,
+        reportedUserId: true,
+        targetType: true,
+        type: true,
+        status: true,
+        reason: true,
+        description: true,
+        evidence: true,
+        reviewedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        reviewNotes: true,
+        resolution: true,
+      },
       relations: ['reporter', 'reportedUser', 'reviewedBy'],
     });
 

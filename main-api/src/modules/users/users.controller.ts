@@ -283,12 +283,12 @@ export class UsersController {
       throw new UnauthorizedException('Invalid password');
     }
 
-    // Use GDPR service for complete deletion with anonymization
-    await this.gdprService.deleteUserCompletely(user.id);
+    // Hide immediately and use the retryable erasure workflow for stored files.
+    await this.gdprService.requestAccountDeletion(user.id);
 
     return {
       success: true,
-      message: 'Account deleted successfully',
+      message: 'Account deletion requested successfully',
     };
   }
 

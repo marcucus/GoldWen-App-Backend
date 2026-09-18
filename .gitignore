@@ -107,3 +107,7 @@ coverage/
 # Temporary files
 tmp/
 temp/
+# Version the current retention policy without adding historical docs.
+!/docs/
+/docs/*
+!/docs/DATA_RETENTION_POLICY.md

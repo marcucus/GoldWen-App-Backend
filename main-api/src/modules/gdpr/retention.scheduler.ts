@@ -14,6 +14,8 @@ import {
 } from '../../database/entities/support-ticket.entity';
 import { Subscription } from '../../database/entities/subscription.entity';
 import { NotificationsService } from '../notifications/notifications.service';
+import { UserDataService } from './user-data.service';
+import { EmailService } from '../email/email.service';
 import { DataExportService } from './data-export.service';
 import {
   INACTIVE_ACCOUNT_MONTHS,
@@ -33,7 +35,11 @@ function daysAgo(n: number): Date {
 
 function monthsAgo(n: number): Date {
   const d = new Date();
+  const day = d.getDate();
+  d.setDate(1);
   d.setMonth(d.getMonth() - n);
+  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(day, lastDay));
   return d;
 }
 
@@ -78,6 +84,8 @@ export class RetentionScheduler {
     private readonly supportTicketRepository: Repository<SupportTicket>,
     @InjectRepository(Subscription)
     private readonly subscriptionRepository: Repository<Subscription>,
+    private readonly userDataService: UserDataService,
+    private readonly emailService: EmailService,
     private readonly notificationsService: NotificationsService,
     private readonly dataExportService: DataExportService,
     private readonly logger: CustomLoggerService,
@@ -125,18 +133,24 @@ export class RetentionScheduler {
       const usersToWarn = await this.userRepository
         .createQueryBuilder('user')
         .where(
-          'COALESCE(user.lastActiveAt, user.lastLoginAt, user.createdAt) < :warnCutoff',
+          'GREATEST(user.lastActiveAt, user.lastLoginAt, user.createdAt) < :warnCutoff',
           { warnCutoff },
         )
         .andWhere(
-          '(user.inactivityWarningSentAt IS NULL OR user.inactivityWarningSentAt < COALESCE(user.lastActiveAt, user.lastLoginAt, user.createdAt))',
+          '(user.inactivityWarningSentAt IS NULL OR user.inactivityWarningSentAt < GREATEST(user.lastActiveAt, user.lastLoginAt, user.createdAt))',
         )
-        .select(['user.id'])
+        .select(['user.id', 'user.email'])
         .getMany();
 
       let warned = 0;
       for (const user of usersToWarn) {
         try {
+          await this.emailService.sendOperationalEmail(
+            user.email,
+            'GoldWen : suppression prochaine de votre compte inactif',
+            'Votre compte est inactif. Il sera supprimé dans au moins 30 jours si vous ne revenez pas dans GoldWen. Une connexion annule cet avertissement. La suppression du compte ne résilie pas automatiquement un abonnement Apple ou Google.',
+            true,
+          );
           await this.notificationsService.sendAccountInactivityWarningNotification(
             user.id,
             INACTIVE_ACCOUNT_WARNING_DAYS_BEFORE,
@@ -177,11 +191,15 @@ export class RetentionScheduler {
       const usersToDelete = await this.userRepository
         .createQueryBuilder('user')
         .where('user.inactivityWarningSentAt IS NOT NULL')
+        .andWhere(
+          'GREATEST(user.lastActiveAt, user.lastLoginAt, user.createdAt) <= :inactivityCutoff',
+          { inactivityCutoff: monthsAgo(INACTIVE_ACCOUNT_MONTHS) },
+        )
         .andWhere('user.inactivityWarningSentAt <= :deletionCutoff', {
           deletionCutoff,
         })
         .andWhere(
-          'user.inactivityWarningSentAt >= COALESCE(user.lastActiveAt, user.lastLoginAt, user.createdAt)',
+          'user.inactivityWarningSentAt >= GREATEST(user.lastActiveAt, user.lastLoginAt, user.createdAt)',
         )
         .select(['user.id'])
         .getMany();
@@ -189,7 +207,10 @@ export class RetentionScheduler {
       let deleted = 0;
       for (const user of usersToDelete) {
         try {
-          await this.userRepository.delete({ id: user.id });
+          await this.userDataService.deleteUserCompletely(user.id, {
+            cutoff: monthsAgo(INACTIVE_ACCOUNT_MONTHS),
+            warningCutoff: deletionCutoff,
+          });
           deleted++;
         } catch (error: unknown) {
           this.logger.error(
@@ -272,7 +293,11 @@ export class RetentionScheduler {
         .where('status IN (:...closedStatuses)', {
           closedStatuses: [ReportStatus.RESOLVED, ReportStatus.DISMISSED],
         })
-        .andWhere('"updatedAt" < :cutoff', { cutoff })
+        .andWhere('COALESCE("reviewedAt", "updatedAt") < :cutoff', { cutoff })
+        .andWhere(
+          '("retentionHoldUntil" IS NULL OR "retentionHoldUntil" <= :now)',
+          { now: new Date() },
+        )
         .execute();
       this.logger.info('Purged closed reports', {
         jobId,

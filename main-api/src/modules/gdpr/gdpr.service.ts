@@ -5,7 +5,9 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In, LessThan } from 'typeorm';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { UserStatus } from '../../common/enums';
 import {
   AccountDeletion,
   DeletionStatus,
@@ -90,6 +92,8 @@ export class GdprService {
     );
     if (!result.affected)
       throw new BadRequestException('Deletion processing has already started');
+    await this.userRepository.update(userId, { status: UserStatus.ACTIVE });
+    await this.profileRepository.update({ userId }, { isVisible: true });
   }
 
   /**
@@ -156,6 +160,9 @@ export class GdprService {
     const savedRequest =
       await this.accountDeletionRepository.save(deletionRequest);
 
+    await this.profileRepository.update({ userId }, { isVisible: false });
+    await this.userRepository.update(userId, { status: UserStatus.DELETED });
+
     // Process deletion asynchronously
     this.processDeletionRequest(savedRequest.id).catch((error) => {
       this.logger.error(
@@ -184,7 +191,10 @@ export class GdprService {
     try {
       // Update status to processing
       const claimed = await this.accountDeletionRepository.update(
-        { id: requestId, status: DeletionStatus.PENDING },
+        {
+          id: requestId,
+          status: In([DeletionStatus.PENDING, DeletionStatus.FAILED]),
+        },
         { status: DeletionStatus.PROCESSING },
       );
       if (!claimed.affected) return;
@@ -193,7 +203,10 @@ export class GdprService {
       await this.accountDeletionRepository.update(requestId, {
         status: DeletionStatus.COMPLETED,
         completedAt: new Date(),
-        userEmail: undefined,
+        userEmail: () => 'NULL',
+        reason: () => 'NULL',
+        metadata: () => 'NULL',
+        errorMessage: () => 'NULL',
       });
 
       this.logger.log(`Account deletion ${requestId} completed successfully`);
@@ -213,6 +226,28 @@ export class GdprService {
         errorMessage,
       });
     }
+  }
+
+  @Cron(CronExpression.EVERY_HOUR, { name: 'retry-account-deletions' })
+  async retryAccountDeletions(): Promise<void> {
+    await this.accountDeletionRepository.update(
+      {
+        status: DeletionStatus.PROCESSING,
+        updatedAt: LessThan(new Date(Date.now() - 3600000)),
+      },
+      { status: DeletionStatus.FAILED },
+    );
+    await this.accountDeletionRepository.delete({
+      status: In([DeletionStatus.COMPLETED, DeletionStatus.CANCELLED]),
+      updatedAt: LessThan(new Date(Date.now() - 30 * 86400000)),
+    });
+    const requests = await this.accountDeletionRepository.find({
+      where: { status: In([DeletionStatus.PENDING, DeletionStatus.FAILED]) },
+      take: 100,
+      order: { requestedAt: 'ASC' },
+    });
+    for (const request of requests)
+      await this.processDeletionRequest(request.id);
   }
 
   /**

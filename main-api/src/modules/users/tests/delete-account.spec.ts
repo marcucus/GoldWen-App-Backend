@@ -44,7 +44,7 @@ describe('UsersController - Delete Account', () => {
   };
 
   const mockGdprService = {
-    deleteUserCompletely: jest.fn(),
+    requestAccountDeletion: jest.fn(),
     exportUserData: jest.fn(),
   };
 
@@ -108,7 +108,7 @@ describe('UsersController - Delete Account', () => {
   });
 
   describe('DELETE /users/me', () => {
-    it('should successfully delete account with valid password and confirmation', async () => {
+    it('should request retryable account deletion with valid password and confirmation', async () => {
       const deleteAccountDto: DeleteAccountDto = {
         password: 'correctPassword123',
         confirmationText: 'DELETE',
@@ -125,7 +125,7 @@ describe('UsersController - Delete Account', () => {
       jest.spyOn(PasswordUtil, 'compare').mockResolvedValue(true);
 
       // Mock GDPR service
-      mockGdprService.deleteUserCompletely.mockResolvedValue(undefined);
+      mockGdprService.requestAccountDeletion.mockResolvedValue(undefined);
 
       const result = await controller.deleteAccount(req, deleteAccountDto);
 
@@ -135,12 +135,12 @@ describe('UsersController - Delete Account', () => {
         deleteAccountDto.password,
         mockUser.passwordHash,
       );
-      expect(mockGdprService.deleteUserCompletely).toHaveBeenCalledWith(
+      expect(mockGdprService.requestAccountDeletion).toHaveBeenCalledWith(
         mockUser.id,
       );
       expect(result).toEqual({
         success: true,
-        message: 'Account deleted successfully',
+        message: 'Account deletion requested successfully',
       });
     });
 
@@ -164,7 +164,7 @@ describe('UsersController - Delete Account', () => {
 
       // Should not call any service methods
       expect(mockUsersService.findById).not.toHaveBeenCalled();
-      expect(mockGdprService.deleteUserCompletely).not.toHaveBeenCalled();
+      expect(mockGdprService.requestAccountDeletion).not.toHaveBeenCalled();
     });
 
     it('should throw BadRequestException if confirmation text is empty', async () => {
@@ -182,7 +182,7 @@ describe('UsersController - Delete Account', () => {
       ).rejects.toThrow(BadRequestException);
 
       expect(mockUsersService.findById).not.toHaveBeenCalled();
-      expect(mockGdprService.deleteUserCompletely).not.toHaveBeenCalled();
+      expect(mockGdprService.requestAccountDeletion).not.toHaveBeenCalled();
     });
 
     it('should throw BadRequestException if confirmation text is different', async () => {
@@ -200,7 +200,7 @@ describe('UsersController - Delete Account', () => {
       ).rejects.toThrow(BadRequestException);
 
       expect(mockUsersService.findById).not.toHaveBeenCalled();
-      expect(mockGdprService.deleteUserCompletely).not.toHaveBeenCalled();
+      expect(mockGdprService.requestAccountDeletion).not.toHaveBeenCalled();
     });
 
     it('should throw UnauthorizedException if password is incorrect', async () => {
@@ -235,7 +235,7 @@ describe('UsersController - Delete Account', () => {
         mockUser.passwordHash,
       );
       // Should not proceed to deletion
-      expect(mockGdprService.deleteUserCompletely).not.toHaveBeenCalled();
+      expect(mockGdprService.requestAccountDeletion).not.toHaveBeenCalled();
     });
 
     it('should throw UnauthorizedException if password is empty', async () => {
@@ -256,7 +256,7 @@ describe('UsersController - Delete Account', () => {
         controller.deleteAccount(req, deleteAccountDto),
       ).rejects.toThrow(UnauthorizedException);
 
-      expect(mockGdprService.deleteUserCompletely).not.toHaveBeenCalled();
+      expect(mockGdprService.requestAccountDeletion).not.toHaveBeenCalled();
     });
 
     it('should verify password before checking confirmation text order', async () => {
@@ -295,7 +295,7 @@ describe('UsersController - Delete Account', () => {
         controller.deleteAccount(req, deleteAccountDto),
       ).rejects.toThrow('User not found');
 
-      expect(mockGdprService.deleteUserCompletely).not.toHaveBeenCalled();
+      expect(mockGdprService.requestAccountDeletion).not.toHaveBeenCalled();
     });
 
     it('should handle GDPR service deletion errors gracefully', async () => {
@@ -313,7 +313,7 @@ describe('UsersController - Delete Account', () => {
       jest.spyOn(PasswordUtil, 'compare').mockResolvedValue(true);
 
       // Mock GDPR service to throw error
-      mockGdprService.deleteUserCompletely.mockRejectedValue(
+      mockGdprService.requestAccountDeletion.mockRejectedValue(
         new Error('Database deletion error'),
       );
 
@@ -322,7 +322,7 @@ describe('UsersController - Delete Account', () => {
       ).rejects.toThrow('Database deletion error');
 
       expect(mockUsersService.findById).toHaveBeenCalled();
-      expect(mockGdprService.deleteUserCompletely).toHaveBeenCalledWith(
+      expect(mockGdprService.requestAccountDeletion).toHaveBeenCalledWith(
         mockUser.id,
       );
     });

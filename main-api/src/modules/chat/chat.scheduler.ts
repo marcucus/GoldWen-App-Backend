@@ -273,7 +273,7 @@ export class ChatScheduler {
    * puis supprimés définitivement dans les MESSAGE_DELETION_GRACE_HOURS
    * heures suivant l'expiration du chat (24h de grâce).
    */
-  @Cron(CronExpression.EVERY_HOUR, {
+  @Cron(CronExpression.EVERY_5_MINUTES, {
     name: 'cleanup-old-chats',
   })
   async cleanupOldChats() {
@@ -288,16 +288,15 @@ export class ChatScheduler {
     try {
       // Delete chats that have been expired for more than the grace period
       const deletionCutoff = new Date();
-      deletionCutoff.setHours(
-        deletionCutoff.getHours() - MESSAGE_DELETION_GRACE_HOURS,
+      deletionCutoff.setTime(
+        Date.now() - (MESSAGE_DELETION_GRACE_HOURS * 60 - 5) * 60 * 1000,
       );
 
       // First, get IDs of chats to delete
       const chatsToDelete = await this.chatRepository
         .createQueryBuilder('chat')
         .select('chat.id')
-        .where('chat.status = :status', { status: ChatStatus.EXPIRED })
-        .andWhere('chat.updatedAt < :date', { date: deletionCutoff })
+        .where('chat.expiresAt <= :date', { date: deletionCutoff })
         .getMany();
 
       const chatIds = chatsToDelete.map((chat) => chat.id);
@@ -307,6 +306,13 @@ export class ChatScheduler {
 
       // Delete messages if there are chats to delete
       if (chatIds.length > 0) {
+        await this.chatRepository.manager.query(
+          `UPDATE reports r
+          SET "retainedEvidence" = COALESCE(r."retainedEvidence", jsonb_build_object(
+            'messageId', m.id, 'content', m.content, 'sentAt', m."createdAt"))
+          FROM messages m WHERE r."messageId" = m.id AND m."chatId" = ANY($1::uuid[])`,
+          [chatIds],
+        );
         const messagesResult = await this.messageRepository
           .createQueryBuilder()
           .delete()

@@ -1,3 +1,5 @@
+import { UserDataService } from './user-data.service';
+import { EmailService } from '../email/email.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
@@ -47,6 +49,10 @@ describe('RetentionScheduler', () => {
   const mockSubscriptionRepository = {
     createQueryBuilder: jest.fn(),
   };
+  const mockUserDataService = { deleteUserCompletely: jest.fn() };
+  const mockEmailService = {
+    sendOperationalEmail: jest.fn().mockResolvedValue(undefined),
+  };
   const mockNotificationsService = {
     sendAccountInactivityWarningNotification: jest.fn(),
   };
@@ -64,6 +70,8 @@ describe('RetentionScheduler', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RetentionScheduler,
+        { provide: UserDataService, useValue: mockUserDataService },
+        { provide: EmailService, useValue: mockEmailService },
         { provide: getRepositoryToken(User), useValue: mockUserRepository },
         {
           provide: getRepositoryToken(Notification),
@@ -144,7 +152,10 @@ describe('RetentionScheduler', () => {
 
   describe('warnInactiveAccounts (via runRetention)', () => {
     it('sends a warning and stamps inactivityWarningSentAt for each user due', async () => {
-      const usersToWarn = [{ id: 'user-1' }, { id: 'user-2' }];
+      const usersToWarn = [
+        { id: 'user-1', email: 'a@example.test' },
+        { id: 'user-2', email: 'b@example.test' },
+      ];
       mockUserRepository.createQueryBuilder.mockReturnValueOnce(
         makeQueryBuilder({ getMany: jest.fn().mockResolvedValue(usersToWarn) }),
       );
@@ -169,8 +180,29 @@ describe('RetentionScheduler', () => {
       });
     });
 
+    it('never stamps a warning when operational email delivery fails', async () => {
+      mockUserRepository.createQueryBuilder.mockReturnValueOnce(
+        makeQueryBuilder({
+          getMany: jest
+            .fn()
+            .mockResolvedValue([{ id: 'user-1', email: 'a@example.test' }]),
+        }),
+      );
+      mockEmailService.sendOperationalEmail.mockRejectedValueOnce(
+        new Error('SMTP unavailable'),
+      );
+      await scheduler.runRetention();
+      expect(mockUserRepository.update).not.toHaveBeenCalled();
+      expect(
+        mockNotificationsService.sendAccountInactivityWarningNotification,
+      ).not.toHaveBeenCalled();
+    });
+
     it('does not stop other warnings when sending one notification fails', async () => {
-      const usersToWarn = [{ id: 'user-1' }, { id: 'user-2' }];
+      const usersToWarn = [
+        { id: 'user-1', email: 'a@example.test' },
+        { id: 'user-2', email: 'b@example.test' },
+      ];
       mockUserRepository.createQueryBuilder.mockReturnValueOnce(
         makeQueryBuilder({ getMany: jest.fn().mockResolvedValue(usersToWarn) }),
       );
@@ -213,9 +245,10 @@ describe('RetentionScheduler', () => {
 
       await scheduler.runRetention();
 
-      expect(mockUserRepository.delete).toHaveBeenCalledWith({
-        id: 'user-3',
-      });
+      expect(mockUserDataService.deleteUserCompletely).toHaveBeenCalledWith(
+        'user-3',
+        { cutoff: expect.any(Date), warningCutoff: expect.any(Date) },
+      );
     });
   });
 

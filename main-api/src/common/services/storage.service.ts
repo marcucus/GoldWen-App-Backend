@@ -150,14 +150,17 @@ export class StorageService {
     return url;
   }
 
-  async deleteFile(fileUrl: string): Promise<void> {
+  async deleteFile(fileUrl: string, strict = false): Promise<void> {
     if (!this.isS3Configured) {
-      this.deleteLocal(fileUrl);
+      this.deleteLocal(fileUrl, strict);
       return;
     }
 
     const key = this.extractKeyFromUrl(fileUrl);
-    if (!key) return;
+    if (!key) {
+      if (strict) throw new Error('Invalid file URL');
+      return;
+    }
 
     try {
       await this.s3Client.send(
@@ -166,10 +169,11 @@ export class StorageService {
       this.logger.log(`Fichier supprimé de S3: ${key}`);
     } catch (error: unknown) {
       this.logger.error(`Erreur suppression S3 ${key}:`, error);
+      if (strict) throw error;
     }
   }
 
-  private deleteLocal(fileUrl: string): void {
+  private deleteLocal(fileUrl: string, strict = false): void {
     try {
       const url = new URL(fileUrl);
       const uploadsRoot = this.localUploadDir;
@@ -191,6 +195,7 @@ export class StorageService {
         this.logger.warn(
           `Refus de suppression hors du dossier uploads: ${fileUrl}`,
         );
+        if (strict) throw new Error('File path outside uploads');
         return;
       }
 
@@ -198,8 +203,8 @@ export class StorageService {
         fs.unlinkSync(resolved);
         this.logger.log(`Fichier local supprimé: ${resolved}`);
       }
-    } catch {
-      // ignore
+    } catch (error) {
+      if (strict) throw error;
     }
   }
 

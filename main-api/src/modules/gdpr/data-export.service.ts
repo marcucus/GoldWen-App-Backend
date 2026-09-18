@@ -14,6 +14,7 @@ import {
 } from '../../database/entities/data-export-request.entity';
 import { ConfigService } from '@nestjs/config';
 import { createHmac, timingSafeEqual } from 'crypto';
+import { EXPORT_FILE_RETENTION_DAYS } from '../../common/constants/retention.constants';
 import { StorageService } from '../../common/services/storage.service';
 import { User } from '../../database/entities/user.entity';
 import { Profile } from '../../database/entities/profile.entity';
@@ -181,6 +182,7 @@ export class DataExportService {
         status: ExportStatus.COMPLETED,
         completedAt: new Date(),
         fileUrl: key,
+        expiresAt: new Date(Date.now() + EXPORT_FILE_RETENTION_DAYS * 86400000),
       });
 
       this.logger.log(`Export request ${requestId} completed successfully`);

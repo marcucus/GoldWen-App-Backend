@@ -56,6 +56,20 @@ export class LegalService {
    * Create a default privacy policy if none exists
    * @returns Created PrivacyPolicy entity
    */
+  async publishRetentionPolicy(): Promise<PrivacyPolicy> {
+    const existing = await this.privacyPolicyRepository.findOne({
+      where: { version: '1.1.0' },
+    });
+    if (existing) {
+      await this.privacyPolicyRepository.update(existing.id, {
+        isActive: true,
+        effectiveDate: new Date(),
+      });
+      return { ...existing, isActive: true };
+    }
+    return this.createDefaultPrivacyPolicy();
+  }
+
   private async createDefaultPrivacyPolicy(): Promise<PrivacyPolicy> {
     const defaultPolicy = this.privacyPolicyRepository.create({
       version: '1.1.0',

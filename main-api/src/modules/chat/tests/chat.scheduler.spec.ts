@@ -13,6 +13,7 @@ describe('ChatScheduler', () => {
   let scheduler: ChatScheduler;
 
   const mockChatRepository = {
+    manager: { query: jest.fn().mockResolvedValue([]) },
     find: jest.fn(),
     save: jest.fn(),
     createQueryBuilder: jest.fn(() => ({

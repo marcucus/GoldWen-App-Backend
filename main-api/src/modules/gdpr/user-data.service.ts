@@ -11,6 +11,7 @@ import { UserConsent } from '../../database/entities/user-consent.entity';
 import { PushToken } from '../../database/entities/push-token.entity';
 import { Notification } from '../../database/entities/notification.entity';
 import { Report } from '../../database/entities/report.entity';
+import { StorageService } from '../../common/services/storage.service';
 
 @Injectable()
 export class UserDataService {
@@ -37,6 +38,7 @@ export class UserDataService {
     private notificationRepository: Repository<Notification>,
     @InjectRepository(Report)
     private reportRepository: Repository<Report>,
+    private readonly storageService: StorageService,
   ) {}
 
   /**
@@ -150,24 +152,63 @@ export class UserDataService {
   /**
    * Complete user account deletion with anonymization
    */
-  async deleteUserCompletely(userId: string): Promise<void> {
+  async deleteUserCompletely(
+    userId: string,
+    inactivity?: { cutoff: Date; warningCutoff: Date },
+  ): Promise<void> {
     this.logger.log(`Starting complete deletion for user ${userId}`);
 
     await this.userRepository.manager.transaction(async (manager) => {
-      // Remove reports that reference a chat being erased, including reports by third parties.
-      await manager
-        .createQueryBuilder()
-        .delete()
-        .from('reports')
-        .where(
-          `"chatId" IN (SELECT chats.id FROM chats JOIN matches ON chats."matchId" = matches.id
-          WHERE matches."user1Id" = :userId OR matches."user2Id" = :userId)
-          OR "messageId" IN (SELECT messages.id FROM messages JOIN chats ON messages."chatId" = chats.id
-          JOIN matches ON chats."matchId" = matches.id
-          WHERE matches."user1Id" = :userId OR matches."user2Id" = :userId)`,
-          { userId },
+      if (inactivity) {
+        const user = await manager.findOne(User, {
+          where: { id: userId },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!user) return;
+        const activity = Math.max(
+          user.createdAt?.getTime() ?? Date.now(),
+          user.lastActiveAt?.getTime() ?? 0,
+          user.lastLoginAt?.getTime() ?? 0,
+        );
+        const warning = user.inactivityWarningSentAt?.getTime();
+        if (
+          !warning ||
+          activity > inactivity.cutoff.getTime() ||
+          warning > inactivity.warningCutoff.getTime() ||
+          activity > warning
         )
-        .execute();
+          return;
+      }
+      // Preserve only reported messages as restricted moderation evidence.
+      await manager.query(
+        `UPDATE reports r SET "retainedEvidence" = COALESCE(
+        r."retainedEvidence", jsonb_build_object('messageId', m.id,
+        'content', m.content, 'sentAt', m."createdAt"))
+        FROM messages m JOIN chats c ON m."chatId" = c.id
+        JOIN matches mt ON c."matchId" = mt.id
+        WHERE r."messageId" = m.id AND (mt."user1Id" = $1 OR mt."user2Id" = $1)`,
+        [userId],
+      );
+      const photos: { url: string }[] = await manager.query(
+        'SELECT ph.url FROM photos ph JOIN profiles p ON ph."profileId" = p.id WHERE p."userId" = $1',
+        [userId],
+      );
+      const exports: { fileUrl: string }[] = await manager.query(
+        'SELECT "fileUrl" FROM data_export_requests WHERE "userId" = $1 AND "fileUrl" IS NOT NULL',
+        [userId],
+      );
+      // A storage failure rolls back the database deletion, allowing a retry.
+      for (const photo of photos)
+        await this.storageService.deleteFile(photo.url, true);
+      for (const file of exports)
+        await this.storageService.deletePrivateExport(file.fileUrl);
+      await manager.query(
+        `UPDATE daily_selections SET
+        "selectedProfileIds" = ARRAY(SELECT unnest(array_remove("selectedProfileIds", $1::uuid)) EXCEPT SELECT id FROM profiles WHERE "userId" = $1),
+        "chosenProfileIds" = ARRAY(SELECT unnest(array_remove("chosenProfileIds", $1::uuid)) EXCEPT SELECT id FROM profiles WHERE "userId" = $1)
+        WHERE "userId" <> $1`,
+        [userId],
+      );
       // Les tickets support ne sont plus supprimés explicitement ici : la
       // FK support_tickets.userId est passée à onDelete: 'SET NULL' (voir
       // migration AddSetNullRetentionForeignKeys) pour que le ticket
@@ -181,7 +222,27 @@ export class UserDataService {
         .from('feedback')
         .where('"userId" = :userId', { userId })
         .execute();
+      // Keep only actual payment references, never a RevenueCat profile or arbitrary metadata.
+      await manager.query(
+        `DELETE FROM subscriptions WHERE "userId" = $1
+        AND "originalTransactionId" IS NULL AND (price IS NULL OR price = 0)`,
+        [userId],
+      );
+      await manager.query(
+        `UPDATE subscriptions SET "revenueCatCustomerId" = NULL,
+        metadata = NULL WHERE "userId" = $1`,
+        [userId],
+      );
       await manager.delete(User, { id: userId });
+      // Minimal deletion ledger for replay after restoring a backup. Voluntary
+      // requests already have a ledger entry; inactivity/direct erasure may not.
+      await manager.query(
+        `INSERT INTO account_deletions ("userId", status, "requestedAt", "completedAt")
+        SELECT $1::uuid, 'completed', NOW(), NOW() WHERE NOT EXISTS
+        (SELECT 1 FROM account_deletions WHERE "userId" = $1
+          AND status IN ('pending', 'processing', 'completed'))`,
+        [userId],
+      );
     });
 
     this.logger.log(`Complete deletion finished for user ${userId}`);

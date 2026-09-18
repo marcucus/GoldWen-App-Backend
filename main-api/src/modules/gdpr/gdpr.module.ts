@@ -22,6 +22,7 @@ import { Report } from '../../database/entities/report.entity';
 import { SupportTicket } from '../../database/entities/support-ticket.entity';
 import { DataExportRequest } from '../../database/entities/data-export-request.entity';
 import { AccountDeletion } from '../../database/entities/account-deletion.entity';
+import { EmailModule } from '../email/email.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
@@ -42,6 +43,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
       AccountDeletion,
     ]),
     NotificationsModule,
+    EmailModule,
   ],
   controllers: [GdprController, ExportDownloadController],
   providers: [

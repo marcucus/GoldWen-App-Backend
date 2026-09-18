@@ -69,6 +69,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('User account is not active');
     }
 
+    await this.userRepository
+      .createQueryBuilder()
+      .update(User)
+      .set({ lastActiveAt: new Date() })
+      .where('id = :id', { id: user.id })
+      .andWhere('("lastActiveAt" IS NULL OR "lastActiveAt" < :cutoff)', {
+        cutoff: new Date(Date.now() - 60 * 60 * 1000),
+      })
+      .execute();
     return user;
   }
 }

@@ -113,6 +113,7 @@ export class EmailService {
     to: string,
     subject: string,
     message: string,
+    requireDelivery = false,
   ): Promise<void> {
     const escaped = message.replace(
       /[&<>"']/g,
@@ -125,13 +126,14 @@ export class EmailService {
           "'": '&#39;',
         })[character]!,
     );
-    await this.sendEmail(to, subject, `<p>${escaped}</p>`);
+    await this.sendEmail(to, subject, `<p>${escaped}</p>`, requireDelivery);
   }
 
   private async sendEmail(
     to: string,
     subject: string,
     html: string,
+    requireDelivery = false,
   ): Promise<void> {
     const from =
       this.configService.get<string>('email.from') || 'noreply@goldwen.com';
@@ -147,6 +149,8 @@ export class EmailService {
       await sgMail.send(msg);
     } else {
       if (!this.transporter) {
+        if (requireDelivery)
+          throw new Error('Email delivery is not configured');
         this.logger.warn('Email service not configured, skipping email');
         return;
       }

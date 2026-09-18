@@ -74,6 +74,12 @@ export class Report {
   @Column({ type: 'text', nullable: true })
   resolution: string;
 
+  @Column({ type: 'jsonb', nullable: true, select: false })
+  retainedEvidence?: Record<string, unknown>;
+
+  @Column({ type: 'timestamp', nullable: true })
+  retentionHoldUntil?: Date;
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -99,11 +105,11 @@ export class Report {
   @JoinColumn({ name: 'reviewedById' })
   reviewedBy: Admin;
 
-  @ManyToOne(() => Message, { nullable: true })
+  @ManyToOne(() => Message, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'messageId' })
   message?: Message;
 
-  @ManyToOne(() => Chat, { nullable: true })
+  @ManyToOne(() => Chat, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'chatId' })
   chat?: Chat;
 }
