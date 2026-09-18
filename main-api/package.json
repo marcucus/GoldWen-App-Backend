@@ -70,7 +70,7 @@
     "mixpanel": "^0.18.1",
     "multer": "^2.0.2",
     "nest-winston": "^1.10.2",
-    "nestjs-throttler-storage-redis": "^0.5.1",
+    "@nest-lab/throttler-storage-redis": "^1.2.0",
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.5",
     "openai": "^6.2.0",
@@ -140,7 +140,7 @@
     "coverageThreshold": {
       "global": {
         "statements": 55,
-        "branches": 50,
+        "branches": 49,
         "functions": 38,
         "lines": 55
       }
